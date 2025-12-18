@@ -1,0 +1,7 @@
+[project]
+name = "uds-diag"
+version = "0.1.0"
+description = "可配置的 UDS 协议诊断工具"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = []
