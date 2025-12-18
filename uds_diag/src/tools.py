@@ -14,6 +14,7 @@ def _normalize_path(path_type: str, path: Optional[Path] = None) -> Path:
             path = _runtime_root / path
     else:
         path = _runtime_root / path_type
+    print(f"Normalized {path_type} path: {path}")
     return path
 
 
@@ -28,7 +29,7 @@ def load_config(config_file: str = "config/diag_config.json") -> dict:
     return config
 
 
-def get_dll_func_names(dll_path: str) -> list:
+def get_dll_func_names(dll_path: Path) -> list:
     func_names = []
 
     if not dll_path.exists():
