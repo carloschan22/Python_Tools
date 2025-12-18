@@ -6,6 +6,10 @@
         "data_bitrate": 2000000,
         "fd": true
     },
+    "address": {
+        "phy_tx": "0x794",
+        "phy_rx": "0x79C"
+    },
     "security": {
         "dll_file_name": "Q5030_SeedKey_x64",
         "feedback_bytes": 4
@@ -37,7 +41,6 @@
         "tx_padding": "0xCC",
         "rx_flowcontrol_timeout": 1000,
         "rx_consecutive_frame_timeout": 1000,
-        "squash_stmin_requirement": false,
         "max_frame_size": 4095
     },
     "default_client_config": {

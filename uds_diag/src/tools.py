@@ -29,8 +29,7 @@ def load_config(config_file: str = "config/diag_config.json") -> dict:
     return config
 
 
-def get_dll_func_names(dll_name: str) -> list:
-    dll_path = _normalize_path("dll", Path(f"dll/{dll_name}.dll"))
+def get_dll_func_names(dll_path: str) -> list:
     func_names = []
 
     if not dll_path.exists():
@@ -45,6 +44,18 @@ def get_dll_func_names(dll_name: str) -> list:
     return func_names
 
 
+def hex_to_int(hex_string: str) -> int:
+    if not isinstance(hex_string, str):
+        raise TypeError("hex_string 必须是字符串")
+
+    s = hex_string.strip().replace("_", "").replace(" ", "")
+    if s.lower().startswith("0x"):
+        s = s[2:]
+    if s == "":
+        raise ValueError("空的十六进制字符串")
+    return int(s, 16)
+
+
 if __name__ == "__main__":
 
     try:
@@ -53,5 +64,10 @@ if __name__ == "__main__":
     except FileNotFoundError as e:
         print(f"配置加载失败: {e}")
 
-    dll_func_names = get_dll_func_names("Q5030_SeedKey_x64")
+    dll_path = _normalize_path("dll", Path(f"dll/Q5030_SeedKey_x64.dll"))
+    dll_func_names = get_dll_func_names(dll_path)
     print(f"DLL函数列表: {dll_func_names}")
+
+    hex_string = "0xEE04"
+    value = hex_to_int(hex_string)
+    print(f"十六进制字符串 '{hex_string}' 转换为整数: {hex(value)} ({value})")
