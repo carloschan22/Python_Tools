@@ -1,0 +1,1 @@
+python -m nuitka --mingw64 --onefile --show-memory --show-progress --remove-output --include-data-dir=config=config --include-data-dir=dll=dll --include-data-dir=dbc=dbc main.py

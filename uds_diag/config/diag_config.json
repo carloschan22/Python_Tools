@@ -1,0 +1,63 @@
+{
+    "can_bus": {
+        "interface": "kvaser",
+        "channel": 0,
+        "bitrate": 500000,
+        "data_bitrate": 2000000,
+        "fd": true
+    },
+    "security": {
+        "dll_file_name": "Q5030_SeedKey_x64",
+        "feedback_bytes": 4
+    },
+    "did_config": {
+        "0xF18A": {
+            "name": "ECU Supplier",
+            "size": 10,
+            "type": "string"
+        },
+        "0xF197": {
+            "name": "ECU Name",
+            "size": 10,
+            "type": "string"
+        },
+        "0xF18C": {
+            "name": "ECU Serial Number",
+            "size": 14,
+            "type": "string"
+        }
+    },
+    "isotp_params": {
+        "stmin": 64,
+        "blocksize": 64,
+        "wftmax": 0,
+        "tx_data_length": 64,
+        "tx_data_min_length": 8,
+        "can_fd": true,
+        "tx_padding": "0xCC",
+        "rx_flowcontrol_timeout": 1000,
+        "rx_consecutive_frame_timeout": 1000,
+        "squash_stmin_requirement": false,
+        "max_frame_size": 4095
+    },
+    "default_client_config": {
+        "exception_on_negative_response": true,
+        "exception_on_invalid_response": true,
+        "exception_on_unexpected_response": true,
+        "security_algo": null,
+        "security_algo_params": null,
+        "tolerate_zero_padding": true,
+        "ignore_all_zero_dtc": true,
+        "dtc_snapshot_did_size": 2,
+        "server_address_format": null,
+        "server_memorysize_format": null,
+        "data_identifiers": {},
+        "input_output": {},
+        "request_timeout": 5,
+        "p2_timeout": 1,
+        "p2_star_timeout": 5,
+        "standard_version": 2020,
+        "use_server_timing": true,
+        "extended_data_size": null
+    }
+}

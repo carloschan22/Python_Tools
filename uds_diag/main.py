@@ -1,5 +1,10 @@
+import src.tools as tools
+
+
 def main():
-    print("Hello from uds-diag!")
+    # 加载配置文件
+    config = tools.load_config()
+    print(f"配置内容: {config}")
 
 
 if __name__ == "__main__":
