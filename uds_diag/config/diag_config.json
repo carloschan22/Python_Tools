@@ -33,15 +33,21 @@
     },
     "isotp_params": {
         "stmin": 64,
-        "blocksize": 64,
+        "blocksize": 8,
         "wftmax": 0,
-        "tx_data_length": 64,
-        "tx_data_min_length": 8,
-        "can_fd": true,
+        "tx_data_length": 8,
+        "tx_data_min_length": null,
         "tx_padding": "0xCC",
         "rx_flowcontrol_timeout": 1000,
         "rx_consecutive_frame_timeout": 1000,
-        "max_frame_size": 4095
+        "override_receiver_stmin": null,
+        "max_frame_size": 4095,
+        "can_fd": true,
+        "bitrate_switch": true,
+        "rate_limit_enable": false,
+        "rate_limit_max_bitrate": 1000000,
+        "rate_limit_window_size": 0.2,
+        "listen_mode": false
     },
     "default_client_config": {
         "exception_on_negative_response": true,

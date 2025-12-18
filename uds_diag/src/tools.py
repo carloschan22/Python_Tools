@@ -14,7 +14,6 @@ def _normalize_path(path_type: str, path: Optional[Path] = None) -> Path:
             path = _runtime_root / path
     else:
         path = _runtime_root / path_type
-    print(f"{path_type.capitalize()}路径: {path}")
     return path
 
 
