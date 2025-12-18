@@ -1,0 +1,11 @@
+[project]
+name = "injection-layer"
+version = "0.1.0"
+description = "提供了一个用于在通信管理器中注入不同通信接口的框架，支持日志记录功能。"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = []
+
+[[tool.uv.index]]
+name = "aliyun"
+url = "https://mirrors.aliyun.com/pypi/simple/"
