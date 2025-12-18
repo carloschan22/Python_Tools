@@ -1,7 +1,8 @@
 from udsoncan.connections import PythonIsoTpConnection
 from udsoncan.client import Client, services
+from udsoncan.typing import ClientConfig
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 
 import udsoncan
@@ -19,24 +20,25 @@ class DefineDidCodec(udsoncan.DidCodec):
     def __init__(self, string_len: int):
         self.string_len = string_len
 
-    def encode(self, string_bin: Any) -> bytes:
-        return string_bin
+    def encode(self, *did_value: Any) -> bytes:
+        return did_value[0]
 
-    def decode(self, string_bin: bytes) -> Any:
-        return string_bin
+    def decode(self, did_payload: bytes) -> Any:
+        return did_payload
 
     def __len__(self) -> int:
         return self.string_len
 
 
 class Security:
+    @staticmethod
     def security_algo(level, seed):
         dll_path = tools._normalize_path(
             "dll", Path(f"dll/{diag_config["security"]["dll_file_name"]}.dll")
         )
         dll_func_name = tools.get_dll_func_names(dll_path)[0]
 
-        ZeekrSeedKey = ctypes.CDLL(dll_path)
+        ZeekrSeedKey = ctypes.CDLL(str(dll_path))
         GenerateKeyEx = ZeekrSeedKey.__getattr__(dll_func_name)
         GenerateKeyEx.argtypes = [
             ctypes.POINTER(ctypes.c_ubyte),
@@ -73,7 +75,7 @@ def match_data_identifiers(did_config):
 
 
 class DiagService:
-    def __init__(self, bus: can.Bus, config: dict):
+    def __init__(self, bus: can.BusABC, config: dict):
         self.bus = bus
         self.config = config
         self.physical_tx = tools.hex_to_int(config["address"]["phy_tx"])
@@ -110,7 +112,7 @@ class DiagService:
             print(f"更新ISOTP栈地址失败: {e}")
             raise e
 
-    def uds_set_conn(self, stack: isotp.CanStack) -> PythonIsoTpConnection:
+    def uds_set_conn(self, stack: Optional[isotp.CanStack] = None) -> PythonIsoTpConnection:
         try:
             conn = PythonIsoTpConnection(stack if stack else self.uds_set_stack())
         except Exception as e:
@@ -118,15 +120,15 @@ class DiagService:
             raise e
         return conn
 
-    def uds_set_config(self) -> dict:
-        client_config = self.config["default_client_config"]
-        client_config["data_identifiers"] = match_data_identifiers(
+    def uds_set_config(self) -> ClientConfig:
+        client_config_dict = self.config["default_client_config"].copy()
+        client_config_dict["data_identifiers"] = match_data_identifiers(
             self.config["did_config"]
         )
-        client_config["security_algo"] = Security.security_algo
-        return client_config
+        client_config_dict["security_algo"] = Security.security_algo
+        return ClientConfig(**client_config_dict)
 
-    def uds_create_client(self, stack: isotp.CanStack = None) -> Client:
+    def uds_create_client(self, stack: Optional[isotp.CanStack] = None) -> Client:
         try:
             conn = self.uds_set_conn(stack)
             client_config = self.uds_set_config()
@@ -159,16 +161,16 @@ if __name__ == "__main__":
     print("UDS客户端创建成功")
 
     with client:
-        response = client.read_data_by_identifier(0xF197)
+        response = client.read_data_by_identifier(0xF197)  # type: ignore[reportArgumentType]
         print(f"读取DID 0xF197 响应: {response.data}")
-        response = client.change_session(3)
+        response = client.change_session(3)# type: ignore[reportArgumentType]
         if response.positive:
             print("切换到编程会话成功")
             try:
-                response = client.unlock_security_access(1)
+                response = client.unlock_security_access(1)# type: ignore[reportArgumentType]
                 if response.positive:
                     print("安全访问级别1成功")
-                    response = client.read_data_by_identifier(0xF197)
+                    response = client.read_data_by_identifier(0xF197)# type: ignore[reportArgumentType]
                     print(f"读取DID 0xF197 响应: {response.data}")
                 else:
                     print("安全访问级别1失败")
