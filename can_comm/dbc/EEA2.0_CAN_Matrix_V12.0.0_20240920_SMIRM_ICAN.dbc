@@ -1,0 +1,921 @@
+// *************************************************************************** *
+// *                                                                           *
+// *                      Mentor Graphics Corporation                          *
+// *                          All rights reserved                              *
+// *                                                                           *
+// *************************************************************************** *
+// *                                                                           *
+// * Description:         Partial CANDB File (for SMIRM Node)                  *
+// * Generated at:        2024-09-19 22:46                                     *
+// * Node                 SMIRM                                                *
+// *                                                                           *
+// *************************************************************************** *
+// *                                                                           *
+// *             THIS CONFIGURATION MIGHT CONTAIN SOME ERRORS                  *
+// *              IF THE INPUT MODEL WAS NOT PROPERLY FORMED!                  *
+// *                    Do Not Use this File directly!                         *
+// *                                                                           *
+// *************************************************************************** *
+
+
+VERSION "SMIRM"
+
+NS_ :
+	NS_DESC_
+	CM_
+	BA_DEF_
+	BA_
+	VAL_
+	CAT_DEF_
+	CAT_
+	FILTER
+	BA_DEF_DEF_
+	EV_DATA_
+	ENVVAR_DATA_
+	SGTYPE_
+	SGTYPE_VAL_
+	BA_DEF_SGTYPE_
+	BA_SGTYPE_
+	SIG_TYPE_REF_
+	VAL_TABLE_
+	SIG_GROUP_
+	SIG_VALTYPE_
+	SIGTYPE_VALTYPE_
+	BO_TX_BU_
+	BA_DEF_REL_
+	BA_REL_
+	BA_DEF_DEF_REL_
+	BU_SG_REL_
+	BU_EV_REL_
+	BU_BO_REL_
+	SG_MUL_VAL_
+
+BS_ :
+
+BU_ : SMIRM
+
+BO_ 1778 SMIRM_AteTestRes : 64 SMIRM
+ SG_ SMIRM_AteTestRes : 7|512@0+ (1.0,0.0) [0.0|0.0] "" Vector_XXX
+
+BO_ 1576 SMIRM_DTC : 8 SMIRM
+ SG_ SMIRM_DTC1_Num : 7|10@0+ (1.0,0.0) [0.0|1023.0] "" Vector_XXX
+ SG_ SMIRM_DTC1_State : 8|1@0+ (1,0) [0|1] "" Vector_XXX
+ SG_ SMIRM_DTC2_Num : 23|10@0+ (1.0,0.0) [0.0|1023.0] "" Vector_XXX
+ SG_ SMIRM_DTC2_State : 24|1@0+ (1,0) [0|1] "" Vector_XXX
+ SG_ SMIRM_DTC3_Num : 39|10@0+ (1.0,0.0) [0.0|1023.0] "" Vector_XXX
+ SG_ SMIRM_DTC3_State : 40|1@0+ (1,0) [0|1] "" Vector_XXX
+ SG_ SMIRM_DTC4_Num : 55|10@0+ (1.0,0.0) [0.0|1023.0] "" Vector_XXX
+ SG_ SMIRM_DTC4_State : 56|1@0+ (1,0) [0|1] "" Vector_XXX
+
+BO_ 1558 SMIRM_Fault_Event : 8 SMIRM
+ SG_ Diag_SMIRM : 7|16@0+ (1.0,0.0) [0.0|65535.0] "" Vector_XXX
+
+BO_ 952 SMIRM_Info1_100ms : 8 SMIRM
+ SG_ SMIRM_AngleAdt : 34|3@0+ (1,0) [0|7] "" Vector_XXX
+ SG_ SMIRM_ColorTemAdt : 42|3@0+ (1,0) [0|7] "" Vector_XXX
+ SG_ SMIRM_CtrlSource : 37|3@0+ (1,0) [0|7] "" Vector_XXX
+ SG_ SMIRM_EC_Brightness : 23|16@0+ (1.0,0.0) [0.0|65535.0] "LUX" Vector_XXX
+ SG_ SMIRM_Light_ValueMal : 55|7@0+ (1.0,0.0) [0.0|100.0] "%" Vector_XXX
+ SG_ SMIRM_Light_ValueModel : 47|2@0+ (1,0) [0|3] "" Vector_XXX
+ SG_ SMIRM_LightBrtns : 7|16@0+ (1.0,0.0) [0.0|64000.0] "LUX" Vector_XXX
+ SG_ SMIRM_LightValueAuto : 48|3@0+ (1,0) [0|7] "" Vector_XXX
+ SG_ SMIRM_StrMode : 39|2@0+ (1,0) [0|3] "" Vector_XXX
+ SG_ SMIRM_ZoomAngleAdt : 45|3@0+ (1,0) [0|7] "" Vector_XXX
+
+BO_ 1530 SMIRM_Info2_1000ms : 8 SMIRM
+ SG_ SMIRM_CameraNum : 15|16@0+ (1.0,0.0) [0.0|65535.0] "" Vector_XXX
+ SG_ SMIRM_LockTW8842Sts : 52|3@0+ (1,0) [0|7] "" Vector_XXX
+ SG_ SMIRM_NTC_Tem : 7|8@0+ (1.0,-40.0) [-40.0|125.0] "℃" Vector_XXX
+ SG_ SMIRM_OecgPower : 63|8@0+ (0.01,0.0) [0.0|255.0] "" Vector_XXX
+ SG_ SMIRM_PWM : 47|7@0+ (1.0,0.0) [0.0|100.0] "%" Vector_XXX
+ SG_ SMIRM_ScreenLinkSts : 40|4@0+ (1,0) [0|15] "" Vector_XXX
+ SG_ SMIRM_TempProtect : 49|2@0+ (1,0) [0|3] "" Vector_XXX
+ SG_ SMIRM_UI_Num : 31|16@0+ (1.0,0.0) [0.0|65535.0] "" Vector_XXX
+
+BO_ 895 SMIRM_Info3_100ms : 8 SMIRM
+ SG_ SMIRM_LCPWM : 18|7@0+ (1.0,0.0) [0.0|100.0] "%" Vector_XXX
+ SG_ SMIRM_LightValue : 9|7@0+ (1.0,0.0) [0.0|100.0] "%" Vector_XXX
+ SG_ SMIRM_StepAngleAdt : 7|7@0+ (1.0,0.0) [0.0|100.0] "" Vector_XXX
+ SG_ SMIRM_StepZoomAngleAdt : 0|7@0+ (1.0,0.0) [0.0|100.0] "" Vector_XXX
+
+BO_ 1559 SMIRM_Log1_1000ms : 64 SMIRM
+ SG_ SMIRM_Log1 : 7|512@0+ (1.0,0.0) [0.0|0.0] "" Vector_XXX
+
+BO_ 1545 SMIRM_Log2_Event : 64 SMIRM
+ SG_ SMIRM_Log2 : 7|512@0+ (1.0,0.0) [0.0|0.0] "" Vector_XXX
+
+BO_ 1118 SMIRM_NM : 8 SMIRM
+ SG_ SMIRM_ActiveWakeupStatus : 12|1@0+ (1,0) [0|1] "" Vector_XXX
+ SG_ SMIRM_NMStatus : 22|1@0+ (1,0) [0|1] "" Vector_XXX
+ SG_ SMIRM_PartialNetworkbit : 14|1@0+ (1,0) [0|1] "" Vector_XXX
+ SG_ SMIRM_RepeatMessageReq : 8|1@0+ (1,0) [0|1] "" Vector_XXX
+ SG_ SMIRM_SourceAddress : 7|8@0+ (1.0,0.0) [0.0|255.0] "" Vector_XXX
+ SG_ SMIRM_StaywakeRsn_Diag : 25|1@0+ (1,0) [0|1] "" Vector_XXX
+ SG_ SMIRM_StaywakeRsn_Download : 27|1@0+ (1,0) [0|1] "" Vector_XXX
+ SG_ SMIRM_StaywakeRsn_HwACC : 26|1@0+ (1,0) [0|1] "" Vector_XXX
+ SG_ SMIRM_StaywakeRsn_PowerMode : 24|1@0+ (1,0) [0|1] "" Vector_XXX
+ SG_ SMIRM_WakeUpRsn : 21|6@0+ (1,0) [0|63] "" Vector_XXX
+
+BO_ 1591 SMIRM_PDSN_1000ms : 8 SMIRM
+ SG_ SMIRM_PDSN : 7|64@0+ (1.0,0.0) [0.0|65535.0] "%" Vector_XXX
+
+BO_ 1579 SMIRM_VerNum : 8 SMIRM
+ SG_ SMIRM_BTVerNum : 7|16@0+ (1.0,0.0) [0.0|65535.0] "" Vector_XXX
+ SG_ SMIRM_HWVerNum : 23|16@0+ (1.0,0.0) [0.0|65535.0] "" Vector_XXX
+ SG_ SMIRM_SWID : 55|16@0+ (1.0,0.0) [0.0|65535.0] "" Vector_XXX
+ SG_ SMIRM_SWVerNum : 39|16@0+ (1.0,0.0) [0.0|65535.0] "" Vector_XXX
+
+BO_ 1948 UDS_DiagResp_SMIRM_FD : 64 SMIRM
+
+BO_ 150 ESP_Info_10ms_Rt_FD : 8 Vector_XXX
+ SG_ VehSpd : 55|13@0+ (0.05625,0.0) [0.0|460.6875] "km/h" SMIRM
+ SG_ VehSpdValid : 58|1@0+ (1,0) [0|1] "" SMIRM
+
+BO_ 521 FBCM_BCM_XCU_Info1_20ms_GW : 8 Vector_XXX
+ SG_ LowVolPwrMd : 14|2@0+ (1,0) [0|3] "" SMIRM
+ SG_ LowVolPwrMdFlag : 15|1@0+ (1,0) [0|1] "" SMIRM
+
+BO_ 925 HU_Info1_100ms_E : 8 Vector_XXX
+ SG_ SuperECOMode : 48|2@0+ (1,0) [0|3] "" SMIRM
+ SG_ TotalOdometer : 23|24@0+ (0.1,0.0) [0.0|999999.9] "km" SMIRM
+
+BO_ 158 HU_Info1_10ms_E : 8 Vector_XXX
+ SG_ EastOrWestTimeZone : 1|2@0+ (1,0) [0|3] "" SMIRM
+ SG_ TimeZoneMinute : 61|6@0+ (1.0,0.0) [0.0|59.0] "" SMIRM
+ SG_ TimeZoneNum : 7|4@0+ (1,0) [0|15] "" SMIRM
+ SG_ UTCTime : 15|48@0+ (1.0,0.0) [0.0|281474976710655.0] "ms" SMIRM
+ SG_ UTCTimeValidFlag : 3|2@0+ (1,0) [0|3] "" SMIRM
+
+BO_ 1023 HU_Info5_100ms : 32 Vector_XXX
+ SG_ HU_HUD_LCD_light : 231|3@0+ (1,0) [0|7] "" SMIRM
+
+BO_ 1007 HU_Info6_50ms : 32 Vector_XXX
+ SG_ HU_CleanMode : 252|2@0+ (1,0) [0|3] "" SMIRM
+
+BO_ 1069 HU_NM_I : 8 Vector_XXX
+ SG_ HU_ActiveWakeupStatus_I : 12|1@0+ (1,0) [0|1] "" SMIRM
+ SG_ HU_ICAN_WakeUpRsn : 21|6@0+ (1,0) [0|63] "" SMIRM
+ SG_ HU_NMStatus_I : 22|1@0+ (1,0) [0|1] "" SMIRM
+ SG_ HU_PartialNetworkbit_I : 14|1@0+ (1,0) [0|1] "" SMIRM
+ SG_ HU_RepeatMessageReq_I : 8|1@0+ (1,0) [0|1] "" SMIRM
+ SG_ HU_SourceAddress_I : 7|8@0+ (1.0,0.0) [0.0|255.0] "" SMIRM
+ SG_ HU_StaywakeRsn_HwAccOrOn_I : 26|1@0+ (1,0) [0|1] "" SMIRM
+ SG_ HU_StaywakeRsn_PowerMode_I : 24|1@0+ (1,0) [0|1] "" SMIRM
+ SG_ HU_StaywakeRsn_RequesetFrom5G_I : 33|1@0+ (1,0) [0|1] "" SMIRM
+ SG_ HU_StaywakeRsn_RequesetFromEcan_Abnormal_I : 30|1@0+ (1,0) [0|1] "" SMIRM
+ SG_ HU_StaywakeRsn_RequesetFromFSD1_I : 27|1@0+ (1,0) [0|1] "" SMIRM
+ SG_ HU_StaywakeRsn_RequesetFromFSD2_I : 28|1@0+ (1,0) [0|1] "" SMIRM
+ SG_ HU_StaywakeRsn_RequesetFromSOCF_I : 31|1@0+ (1,0) [0|1] "" SMIRM
+ SG_ HU_StaywakeRsn_RequesetFromSOCR_I : 32|1@0+ (1,0) [0|1] "" SMIRM
+ SG_ HU_StaywakeRsn_RequesetFromXCU_I : 29|1@0+ (1,0) [0|1] "" SMIRM
+
+BO_ 1454 HU_SMIRMCtrl_100ms : 8 Vector_XXX
+ SG_ HU_Angle_AdtCmd : 21|3@0+ (1,0) [0|7] "" SMIRM
+ SG_ HU_Color_Tem_AdtCmd : 26|3@0+ (1,0) [0|7] "" SMIRM
+ SG_ HU_Light_ValueMalCmd : 39|7@0+ (1.0,0.0) [0.0|100.0] "%" SMIRM
+ SG_ HU_Light_ValueModelCmd : 31|2@0+ (1,0) [0|3] "" SMIRM
+ SG_ HU_LightBrtns : 7|16@0+ (1.0,0.0) [0.0|64000.0] "LUX" SMIRM
+ SG_ HU_LightValueAutoCmd : 18|3@0+ (1,0) [0|7] "" SMIRM
+ SG_ HU_LightValueCmd : 63|7@0+ (1.0,0.0) [0.0|100.0] "%" SMIRM
+ SG_ HU_Step_Angle_AdtCmd : 54|7@0+ (1.0,0.0) [0.0|100.0] "" SMIRM
+ SG_ HU_Step_Zoom_Angle_AdtCmd : 45|7@0+ (1.0,0.0) [0.0|100.0] "" SMIRM
+ SG_ HU_Str_ModeCmd : 23|2@0+ (1,0) [0|3] "" SMIRM
+ SG_ HU_Zoom_Angle_AdtCmd : 29|3@0+ (1,0) [0|7] "" SMIRM
+ SG_ WaitRescueMod_HU : 32|3@0+ (1,0) [0|7] "" SMIRM
+
+BO_ 1391 HU_SunRiseTime_1000ms : 8 Vector_XXX
+ SG_ Sunrise_Hours : 1|5@0+ (1.0,0.0) [0.0|31.0] "" SMIRM
+ SG_ Sunrise_Minutes : 7|6@0+ (1.0,0.0) [0.0|63.0] "" SMIRM
+ SG_ Sunset_Hours : 12|5@0+ (1.0,0.0) [0.0|31.0] "" SMIRM
+ SG_ Sunset_Minutes : 23|6@0+ (1.0,0.0) [0.0|63.0] "" SMIRM
+
+BO_ 1777 SMIRM_AteTestReq : 64 Vector_XXX
+ SG_ SMIRM_AteTestReq : 7|512@0+ (1.0,0.0) [0.0|0.0] "" SMIRM
+
+BO_ 1782 SMIRMColorTest_Event : 8 Vector_XXX
+ SG_ HU_SMIRMColorTest : 7|4@0+ (1,0) [0|15] "" SMIRM
+
+BO_ 2015 UDS_FuncDiagReq_FD : 8 Vector_XXX
+
+BO_ 1940 UDS_PhyDiagReq_SMIRM_FD : 64 Vector_XXX
+
+BO_ 1008 XCU_Info1_100ms_PT1 : 8 Vector_XXX
+ SG_ AntiGlareLvl : 31|3@0+ (1,0) [0|7] "" SMIRM
+
+BO_ 919 XCU_Info_100ms_CH : 8 Vector_XXX
+ SG_ VehMdst : 15|4@0+ (1,0) [0|15] "" SMIRM
+ SG_ XCUVehMd : 23|4@0+ (1,0) [0|15] "" SMIRM
+
+BO_ 194 XCU_Info_10ms_FD : 8 Vector_XXX
+ SG_ ActuGearShiftPos : 63|8@0+ (1,0) [0|255] "" SMIRM
+
+BO_ 825 XCU_RLSInfo_100ms_GW : 8 Vector_XXX
+ SG_ AmbBrtns : 7|12@0+ (20.0,0.0) [0.0|81860.0] "" SMIRM
+ SG_ FwdBrtns : 11|12@0+ (6.0,0.0) [0.0|24558.0] "" SMIRM
+ SG_ LghtLel : 47|3@0+ (1,0) [0|7] "" SMIRM
+
+
+// Signal Comments
+CM_ SG_ 1778 SMIRM_AteTestRes "SMIRM ATE Test Response
+SMIRM模块供应商自动测试响应信号";
+CM_ SG_ 1576 SMIRM_DTC1_Num "DTC Number
+ DTC序号";
+CM_ SG_ 1576 SMIRM_DTC1_State "DTC State
+ 故障状态";
+CM_ SG_ 1576 SMIRM_DTC2_Num "DTC Number
+ DTC序号";
+CM_ SG_ 1576 SMIRM_DTC2_State "DTC State
+ 故障状态";
+CM_ SG_ 1576 SMIRM_DTC3_Num "DTC Number
+ DTC序号";
+CM_ SG_ 1576 SMIRM_DTC3_State "DTC State
+ 故障状态";
+CM_ SG_ 1576 SMIRM_DTC4_Num "DTC Number
+ DTC序号";
+CM_ SG_ 1576 SMIRM_DTC4_State "DTC State
+ 故障状态";
+CM_ SG_ 1558 Diag_SMIRM "Diagnosis
+故障诊断信息外发";
+CM_ SG_ 952 SMIRM_AngleAdt "SMIRM Angle Adjustment
+流媒体后视镜视角调节";
+CM_ SG_ 952 SMIRM_ColorTemAdt "SMIRM Color Temperature Adjustment
+流媒体后视镜色温调节";
+CM_ SG_ 952 SMIRM_CtrlSource "SMIRM Control Source
+最后一次控制命令发出方";
+CM_ SG_ 952 SMIRM_EC_Brightness "SMIRM_EC_Brightness
+EC亮度sensor值";
+CM_ SG_ 952 SMIRM_Light_ValueMal "SMIRM Light Value Manual 
+流媒体后视镜手动_自动亮度调节";
+CM_ SG_ 952 SMIRM_Light_ValueModel "SMIRM Light Value Model 
+流媒体后视镜手动/自动模式";
+CM_ SG_ 952 SMIRM_LightBrtns "SMIRM Light Bright ness
+车内光照度值";
+CM_ SG_ 952 SMIRM_LightValueAuto "SMIRM Light Value Auto 
+流媒体后视镜自动亮度调节";
+CM_ SG_ 952 SMIRM_StrMode "SMIRM Streaming Mode
+流媒体模式";
+CM_ SG_ 952 SMIRM_ZoomAngleAdt "SMIRM Zoom Angle Adjustment
+流媒体后视镜缩放视角调节";
+CM_ SG_ 1530 SMIRM_CameraNum "SMIRM_CameraNum
+流媒体后视镜摄像头软件版本";
+CM_ SG_ 1530 SMIRM_LockTW8842Sts "SMIRM_Lock TW8842 Status
+流媒体后视镜LOCK信号&TW8842同步信号状态";
+CM_ SG_ 1530 SMIRM_NTC_Tem "SMIRM NTC Temperature
+流媒体后视镜NTC温度";
+CM_ SG_ 1530 SMIRM_OecgPower "SMIRM_OecgPower
+流媒体后视镜外ECG镜防眩电压值";
+CM_ SG_ 1530 SMIRM_PWM "SMIRM_PWM
+流媒体后视镜背光PWM值";
+CM_ SG_ 1530 SMIRM_ScreenLinkSts "SMIRM Screen Link Status
+流媒体后视镜屏幕链路状态";
+CM_ SG_ 1530 SMIRM_TempProtect "SMIRM Temperature Protect";
+CM_ SG_ 1530 SMIRM_UI_Num "SMIRM_UI_Num
+流媒体后视镜UI软件版本";
+CM_ SG_ 895 SMIRM_LCPWM "SMIRM_LCPWM
+流媒体后视镜内镜LC防眩PWM值";
+CM_ SG_ 895 SMIRM_LightValue "SMIRM Light Value
+流媒体后视镜亮度调节";
+CM_ SG_ 895 SMIRM_StepAngleAdt "SMIRM Stepless Angle Adjustment
+流媒体后视镜无极视角调节";
+CM_ SG_ 895 SMIRM_StepZoomAngleAdt "SMIRM Stepless Zoom Angle Adjustment
+流媒体后视镜无极缩放视角调节";
+CM_ SG_ 1559 SMIRM_Log1 "log外发";
+CM_ SG_ 1545 SMIRM_Log2 "log外发";
+CM_ SG_ 1118 SMIRM_ActiveWakeupStatus "Active Wakeup Bit
+ 主动唤醒标志位";
+CM_ SG_ 1118 SMIRM_NMStatus "Network Management State
+ 指示网络管理状态";
+CM_ SG_ 1118 SMIRM_PartialNetworkbit "Partial Network Bit
+ PN标志位";
+CM_ SG_ 1118 SMIRM_RepeatMessageReq "Repeat Message Request
+ 重复报文发送请求";
+CM_ SG_ 1118 SMIRM_SourceAddress "Source ECU Address
+ ECU源地址";
+CM_ SG_ 1118 SMIRM_StaywakeRsn_Diag "SMIRM stay wake reason diagnosis
+ SMIRM保持唤醒原因诊断模式";
+CM_ SG_ 1118 SMIRM_StaywakeRsn_Download "SMIRM stay wake reason data download
+ SMIRM保持唤醒原因数据下载";
+CM_ SG_ 1118 SMIRM_StaywakeRsn_HwACC "SMIRM stay wake reason hardwire ACC active
+ SMIRM保持唤醒原因硬线ACC有效";
+CM_ SG_ 1118 SMIRM_StaywakeRsn_PowerMode "SMIRM stay wake reason PowerMode ACC or ON
+ SMIRM保持唤醒原因总线信号PowerMode为ACC或ON";
+CM_ SG_ 1118 SMIRM_WakeUpRsn "Wakeup Reasons
+ 唤醒原因";
+CM_ SG_ 1591 SMIRM_PDSN "SMIRM PDSN
+流媒体后视镜PDSN码";
+CM_ SG_ 1579 SMIRM_BTVerNum "BOOT Version Number
+ BOOT版本号";
+CM_ SG_ 1579 SMIRM_HWVerNum "HardWare Version Number
+ 硬件版本号";
+CM_ SG_ 1579 SMIRM_SWID "Software ID
+ 软件ID";
+CM_ SG_ 1579 SMIRM_SWVerNum "SoftWare Version Number
+ 软件版本号";
+CM_ SG_ 150 VehSpd "Vehicle speed out
+当前车速";
+CM_ SG_ 150 VehSpdValid "vehicle speed Vaild 
+当前车速有效性";
+CM_ SG_ 521 LowVolPwrMd "Low voltage Power mode
+低压电源模式";
+CM_ SG_ 521 LowVolPwrMdFlag "Low voltage PowerModeFlag
+远程电源和本地电源标志位";
+CM_ SG_ 925 SuperECOMode "Super Ecology Conservation Optimization";
+CM_ SG_ 925 TotalOdometer "Total Odometer
+总里程";
+CM_ SG_ 158 EastOrWestTimeZone "EastOrWestTimeZone
+东/西时区";
+CM_ SG_ 158 TimeZoneMinute "TimeZoneMinute
+时区分钟偏移量";
+CM_ SG_ 158 TimeZoneNum "TimeZoneNum
+时区编号";
+CM_ SG_ 158 UTCTime "UTCTime
+UTC时间";
+CM_ SG_ 158 UTCTimeValidFlag "TimeValidFlg
+时间有效性标志";
+CM_ SG_ 1023 HU_HUD_LCD_light "HU_HUD_LCD_light
+HUD亮灭屏控制信号";
+CM_ SG_ 1007 HU_CleanMode "HU Clean Mode
+HU 发出的清洁模式状态";
+CM_ SG_ 1069 HU_ActiveWakeupStatus_I "Active Wakeup Bit
+主动唤醒标志位";
+CM_ SG_ 1069 HU_ICAN_WakeUpRsn "Wakeup Reasons
+唤醒原因";
+CM_ SG_ 1069 HU_NMStatus_I "Network Management State
+指示网络管理状态";
+CM_ SG_ 1069 HU_PartialNetworkbit_I "Partial Network Bit
+PN标志位";
+CM_ SG_ 1069 HU_RepeatMessageReq_I "Repeat Message Request
+重复报文发送请求";
+CM_ SG_ 1069 HU_SourceAddress_I "Source ECU Address
+ECU源地址";
+CM_ SG_ 1069 HU_StaywakeRsn_HwAccOrOn_I "HU stay wake reason Hw ACC or ON
+硬线ACC或者ON有效";
+CM_ SG_ 1069 HU_StaywakeRsn_PowerMode_I "HU stay wake reason Power mode
+低压电源模式保持唤醒";
+CM_ SG_ 1069 HU_StaywakeRsn_RequesetFrom5G_I "HU stay wake reason 5G
+5G业务请求保持唤醒";
+CM_ SG_ 1069 HU_StaywakeRsn_RequesetFromEcan_Abnormal_I "HU stay wake reason ECAN Error
+ECAN报文通信异常保持唤醒";
+CM_ SG_ 1069 HU_StaywakeRsn_RequesetFromFSD1_I "HU stay wake reason FSD1
+ECAN网段FSD1保持唤醒";
+CM_ SG_ 1069 HU_StaywakeRsn_RequesetFromFSD2_I "HU stay wake reason FSD2
+ECAN网段FSD2保持唤醒";
+CM_ SG_ 1069 HU_StaywakeRsn_RequesetFromSOCF_I "HU stay wake reason SOCF
+SOCF业务请求保持唤醒";
+CM_ SG_ 1069 HU_StaywakeRsn_RequesetFromSOCR_I "HU stay wake reason SOCR
+SOCR业务请求保持唤醒";
+CM_ SG_ 1069 HU_StaywakeRsn_RequesetFromXCU_I "HU stay wake reason XCU
+ECAN网段XCU保持唤醒";
+CM_ SG_ 1454 HU_Angle_AdtCmd "HU Angle Adjustment Commend
+流媒体后视镜视角调节命令(3帧翻转)";
+CM_ SG_ 1454 HU_Color_Tem_AdtCmd "HU Color Temperature Adjustment Commend
+流媒体后视镜色温调节命令(3帧翻转)";
+CM_ SG_ 1454 HU_Light_ValueMalCmd "HU Light Value Manual Commend
+流媒体后视镜手动亮度调节命令(3帧翻转)";
+CM_ SG_ 1454 HU_Light_ValueModelCmd "HU Light Value Model Commend
+流媒体后视镜手动/自动模式命令(3帧翻转)";
+CM_ SG_ 1454 HU_LightBrtns "HU Light Bright ness
+车内光照度值(3帧翻转)";
+CM_ SG_ 1454 HU_LightValueAutoCmd "HU Light Value Auto Commend
+流媒体后视镜自动亮度调节命令(3帧翻转)";
+CM_ SG_ 1454 HU_LightValueCmd "HU Light Value Commend
+流媒体后视镜亮度调节命令(3帧翻转)";
+CM_ SG_ 1454 HU_Step_Angle_AdtCmd "HU Stepless Angle Adjustment Commend
+流媒体后视镜无极视角调节命令(3帧翻转)";
+CM_ SG_ 1454 HU_Step_Zoom_Angle_AdtCmd "HU Stepless Zoom Angle Adjustment Commend
+流媒体后视镜无极缩放视角调节命令(3帧翻转)";
+CM_ SG_ 1454 HU_Str_ModeCmd "HU Streaming Mode Commend
+流媒体模式命令(3帧翻转)";
+CM_ SG_ 1454 HU_Zoom_Angle_AdtCmd "HU Zoom Angle Adjustment Commend
+流媒体后视镜缩放视角调节命令(3帧翻转)";
+CM_ SG_ 1454 WaitRescueMod_HU "Wating For Rescue Mode
+等待救援模式(3帧翻转)";
+CM_ SG_ 1391 Sunrise_Hours "Sunrise Hours
+日出时间(小时)";
+CM_ SG_ 1391 Sunrise_Minutes "Sunrise Minutes
+日出时间(分钟)";
+CM_ SG_ 1391 Sunset_Hours "Sunset Hours
+日落时间(小时)";
+CM_ SG_ 1391 Sunset_Minutes "Sunset Minutes
+日落时间(分钟)";
+CM_ SG_ 1777 SMIRM_AteTestReq "SMIRM Test Request
+SMIRM模块供应商自动测试请求信号";
+CM_ SG_ 1782 HU_SMIRMColorTest "HU_SMIRMColorTest
+流媒体后视镜屏幕视觉状态测试";
+CM_ SG_ 1008 AntiGlareLvl "Anti-Glare Level
+ 防眩目等级";
+CM_ SG_ 919 VehMdst "Vehicle Mode State
+整车模式状态";
+CM_ SG_ 919 XCUVehMd "XCU Vehicle mode
+XCU 整车模式状态";
+CM_ SG_ 194 ActuGearShiftPos "Actual logic gear shift
+逻辑档位信号";
+CM_ SG_ 825 AmbBrtns "AmbBrightness
+环境光值";
+CM_ SG_ 825 FwdBrtns "Forward Brightness
+前向光信号";
+CM_ SG_ 825 LghtLel "LightLevel
+光线级别";
+
+// Attribute definitions
+BA_DEF_  "BaudRateCANFD" INT 1000 10000000; // 
+BA_DEF_  "Baudrate" INT 1000 1000000; // 
+BA_DEF_  "BusType" STRING;
+BA_DEF_  "DBName" STRING;
+BA_DEF_  "IlTxTimeout" INT 0 65535; // 
+BA_DEF_  "Manufacturer" STRING;
+BA_DEF_  "NmAsrBaseAddress" HEX 0 65535; // 
+BA_DEF_  "NmAsrCanMsgCycleTime" INT 0 65535; // 
+BA_DEF_  "NmAsrMessageCount" INT 0 255; // 
+BA_DEF_  "NmAsrRepeatMessageTime" INT 0 65535; // 
+BA_DEF_  "NmAsrTimeoutTime" INT 0 65535; // 
+BA_DEF_  "NmAsrWaitBusSleepTime" INT 0 65535; // 
+BA_DEF_  "NmType" STRING;
+BA_DEF_  "ProtocolType" STRING;
+BA_DEF_ BU_ "ILUsed" ENUM "No","Yes"; // 
+BA_DEF_ BU_ "NmAsrCanMsgCycleOffset" INT 0 65535; // 
+BA_DEF_ BU_ "NmAsrCanMsgReducedTime" INT 0 65535; // 
+BA_DEF_ BU_ "NmAsrNode" ENUM "No","Yes"; // 
+BA_DEF_ BU_ "NmAsrNodeIdentifier" INT 0 255; // 
+BA_DEF_ BO_ "CANFD_BRS" ENUM "0","1";
+BA_DEF_ BO_ "DiagConnection" INT 0 65535; // 
+BA_DEF_ BO_ "DiagRequest" ENUM "No","Yes"; // 
+BA_DEF_ BO_ "DiagResponse" ENUM "No","Yes"; // 
+BA_DEF_ BO_ "DiagState" ENUM "No","Yes"; // 
+BA_DEF_ BO_ "DiagUUDTResponse" ENUM "No","Yse"; // 
+BA_DEF_ BO_ "GenMsgCycleTime" INT 0 300000; // 
+BA_DEF_ BO_ "GenMsgCycleTimeFast" INT 0 300000; // 
+BA_DEF_ BO_ "GenMsgDelayTime" INT 0 300000; // 
+BA_DEF_ BO_ "GenMsgILSupport" ENUM "No","Yes"; // 
+BA_DEF_ BO_ "GenMsgNrOfRepetition" INT 0 100000; // 
+BA_DEF_ BO_ "GenMsgSendType" ENUM "cyclic","spontaneous","cyclicIfActive","spontaneousWithDelay","cyclicAndSpontaneous","cyclicAndSpontaneousWithDelay","IfActive","NoMsgSendType"; // 
+BA_DEF_ BO_ "GenMsgStartDelayTime" INT 0 300000; // 
+BA_DEF_ BO_ "NmAsrMessage" ENUM "No","Yes"; // 
+BA_DEF_ BO_ "VFrameFormat" ENUM "StandardCAN","ExtendedCAN","reserved","J1939PG","reserved","reserved","reserved","reserved","reserved","reserved","reserved","reserved","reserved","reserved","StandardCAN_FD","ExtendedCAN_FD";
+BA_DEF_ SG_ "GenSigCycleTime" INT 0 0; // 
+BA_DEF_ SG_ "GenSigCycleTimeActive" INT 0 0; // 
+BA_DEF_ SG_ "GenSigInactiveValue" INT 0 0; // 
+BA_DEF_ SG_ "GenSigRrmark" STRING;
+BA_DEF_ SG_ "GenSigSendType" ENUM "Cyclic","OnWrite","OnWriteWithRepetition","OnChange","OnChangeWithRepetition","IfActive","IfActiveWithRepetition","NoSigSendType"; // 
+BA_DEF_ SG_ "GenSigStartValue" INT 0 2147483647; // 
+BA_DEF_ SG_ "GenSigTimeoutTime" INT 0 65535; // 
+
+BA_DEF_DEF_ "BaudRateCANFD" 2000000;
+BA_DEF_DEF_ "Baudrate" 500000;
+BA_DEF_DEF_ "BusType" "";
+BA_DEF_DEF_ "DBName" "";
+BA_DEF_DEF_ "IlTxTimeout" 0;
+BA_DEF_DEF_ "Manufacturer" "Vector";
+BA_DEF_DEF_ "NmAsrBaseAddress" 1024;
+BA_DEF_DEF_ "NmAsrCanMsgCycleTime" 500;
+BA_DEF_DEF_ "NmAsrMessageCount" 255;
+BA_DEF_DEF_ "NmAsrRepeatMessageTime" 1500;
+BA_DEF_DEF_ "NmAsrTimeoutTime" 2000;
+BA_DEF_DEF_ "NmAsrWaitBusSleepTime" 5000;
+BA_DEF_DEF_ "NmType" "";
+BA_DEF_DEF_ "ProtocolType" "";
+BA_DEF_DEF_ "ILUsed" "Yes";
+BA_DEF_DEF_ "NmAsrCanMsgCycleOffset" 0;
+BA_DEF_DEF_ "NmAsrCanMsgReducedTime" 50;
+BA_DEF_DEF_ "NmAsrNode" "Yes";
+BA_DEF_DEF_ "NmAsrNodeIdentifier" 0;
+BA_DEF_DEF_ "CANFD_BRS" "1";
+BA_DEF_DEF_ "DiagConnection" 57346;
+BA_DEF_DEF_ "DiagRequest" "No";
+BA_DEF_DEF_ "DiagResponse" "No";
+BA_DEF_DEF_ "DiagState" "No";
+BA_DEF_DEF_ "DiagUUDTResponse" "No";
+BA_DEF_DEF_ "GenMsgCycleTime" 0;
+BA_DEF_DEF_ "GenMsgCycleTimeFast" 0;
+BA_DEF_DEF_ "GenMsgDelayTime" 0;
+BA_DEF_DEF_ "GenMsgILSupport" "Yes";
+BA_DEF_DEF_ "GenMsgNrOfRepetition" 0;
+BA_DEF_DEF_ "GenMsgStartDelayTime" 0;
+BA_DEF_DEF_ "NmAsrMessage" "No";
+BA_DEF_DEF_ "VFrameFormat" "J1939PG";
+BA_DEF_DEF_ "GenSigCycleTime" 0;
+BA_DEF_DEF_ "GenSigCycleTimeActive" 0;
+BA_DEF_DEF_ "GenSigInactiveValue" 0;
+BA_DEF_DEF_ "GenSigRrmark" "";
+BA_DEF_DEF_ "GenSigSendType" "Cyclic";
+BA_DEF_DEF_ "GenSigStartValue" 0;
+BA_DEF_DEF_ "GenSigTimeoutTime" 0;
+
+// Network
+BA_ "BaudRateCANFD" 2000000;
+BA_ "Baudrate" 500000;
+BA_ "BusType" "CAN FD";
+BA_ "DBName" "SMIRM_ICAN_Ctrl";
+BA_ "ProtocolType" "CAN";
+// Frame: ESP_Info_10ms_Rt_FD
+BA_ "GenMsgCycleTime" BO_ 150 10.000;
+BA_ "GenMsgSendType" BO_ 150 0;
+BA_ "GenMsgStartDelayTime" BO_ 150 5.000;
+BA_ "VFrameFormat" BO_ 150 14;
+// Frame: FBCM_BCM_XCU_Info1_20ms_GW
+BA_ "GenMsgCycleTime" BO_ 521 20.000;
+BA_ "GenMsgSendType" BO_ 521 0;
+BA_ "GenMsgStartDelayTime" BO_ 521 0.000;
+BA_ "VFrameFormat" BO_ 521 14;
+// Frame: HU_Info1_100ms_E
+BA_ "GenMsgCycleTime" BO_ 925 100.000;
+BA_ "GenMsgSendType" BO_ 925 0;
+BA_ "GenMsgStartDelayTime" BO_ 925 0.000;
+BA_ "VFrameFormat" BO_ 925 14;
+// Frame: HU_Info1_10ms_E
+BA_ "GenMsgCycleTime" BO_ 158 10.000;
+BA_ "GenMsgSendType" BO_ 158 0;
+BA_ "GenMsgStartDelayTime" BO_ 158 0.000;
+BA_ "VFrameFormat" BO_ 158 14;
+// Frame: HU_Info5_100ms
+BA_ "GenMsgCycleTime" BO_ 1023 100.000;
+BA_ "GenMsgSendType" BO_ 1023 0;
+BA_ "GenMsgStartDelayTime" BO_ 1023 0.000;
+BA_ "VFrameFormat" BO_ 1023 14;
+// Frame: HU_Info6_50ms
+BA_ "GenMsgCycleTime" BO_ 1007 50.000;
+BA_ "GenMsgSendType" BO_ 1007 0;
+BA_ "GenMsgStartDelayTime" BO_ 1007 0.000;
+BA_ "VFrameFormat" BO_ 1007 14;
+// Frame: HU_NM_I
+BA_ "GenMsgDelayTime" BO_ 1069 500.000;
+BA_ "GenMsgSendType" BO_ 1069 1;
+BA_ "NmAsrMessage" BO_ 1069 1;
+BA_ "VFrameFormat" BO_ 1069 0;
+// Frame: HU_SMIRMCtrl_100ms
+BA_ "GenMsgCycleTime" BO_ 1454 100.000;
+BA_ "GenMsgSendType" BO_ 1454 0;
+BA_ "GenMsgStartDelayTime" BO_ 1454 0.000;
+BA_ "VFrameFormat" BO_ 1454 14;
+// Frame: HU_SunRiseTime_1000ms
+BA_ "GenMsgCycleTime" BO_ 1391 1000.000;
+BA_ "GenMsgSendType" BO_ 1391 0;
+BA_ "GenMsgStartDelayTime" BO_ 1391 0.000;
+BA_ "VFrameFormat" BO_ 1391 14;
+// Frame: SMIRMColorTest_Event
+BA_ "GenMsgDelayTime" BO_ 1782 1000.000;
+BA_ "GenMsgSendType" BO_ 1782 1;
+BA_ "VFrameFormat" BO_ 1782 14;
+// Frame: SMIRM_AteTestReq
+BA_ "GenMsgDelayTime" BO_ 1777 1000.000;
+BA_ "GenMsgSendType" BO_ 1777 1;
+BA_ "VFrameFormat" BO_ 1777 14;
+// Frame: SMIRM_AteTestRes
+BA_ "GenMsgDelayTime" BO_ 1778 1000.000;
+BA_ "GenMsgSendType" BO_ 1778 1;
+BA_ "VFrameFormat" BO_ 1778 14;
+// Frame: SMIRM_DTC
+BA_ "GenMsgCycleTime" BO_ 1576 1000.000;
+BA_ "GenMsgSendType" BO_ 1576 0;
+BA_ "GenMsgStartDelayTime" BO_ 1576 0.000;
+BA_ "VFrameFormat" BO_ 1576 14;
+// Frame: SMIRM_Fault_Event
+BA_ "GenMsgCycleTimeFast" BO_ 1558 100;
+BA_ "GenMsgDelayTime" BO_ 1558 100.000;
+BA_ "GenMsgNrOfRepetition" BO_ 1558 2;
+BA_ "GenMsgSendType" BO_ 1558 1;
+BA_ "VFrameFormat" BO_ 1558 14;
+// Frame: SMIRM_Info1_100ms
+BA_ "GenMsgCycleTime" BO_ 952 100.000;
+BA_ "GenMsgSendType" BO_ 952 0;
+BA_ "GenMsgStartDelayTime" BO_ 952 0.000;
+BA_ "VFrameFormat" BO_ 952 14;
+// Frame: SMIRM_Info2_1000ms
+BA_ "GenMsgCycleTime" BO_ 1530 1000.000;
+BA_ "GenMsgSendType" BO_ 1530 0;
+BA_ "GenMsgStartDelayTime" BO_ 1530 0.000;
+BA_ "VFrameFormat" BO_ 1530 14;
+// Frame: SMIRM_Info3_100ms
+BA_ "GenMsgCycleTime" BO_ 895 100.000;
+BA_ "GenMsgSendType" BO_ 895 0;
+BA_ "GenMsgStartDelayTime" BO_ 895 0.000;
+BA_ "VFrameFormat" BO_ 895 14;
+// Frame: SMIRM_Log1_1000ms
+BA_ "GenMsgCycleTime" BO_ 1559 1000.000;
+BA_ "GenMsgSendType" BO_ 1559 0;
+BA_ "GenMsgStartDelayTime" BO_ 1559 0.000;
+BA_ "VFrameFormat" BO_ 1559 14;
+// Frame: SMIRM_Log2_Event
+BA_ "GenMsgCycleTimeFast" BO_ 1545 50;
+BA_ "GenMsgDelayTime" BO_ 1545 95.000;
+BA_ "GenMsgNrOfRepetition" BO_ 1545 2;
+BA_ "GenMsgSendType" BO_ 1545 1;
+BA_ "VFrameFormat" BO_ 1545 14;
+// Frame: SMIRM_NM
+BA_ "GenMsgDelayTime" BO_ 1118 500.000;
+BA_ "GenMsgSendType" BO_ 1118 1;
+BA_ "VFrameFormat" BO_ 1118 0;
+// Frame: SMIRM_PDSN_1000ms
+BA_ "GenMsgCycleTime" BO_ 1591 1000.000;
+BA_ "GenMsgSendType" BO_ 1591 0;
+BA_ "GenMsgStartDelayTime" BO_ 1591 0.000;
+BA_ "VFrameFormat" BO_ 1591 14;
+// Frame: SMIRM_VerNum
+BA_ "GenMsgCycleTime" BO_ 1579 5000.000;
+BA_ "GenMsgSendType" BO_ 1579 0;
+BA_ "GenMsgStartDelayTime" BO_ 1579 0.000;
+BA_ "VFrameFormat" BO_ 1579 14;
+// Frame: UDS_DiagResp_SMIRM_FD
+BA_ "GenMsgDelayTime" BO_ 1948 20.000;
+BA_ "GenMsgSendType" BO_ 1948 1;
+BA_ "VFrameFormat" BO_ 1948 14;
+// Frame: UDS_FuncDiagReq_FD
+BA_ "DiagRequest" BO_ 2015 0;
+BA_ "DiagResponse" BO_ 2015 0;
+BA_ "DiagState" BO_ 2015 1;
+BA_ "GenMsgDelayTime" BO_ 2015 20.000;
+BA_ "GenMsgSendType" BO_ 2015 1;
+BA_ "VFrameFormat" BO_ 2015 14;
+// Frame: UDS_PhyDiagReq_SMIRM_FD
+BA_ "GenMsgDelayTime" BO_ 1940 20.000;
+BA_ "GenMsgSendType" BO_ 1940 1;
+BA_ "VFrameFormat" BO_ 1940 14;
+// Frame: XCU_Info1_100ms_PT1
+BA_ "GenMsgCycleTime" BO_ 1008 100.000;
+BA_ "GenMsgSendType" BO_ 1008 0;
+BA_ "GenMsgStartDelayTime" BO_ 1008 0.000;
+BA_ "VFrameFormat" BO_ 1008 14;
+// Frame: XCU_Info_100ms_CH
+BA_ "GenMsgCycleTime" BO_ 919 100.000;
+BA_ "GenMsgSendType" BO_ 919 0;
+BA_ "GenMsgStartDelayTime" BO_ 919 50.000;
+BA_ "VFrameFormat" BO_ 919 14;
+// Frame: XCU_Info_10ms_FD
+BA_ "GenMsgCycleTime" BO_ 194 10.000;
+BA_ "GenMsgSendType" BO_ 194 0;
+BA_ "GenMsgStartDelayTime" BO_ 194 0.000;
+BA_ "VFrameFormat" BO_ 194 14;
+// Frame: XCU_RLSInfo_100ms_GW
+BA_ "GenMsgCycleTime" BO_ 825 100.000;
+BA_ "GenMsgSendType" BO_ 825 0;
+BA_ "GenMsgStartDelayTime" BO_ 825 5.000;
+BA_ "VFrameFormat" BO_ 825 14;
+BA_ "GenSigSendType" SG_ 194 ActuGearShiftPos 0;
+BA_ "GenSigStartValue" SG_ 194 ActuGearShiftPos 0;
+BA_ "GenSigSendType" SG_ 825 AmbBrtns 0;
+BA_ "GenSigStartValue" SG_ 825 AmbBrtns 0;
+BA_ "GenSigSendType" SG_ 1008 AntiGlareLvl 0;
+BA_ "GenSigStartValue" SG_ 1008 AntiGlareLvl 0;
+BA_ "GenSigSendType" SG_ 1558 Diag_SMIRM 1;
+BA_ "GenSigSendType" SG_ 158 EastOrWestTimeZone 0;
+BA_ "GenSigStartValue" SG_ 158 EastOrWestTimeZone 0;
+BA_ "GenSigSendType" SG_ 825 FwdBrtns 0;
+BA_ "GenSigStartValue" SG_ 825 FwdBrtns 0;
+BA_ "GenSigSendType" SG_ 1069 HU_ActiveWakeupStatus_I 1;
+BA_ "GenSigStartValue" SG_ 1069 HU_ActiveWakeupStatus_I 0;
+BA_ "GenSigSendType" SG_ 1454 HU_Angle_AdtCmd 0;
+BA_ "GenSigStartValue" SG_ 1454 HU_Angle_AdtCmd 0;
+BA_ "GenSigSendType" SG_ 1007 HU_CleanMode 0;
+BA_ "GenSigStartValue" SG_ 1007 HU_CleanMode 0;
+BA_ "GenSigSendType" SG_ 1454 HU_Color_Tem_AdtCmd 0;
+BA_ "GenSigStartValue" SG_ 1454 HU_Color_Tem_AdtCmd 0;
+BA_ "GenSigSendType" SG_ 1023 HU_HUD_LCD_light 0;
+BA_ "GenSigStartValue" SG_ 1023 HU_HUD_LCD_light 0;
+BA_ "GenSigSendType" SG_ 1069 HU_ICAN_WakeUpRsn 1;
+BA_ "GenSigStartValue" SG_ 1069 HU_ICAN_WakeUpRsn 0;
+BA_ "GenSigSendType" SG_ 1454 HU_LightBrtns 0;
+BA_ "GenSigStartValue" SG_ 1454 HU_LightBrtns 0;
+BA_ "GenSigSendType" SG_ 1454 HU_LightValueAutoCmd 0;
+BA_ "GenSigStartValue" SG_ 1454 HU_LightValueAutoCmd 0;
+BA_ "GenSigSendType" SG_ 1454 HU_LightValueCmd 0;
+BA_ "GenSigStartValue" SG_ 1454 HU_LightValueCmd 127;
+BA_ "GenSigSendType" SG_ 1454 HU_Light_ValueMalCmd 0;
+BA_ "GenSigStartValue" SG_ 1454 HU_Light_ValueMalCmd 127;
+BA_ "GenSigSendType" SG_ 1454 HU_Light_ValueModelCmd 0;
+BA_ "GenSigStartValue" SG_ 1454 HU_Light_ValueModelCmd 0;
+BA_ "GenSigSendType" SG_ 1069 HU_NMStatus_I 1;
+BA_ "GenSigStartValue" SG_ 1069 HU_NMStatus_I 0;
+BA_ "GenSigSendType" SG_ 1069 HU_PartialNetworkbit_I 1;
+BA_ "GenSigStartValue" SG_ 1069 HU_PartialNetworkbit_I 0;
+BA_ "GenSigSendType" SG_ 1069 HU_RepeatMessageReq_I 1;
+BA_ "GenSigStartValue" SG_ 1069 HU_RepeatMessageReq_I 0;
+BA_ "GenSigSendType" SG_ 1782 HU_SMIRMColorTest 1;
+BA_ "GenSigStartValue" SG_ 1782 HU_SMIRMColorTest 0;
+BA_ "GenSigSendType" SG_ 1069 HU_SourceAddress_I 1;
+BA_ "GenSigStartValue" SG_ 1069 HU_SourceAddress_I 0;
+BA_ "GenSigSendType" SG_ 1069 HU_StaywakeRsn_HwAccOrOn_I 1;
+BA_ "GenSigStartValue" SG_ 1069 HU_StaywakeRsn_HwAccOrOn_I 0;
+BA_ "GenSigSendType" SG_ 1069 HU_StaywakeRsn_PowerMode_I 1;
+BA_ "GenSigStartValue" SG_ 1069 HU_StaywakeRsn_PowerMode_I 0;
+BA_ "GenSigSendType" SG_ 1069 HU_StaywakeRsn_RequesetFrom5G_I 1;
+BA_ "GenSigStartValue" SG_ 1069 HU_StaywakeRsn_RequesetFrom5G_I 0;
+BA_ "GenSigSendType" SG_ 1069 HU_StaywakeRsn_RequesetFromEcan_Abnormal_I 1;
+BA_ "GenSigStartValue" SG_ 1069 HU_StaywakeRsn_RequesetFromEcan_Abnormal_I 0;
+BA_ "GenSigSendType" SG_ 1069 HU_StaywakeRsn_RequesetFromFSD1_I 1;
+BA_ "GenSigStartValue" SG_ 1069 HU_StaywakeRsn_RequesetFromFSD1_I 0;
+BA_ "GenSigSendType" SG_ 1069 HU_StaywakeRsn_RequesetFromFSD2_I 1;
+BA_ "GenSigStartValue" SG_ 1069 HU_StaywakeRsn_RequesetFromFSD2_I 0;
+BA_ "GenSigSendType" SG_ 1069 HU_StaywakeRsn_RequesetFromSOCF_I 1;
+BA_ "GenSigStartValue" SG_ 1069 HU_StaywakeRsn_RequesetFromSOCF_I 0;
+BA_ "GenSigSendType" SG_ 1069 HU_StaywakeRsn_RequesetFromSOCR_I 1;
+BA_ "GenSigStartValue" SG_ 1069 HU_StaywakeRsn_RequesetFromSOCR_I 0;
+BA_ "GenSigSendType" SG_ 1069 HU_StaywakeRsn_RequesetFromXCU_I 1;
+BA_ "GenSigStartValue" SG_ 1069 HU_StaywakeRsn_RequesetFromXCU_I 0;
+BA_ "GenSigSendType" SG_ 1454 HU_Step_Angle_AdtCmd 0;
+BA_ "GenSigStartValue" SG_ 1454 HU_Step_Angle_AdtCmd 0;
+BA_ "GenSigSendType" SG_ 1454 HU_Step_Zoom_Angle_AdtCmd 0;
+BA_ "GenSigStartValue" SG_ 1454 HU_Step_Zoom_Angle_AdtCmd 0;
+BA_ "GenSigSendType" SG_ 1454 HU_Str_ModeCmd 0;
+BA_ "GenSigStartValue" SG_ 1454 HU_Str_ModeCmd 0;
+BA_ "GenSigSendType" SG_ 1454 HU_Zoom_Angle_AdtCmd 0;
+BA_ "GenSigStartValue" SG_ 1454 HU_Zoom_Angle_AdtCmd 0;
+BA_ "GenSigSendType" SG_ 825 LghtLel 0;
+BA_ "GenSigStartValue" SG_ 825 LghtLel 0;
+BA_ "GenSigSendType" SG_ 521 LowVolPwrMd 0;
+BA_ "GenSigStartValue" SG_ 521 LowVolPwrMd 0;
+BA_ "GenSigSendType" SG_ 521 LowVolPwrMdFlag 0;
+BA_ "GenSigStartValue" SG_ 521 LowVolPwrMdFlag 0;
+BA_ "GenSigSendType" SG_ 1118 SMIRM_ActiveWakeupStatus 1;
+BA_ "GenSigStartValue" SG_ 1118 SMIRM_ActiveWakeupStatus 0;
+BA_ "GenSigSendType" SG_ 952 SMIRM_AngleAdt 0;
+BA_ "GenSigStartValue" SG_ 952 SMIRM_AngleAdt 0;
+BA_ "GenSigSendType" SG_ 1777 SMIRM_AteTestReq 1;
+BA_ "GenSigStartValue" SG_ 1777 SMIRM_AteTestReq 0;
+BA_ "GenSigSendType" SG_ 1778 SMIRM_AteTestRes 1;
+BA_ "GenSigStartValue" SG_ 1778 SMIRM_AteTestRes 0;
+BA_ "GenSigSendType" SG_ 1579 SMIRM_BTVerNum 0;
+BA_ "GenSigStartValue" SG_ 1579 SMIRM_BTVerNum 0;
+BA_ "GenSigSendType" SG_ 1530 SMIRM_CameraNum 0;
+BA_ "GenSigStartValue" SG_ 1530 SMIRM_CameraNum 0;
+BA_ "GenSigSendType" SG_ 952 SMIRM_ColorTemAdt 0;
+BA_ "GenSigStartValue" SG_ 952 SMIRM_ColorTemAdt 0;
+BA_ "GenSigSendType" SG_ 952 SMIRM_CtrlSource 0;
+BA_ "GenSigStartValue" SG_ 952 SMIRM_CtrlSource 0;
+BA_ "GenSigSendType" SG_ 1576 SMIRM_DTC1_Num 0;
+BA_ "GenSigStartValue" SG_ 1576 SMIRM_DTC1_Num 0;
+BA_ "GenSigSendType" SG_ 1576 SMIRM_DTC1_State 0;
+BA_ "GenSigStartValue" SG_ 1576 SMIRM_DTC1_State 0;
+BA_ "GenSigSendType" SG_ 1576 SMIRM_DTC2_Num 0;
+BA_ "GenSigStartValue" SG_ 1576 SMIRM_DTC2_Num 0;
+BA_ "GenSigSendType" SG_ 1576 SMIRM_DTC2_State 0;
+BA_ "GenSigStartValue" SG_ 1576 SMIRM_DTC2_State 0;
+BA_ "GenSigSendType" SG_ 1576 SMIRM_DTC3_Num 0;
+BA_ "GenSigStartValue" SG_ 1576 SMIRM_DTC3_Num 0;
+BA_ "GenSigSendType" SG_ 1576 SMIRM_DTC3_State 0;
+BA_ "GenSigStartValue" SG_ 1576 SMIRM_DTC3_State 0;
+BA_ "GenSigSendType" SG_ 1576 SMIRM_DTC4_Num 0;
+BA_ "GenSigStartValue" SG_ 1576 SMIRM_DTC4_Num 0;
+BA_ "GenSigSendType" SG_ 1576 SMIRM_DTC4_State 0;
+BA_ "GenSigStartValue" SG_ 1576 SMIRM_DTC4_State 0;
+BA_ "GenSigSendType" SG_ 952 SMIRM_EC_Brightness 0;
+BA_ "GenSigStartValue" SG_ 952 SMIRM_EC_Brightness 0;
+BA_ "GenSigSendType" SG_ 1579 SMIRM_HWVerNum 0;
+BA_ "GenSigStartValue" SG_ 1579 SMIRM_HWVerNum 0;
+BA_ "GenSigSendType" SG_ 895 SMIRM_LCPWM 0;
+BA_ "GenSigStartValue" SG_ 895 SMIRM_LCPWM 0;
+BA_ "GenSigSendType" SG_ 952 SMIRM_LightBrtns 0;
+BA_ "GenSigStartValue" SG_ 952 SMIRM_LightBrtns 0;
+BA_ "GenSigSendType" SG_ 895 SMIRM_LightValue 0;
+BA_ "GenSigStartValue" SG_ 895 SMIRM_LightValue 127;
+BA_ "GenSigSendType" SG_ 952 SMIRM_LightValueAuto 0;
+BA_ "GenSigStartValue" SG_ 952 SMIRM_LightValueAuto 0;
+BA_ "GenSigSendType" SG_ 952 SMIRM_Light_ValueMal 0;
+BA_ "GenSigStartValue" SG_ 952 SMIRM_Light_ValueMal 127;
+BA_ "GenSigSendType" SG_ 952 SMIRM_Light_ValueModel 0;
+BA_ "GenSigStartValue" SG_ 952 SMIRM_Light_ValueModel 0;
+BA_ "GenSigSendType" SG_ 1530 SMIRM_LockTW8842Sts 0;
+BA_ "GenSigStartValue" SG_ 1530 SMIRM_LockTW8842Sts 0;
+BA_ "GenSigSendType" SG_ 1559 SMIRM_Log1 0;
+BA_ "GenSigStartValue" SG_ 1559 SMIRM_Log1 0;
+BA_ "GenSigSendType" SG_ 1545 SMIRM_Log2 1;
+BA_ "GenSigStartValue" SG_ 1545 SMIRM_Log2 0;
+BA_ "GenSigSendType" SG_ 1118 SMIRM_NMStatus 1;
+BA_ "GenSigStartValue" SG_ 1118 SMIRM_NMStatus 0;
+BA_ "GenSigSendType" SG_ 1530 SMIRM_NTC_Tem 0;
+BA_ "GenSigStartValue" SG_ 1530 SMIRM_NTC_Tem 255;
+BA_ "GenSigSendType" SG_ 1530 SMIRM_OecgPower 0;
+BA_ "GenSigStartValue" SG_ 1530 SMIRM_OecgPower 0;
+BA_ "GenSigSendType" SG_ 1591 SMIRM_PDSN 0;
+BA_ "GenSigStartValue" SG_ 1591 SMIRM_PDSN 0;
+BA_ "GenSigSendType" SG_ 1530 SMIRM_PWM 0;
+BA_ "GenSigStartValue" SG_ 1530 SMIRM_PWM 127;
+BA_ "GenSigSendType" SG_ 1118 SMIRM_PartialNetworkbit 1;
+BA_ "GenSigStartValue" SG_ 1118 SMIRM_PartialNetworkbit 0;
+BA_ "GenSigSendType" SG_ 1118 SMIRM_RepeatMessageReq 1;
+BA_ "GenSigStartValue" SG_ 1118 SMIRM_RepeatMessageReq 0;
+BA_ "GenSigSendType" SG_ 1579 SMIRM_SWID 0;
+BA_ "GenSigStartValue" SG_ 1579 SMIRM_SWID 65535;
+BA_ "GenSigSendType" SG_ 1579 SMIRM_SWVerNum 0;
+BA_ "GenSigStartValue" SG_ 1579 SMIRM_SWVerNum 0;
+BA_ "GenSigSendType" SG_ 1530 SMIRM_ScreenLinkSts 0;
+BA_ "GenSigStartValue" SG_ 1530 SMIRM_ScreenLinkSts 0;
+BA_ "GenSigSendType" SG_ 1118 SMIRM_SourceAddress 1;
+BA_ "GenSigStartValue" SG_ 1118 SMIRM_SourceAddress 0;
+BA_ "GenSigSendType" SG_ 1118 SMIRM_StaywakeRsn_Diag 1;
+BA_ "GenSigStartValue" SG_ 1118 SMIRM_StaywakeRsn_Diag 0;
+BA_ "GenSigSendType" SG_ 1118 SMIRM_StaywakeRsn_Download 1;
+BA_ "GenSigStartValue" SG_ 1118 SMIRM_StaywakeRsn_Download 0;
+BA_ "GenSigSendType" SG_ 1118 SMIRM_StaywakeRsn_HwACC 1;
+BA_ "GenSigStartValue" SG_ 1118 SMIRM_StaywakeRsn_HwACC 0;
+BA_ "GenSigSendType" SG_ 1118 SMIRM_StaywakeRsn_PowerMode 1;
+BA_ "GenSigStartValue" SG_ 1118 SMIRM_StaywakeRsn_PowerMode 0;
+BA_ "GenSigSendType" SG_ 895 SMIRM_StepAngleAdt 0;
+BA_ "GenSigStartValue" SG_ 895 SMIRM_StepAngleAdt 0;
+BA_ "GenSigSendType" SG_ 895 SMIRM_StepZoomAngleAdt 0;
+BA_ "GenSigStartValue" SG_ 895 SMIRM_StepZoomAngleAdt 0;
+BA_ "GenSigSendType" SG_ 952 SMIRM_StrMode 0;
+BA_ "GenSigStartValue" SG_ 952 SMIRM_StrMode 0;
+BA_ "GenSigSendType" SG_ 1530 SMIRM_TempProtect 0;
+BA_ "GenSigStartValue" SG_ 1530 SMIRM_TempProtect 0;
+BA_ "GenSigSendType" SG_ 1530 SMIRM_UI_Num 0;
+BA_ "GenSigStartValue" SG_ 1530 SMIRM_UI_Num 0;
+BA_ "GenSigSendType" SG_ 1118 SMIRM_WakeUpRsn 1;
+BA_ "GenSigStartValue" SG_ 1118 SMIRM_WakeUpRsn 0;
+BA_ "GenSigSendType" SG_ 952 SMIRM_ZoomAngleAdt 0;
+BA_ "GenSigStartValue" SG_ 952 SMIRM_ZoomAngleAdt 0;
+BA_ "GenSigSendType" SG_ 1391 Sunrise_Hours 0;
+BA_ "GenSigStartValue" SG_ 1391 Sunrise_Hours 0;
+BA_ "GenSigSendType" SG_ 1391 Sunrise_Minutes 0;
+BA_ "GenSigStartValue" SG_ 1391 Sunrise_Minutes 0;
+BA_ "GenSigSendType" SG_ 1391 Sunset_Hours 0;
+BA_ "GenSigStartValue" SG_ 1391 Sunset_Hours 0;
+BA_ "GenSigSendType" SG_ 1391 Sunset_Minutes 0;
+BA_ "GenSigStartValue" SG_ 1391 Sunset_Minutes 0;
+BA_ "GenSigSendType" SG_ 925 SuperECOMode 0;
+BA_ "GenSigStartValue" SG_ 925 SuperECOMode 0;
+BA_ "GenSigSendType" SG_ 158 TimeZoneMinute 0;
+BA_ "GenSigStartValue" SG_ 158 TimeZoneMinute 0;
+BA_ "GenSigSendType" SG_ 158 TimeZoneNum 0;
+BA_ "GenSigStartValue" SG_ 158 TimeZoneNum 0;
+BA_ "GenSigSendType" SG_ 925 TotalOdometer 0;
+BA_ "GenSigStartValue" SG_ 925 TotalOdometer 0;
+BA_ "GenSigSendType" SG_ 158 UTCTime 0;
+BA_ "GenSigStartValue" SG_ 158 UTCTime 0;
+BA_ "GenSigSendType" SG_ 158 UTCTimeValidFlag 0;
+BA_ "GenSigStartValue" SG_ 158 UTCTimeValidFlag 0;
+BA_ "GenSigSendType" SG_ 919 VehMdst 0;
+BA_ "GenSigStartValue" SG_ 919 VehMdst 0;
+BA_ "GenSigSendType" SG_ 150 VehSpd 0;
+BA_ "GenSigStartValue" SG_ 150 VehSpd 0;
+BA_ "GenSigSendType" SG_ 150 VehSpdValid 0;
+BA_ "GenSigStartValue" SG_ 150 VehSpdValid 0;
+BA_ "GenSigSendType" SG_ 1454 WaitRescueMod_HU 0;
+BA_ "GenSigStartValue" SG_ 1454 WaitRescueMod_HU 0;
+BA_ "GenSigSendType" SG_ 919 XCUVehMd 0;
+BA_ "GenSigStartValue" SG_ 919 XCUVehMd 0;
+
+VAL_ 1576 SMIRM_DTC1_State 0 "Normal" 1 "Fault";
+VAL_ 1576 SMIRM_DTC2_State 0 "Normal" 1 "Fault";
+VAL_ 1576 SMIRM_DTC3_State 0 "Normal" 1 "Fault";
+VAL_ 1576 SMIRM_DTC4_State 0 "Normal" 1 "Fault";
+VAL_ 952 SMIRM_AngleAdt 0 "initialize" 1 "level 1" 2 "level 2" 3 "level 3" 4 "level 4" 5 "level 5" 6 "Reserved" 7 "Reserved";
+VAL_ 952 SMIRM_ColorTemAdt 0 "initialize" 1 "Warm mode" 2 "Cold mode" 3 "Normal mode" 4 "Reserved" 5 "Reserved" 6 "Reserved" 7 "Reserved";
+VAL_ 952 SMIRM_CtrlSource 0 "No Request" 1 "HUSetting" 2 "HardSetting" 3 "Reserved" 4 "Reserved" 5 "Reserved" 6 "Reserved" 7 "Reserved";
+VAL_ 952 SMIRM_Light_ValueModel 0 "initialize" 1 "auto" 2 "manual" 3 "Reserved";
+VAL_ 952 SMIRM_LightValueAuto 0 "initialize" 1 "level 1" 2 "level 2" 3 "level 3" 4 "level 4" 5 "level 5" 6 "Reserved" 7 "Reserved";
+VAL_ 952 SMIRM_StrMode 0 "initialize" 1 "StreamingMode" 2 "MirrorMode" 3 "Reserved";
+VAL_ 952 SMIRM_ZoomAngleAdt 0 "initialize" 1 "level 1" 2 "level 2" 3 "level 3" 4 "Reserved" 5 "Reserved" 6 "Reserved" 7 "Reserved";
+VAL_ 1530 SMIRM_LockTW8842Sts 0 "No Request" 1 "LOCK信号OK,同步信号OK" 2 "LOCK信号OK,同步信号Fail" 3 "LOCK信号Fail,同步信号OK" 4 "LOCK信号Fail,同步信号Fail";
+VAL_ 1530 SMIRM_ScreenLinkSts 0 "No Request" 1 "HT_ST" 2 "LT_ST" 3 "STV_ST" 4 "DE_ST" 5 "VS_ST" 6 "HS_ST" 7 "CLK_ST" 8 "VSP_ST" 9 "VSN_ST" 10 "VGH_ST" 11 "VGL_ST";
+VAL_ 1530 SMIRM_TempProtect 0 "Normal" 1 "Temp level1" 2 "Temp level2" 3 "Reserved";
+VAL_ 1118 SMIRM_ActiveWakeupStatus 0 "No active wakeup" 1 "Active Wake up";
+VAL_ 1118 SMIRM_NMStatus 0 "RepeatMessageState" 1 "OtherOperationState";
+VAL_ 1118 SMIRM_PartialNetworkbit 0 "Not PN" 1 "PN";
+VAL_ 1118 SMIRM_RepeatMessageReq 0 "Not Requested" 1 "Requested";
+VAL_ 1118 SMIRM_StaywakeRsn_Diag 0 "Inactive" 1 "Active";
+VAL_ 1118 SMIRM_StaywakeRsn_Download 0 "Inactive" 1 "Active";
+VAL_ 1118 SMIRM_StaywakeRsn_HwACC 0 "Inactive" 1 "Active";
+VAL_ 1118 SMIRM_StaywakeRsn_PowerMode 0 "Inactive" 1 "Active";
+VAL_ 1118 SMIRM_WakeUpRsn 0 "Init" 1 "NMPDUReceived" 2 "Hardwire ACC active";
+VAL_ 150 VehSpd 8191 " Invalid";
+VAL_ 150 VehSpdValid 0 " Valid" 1 " Invalid";
+VAL_ 521 LowVolPwrMd 0 "OFF" 1 "ACC" 2 "ON" 3 "Reserved";
+VAL_ 521 LowVolPwrMdFlag 0 "Local mode" 1 "Remote mode";
+VAL_ 925 SuperECOMode 0 "Init" 1 "Enter Super ECO Mode" 2 "Exit Super ECO Mode";
+VAL_ 925 TotalOdometer 16777215 " Invalid";
+VAL_ 158 EastOrWestTimeZone 0 "Initializaiton" 1 "East" 2 "West" 3 "Reserved";
+VAL_ 158 TimeZoneNum 0 "Initializaiton" 1 "TimeZone 1" 2 "TimeZone 2" 3 "TimeZone 3" 4 "TimeZone 4" 5 "TimeZone 5" 6 "TimeZone 6" 7 "TimeZone 7" 8 "TimeZone 8" 9 "TimeZone 9" 10 "TimeZone 10" 11 "TimeZone 11" 12 "TimeZone 12" 13 "TimeZone 13" 14 "TimeZone 14" 15 "Reserved";
+VAL_ 158 UTCTimeValidFlag 0 "Valid" 1 "Invalid" 2 "with offset" 3 "reserved";
+VAL_ 1023 HU_HUD_LCD_light 0 "initialize" 1 "Turn on" 2 "Turn off" 3 "Quit" 4 "Reserved" 5 "Reserved" 6 "Reserved" 7 "invalid";
+VAL_ 1007 HU_CleanMode 0 "init" 1 "clean in" 2 "clean out" 3 "invalid";
+VAL_ 1069 HU_ActiveWakeupStatus_I 0 "No active wakeup" 1 "Active Wake up";
+VAL_ 1069 HU_ICAN_WakeUpRsn 0 "Init" 1 "NM PDU Received" 2 "Hardwire ACC or ON active" 3 "5G" 4 "RTC" 5 "IMU" 6 "Reserved";
+VAL_ 1069 HU_NMStatus_I 0 "RepeatMessageState" 1 "OtherOperationState";
+VAL_ 1069 HU_PartialNetworkbit_I 0 "Not PN" 1 "PN";
+VAL_ 1069 HU_RepeatMessageReq_I 0 "Not Requested" 1 "Requested";
+VAL_ 1069 HU_StaywakeRsn_HwAccOrOn_I 0 "Inactive" 1 "Active";
+VAL_ 1069 HU_StaywakeRsn_PowerMode_I 0 "Inactive" 1 "Active";
+VAL_ 1069 HU_StaywakeRsn_RequesetFrom5G_I 0 "Inactive" 1 "Active";
+VAL_ 1069 HU_StaywakeRsn_RequesetFromEcan_Abnormal_I 0 "Inactive" 1 "Active";
+VAL_ 1069 HU_StaywakeRsn_RequesetFromFSD1_I 0 "Inactive" 1 "Active";
+VAL_ 1069 HU_StaywakeRsn_RequesetFromFSD2_I 0 "Inactive" 1 "Active";
+VAL_ 1069 HU_StaywakeRsn_RequesetFromSOCF_I 0 "Inactive" 1 "Active";
+VAL_ 1069 HU_StaywakeRsn_RequesetFromSOCR_I 0 "Inactive" 1 "Active";
+VAL_ 1069 HU_StaywakeRsn_RequesetFromXCU_I 0 "Inactive" 1 "Active";
+VAL_ 1454 HU_Angle_AdtCmd 0 "initialize" 1 "level 1" 2 "level 2" 3 "level 3" 4 "level 4" 5 "level 5" 6 "Reserved" 7 "Reserved";
+VAL_ 1454 HU_Color_Tem_AdtCmd 0 "initialize" 1 "Warm mode" 2 "Cold mode" 3 "Normal mode" 4 "Reserved" 5 "Reserved" 6 "Reserved" 7 "Reserved";
+VAL_ 1454 HU_Light_ValueModelCmd 0 "initialize" 1 "auto" 2 "manual" 3 "Reserved";
+VAL_ 1454 HU_LightValueAutoCmd 0 "initialize" 1 "level 1" 2 "level 2" 3 "level 3" 4 "level 4" 5 "level 5" 6 "Reserved" 7 "Reserved";
+VAL_ 1454 HU_Str_ModeCmd 0 "initialize" 1 "StreamingMode" 2 "MirrorMode" 3 "Reserved";
+VAL_ 1454 HU_Zoom_Angle_AdtCmd 0 "initialize" 1 "level 1" 2 "level 2" 3 "level 3" 4 "Reserved" 5 "Reserved" 6 "Reserved" 7 "Reserved";
+VAL_ 1454 WaitRescueMod_HU 0 "Init" 1 "Normal Mode" 2 "Rescue Mode" 3 "Reserved" 4 "Reserved" 5 "Reserved" 6 "Reserved" 7 "Reserved";
+VAL_ 1782 HU_SMIRMColorTest 0 "Default" 1 "Red" 2 "Blue" 3 "Green" 4 "Black" 5 "White" 6 "Gray" 7 "ChessBoard";
+VAL_ 1008 AntiGlareLvl 0 "No request" 1 "OFF" 2 "一档" 3 "二档" 4 "三档" 5 "Reserved" 6 "Reserved" 7 "Invalid";
+VAL_ 919 VehMdst 0 "Reserved" 1 "Normal Mode 正常模式" 2 "Factory Mode 工厂模式" 3 "Logistic Mode 物流模式" 4 "Exhibition Mode 展车模式" 5 "OTA Mode 1 OTA模式1" 6 "OTA Mode 2 OTA模式2" 7 "Repair Mode 维修模式" 15 "Error Mode 异常模式";
+VAL_ 919 XCUVehMd 0 "Reserved" 1 "Normal Mode 正常模式" 2 "Factory Mode 工厂模式 " 3 "Logistic Mode 物流模式" 4 "Exhibition Mode 展车模式" 5 "OTA Mode 1 OTA模式1" 6 "OTA Mode 2 OTA模式2" 7 "Repair Mode 维修模式" 15 "Error Mode 异常模式";
+VAL_ 194 ActuGearShiftPos 0 " InitialState" 1 " R" 2 " N" 3 " D" 4 " P" 5 " P Blink" 6 " Reserved" 7 " Invalid";
+VAL_ 825 AmbBrtns 4095 "Invalid";
+VAL_ 825 FwdBrtns 4095 "Invalid";
+VAL_ 825 LghtLel 0 "Day " 1 "Twilight" 2 "Dark " 3 "Tunnel" 4 "Darkstart";
+
+

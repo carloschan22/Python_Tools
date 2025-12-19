@@ -5,6 +5,7 @@
 import can
 import cantools
 from multiprocessing import Queue
+from multiprocessing.queues import Empty
 import sys
 from pathlib import Path
 
@@ -13,23 +14,35 @@ testcase_dir = current_file.parent.parent  # 到达testcase目录
 if str(testcase_dir) not in sys.path:
     sys.path.insert(0, str(testcase_dir))
 
-import base.utility as uty
+try:
+    import tools
+except ImportError:
+    from src import tools
+
+can_config: dict = tools.load_config()
 
 
 class MessageHandler:
-    def __init__(self, send_queue, recv_queue, dbc_name):
-        self.project_path = uty.get_project_rootdir()
+    def __init__(self, send_queue, recv_queue):
         self.send_queue = send_queue
         self.recv_queue = recv_queue
-        self.bus = can.interface.Bus(channel=0, interface="kvaser", bitrate=500000)
+        self.bus = can.Bus(
+            interface=can_config["can_bus"]["interface"],
+            channel=can_config["can_bus"]["channel"],
+            bitrate=can_config["can_bus"]["bitrate"],
+            data_bitrate=can_config["can_bus"]["data_bitrate"],
+            fd=can_config["can_bus"]["fd"],
+        )
         self.notifier = can.Notifier(self.bus, [self])
+        self.dbc_name = f"dbc/{can_config['dbc']['file_name']}.dbc"
+        self.dbc_path = tools._normalize_path("dbc", Path(self.dbc_name))
         self.dbc = cantools.db.load_file(
-            filename=f"{self.project_path}/testcase/dbc/{dbc_name}.dbc",
-            encoding="gbk",
+            filename=str(self.dbc_path),
+            encoding=can_config["dbc"]["encoding"],
         )
         self.recv_running = True
         self.send_running = True
-        self.met_status = {}
+        self.product_status = {}
         self._stopping = False
         self._recv_thread = None
         self._send_thread = None
@@ -43,10 +56,12 @@ class MessageHandler:
         while self.recv_running:
             try:
                 msg: can.Message = self.recv_queue.get(timeout=1)
+                if msg.arbitration_id not in self.dbc._frame_id_to_message:
+                    continue
                 decoded_msg = self.dbc.decode_message(msg.arbitration_id, msg.data)
-                self.met_status.update(decoded_msg)
+                self.product_status.update(decoded_msg)
                 print(f"Message ID: {msg.arbitration_id}, Data: {decoded_msg}")
-            except Queue.empty:
+            except Empty:
                 continue
             except Exception as e:
                 print(f"Error processing message: {e}")
@@ -58,7 +73,7 @@ class MessageHandler:
             try:
                 msg: can.Message = self.send_queue.get(timeout=1)
                 self.bus.send(msg)
-            except Queue.empty:
+            except Empty:
                 continue
             except Exception as e:
                 print(f"Error sending message: {e}")
@@ -83,8 +98,8 @@ class MessageHandler:
         return self
 
     def get_status(self):
-        """获取最新的MET状态"""
-        return self.met_status.copy()
+        """获取最新的product状态"""
+        return self.product_status.copy()
 
     def send_raw_message(self, arbitration_id, data, is_extended_id=False):
         """发送原始CAN消息的便捷方法"""
@@ -252,26 +267,24 @@ if __name__ == "__main__":
     recv_queue = Queue()
 
     # 创建并启动消息处理器
-    mh = MessageHandler(send_queue, recv_queue, "70BD_25.12.17").start()
+    mh = MessageHandler(send_queue, recv_queue).start()
 
     # 示例: 发送原始CAN消息
     # mh.send_raw_message(0x12, [0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08])
 
     # 示例: 发送DBC编码的消息
     # 仅传入信号字典, 将自动根据信号匹配唯一的DBC消息 (需使用DBC中实际的信号名)
-    mh.send_dbc_message(
-        {"BCU_0x11_0_1_Key_ON": 1, "BCU_0x11_4_4_Vehicle_Start_Mode": "正常钥匙启动"}
-    )
+    mh.send_dbc_message({"HU_Angle_AdtCmd": 1, "HU_Color_Tem_AdtCmd": 1})
 
     # 也可显式指定消息名/帧ID (此时只需提供部分信号, 其余自动补0)
     # mh.send_dbc_message("BCU_Input_Detection_0x011", {"BCU_0x11_0_1_Key_ON": 1})
     # mh.send_dbc_message(0x11, {"BCU_0x11_24_16_V_ON": 12500})
 
     # # 获取最新状态
-    # for _ in range(5):
-    #     status = mh.get_status()
-    #     print("Latest MET Status:", status)
-    #     time.sleep(1)
+    for _ in range(5):
+        status = mh.get_status()
+        print("Latest product Status:", status)
+        time.sleep(1)
 
     # 停止消息处理器
     mh.stop()
