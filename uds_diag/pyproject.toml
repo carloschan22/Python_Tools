@@ -3,14 +3,14 @@ name = "uds-diag"
 version = "0.1.0"
 description = "可配置的 UDS 协议诊断工具"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = "==3.11.8"
 dependencies = [
-    "can-isotp==2.0.7",
+    "can-isotp==1.8",
     "packaging==25.0",
     "pefile==2024.8.26",
-    "python-can==4.6.1",
+    "python-can==4.3.0",
     "typing-extensions==4.15.0",
-    "udsoncan==1.25.1",
+    "udsoncan==1.18.1",
     "wrapt==1.17.3",
 ]
 [[tool.uv.index]]
