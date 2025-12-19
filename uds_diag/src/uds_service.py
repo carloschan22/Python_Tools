@@ -7,7 +7,11 @@ from typing import Any, Optional
 
 import udsoncan
 import ctypes
-import tools
+
+try:
+    import tools
+except ImportError:
+    from src import tools
 import isotp
 import can
 
@@ -77,14 +81,14 @@ def match_data_identifiers(did_config):
 
 
 class DiagService:
-    def __init__(self, bus: can.BusABC, config: dict):
+    def __init__(self, bus: can.BusABC):
         self.bus = bus
-        self.config = config
-        self.physical_tx = tools.hex_to_int(config["address"]["phy_tx"])
-        self.physical_rx = tools.hex_to_int(config["address"]["phy_rx"])
-        self.isotp_params = config["isotp_params"]
+        self.config = diag_config
+        self.physical_tx = tools.hex_to_int(self.config["address"]["phy_tx"])
+        self.physical_rx = tools.hex_to_int(self.config["address"]["phy_rx"])
+        self.isotp_params = self.config["isotp_params"]
         self.isotp_params.update(
-            {"tx_padding": tools.hex_to_int(config["isotp_params"]["tx_padding"])}
+            {"tx_padding": tools.hex_to_int(self.config["isotp_params"]["tx_padding"])}
         )
 
     def uds_set_stack(self) -> isotp.CanStack:
@@ -154,7 +158,6 @@ if __name__ == "__main__":
 
     DS = DiagService(
         bus=bus,
-        config=diag_config,
     )
     stack = DS.uds_set_stack()
     print("ISOTP栈创建成功")
