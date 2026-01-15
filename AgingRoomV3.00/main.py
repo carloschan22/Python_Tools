@@ -1,6 +1,6 @@
 from Logger import LoggerMixin
 import time
-
+import Tools
 from CompManager import ComponentsInstantiation
 
 
@@ -13,7 +13,11 @@ def main():
     app = ComponentsInstantiation()
 
     try:
-        app["diag_set_periodic_slots"]([8])
+        # 周期诊断：设置要轮询的物理槽位
+        app["diag_set_periodic_slots"]([7])
+        # 一次性诊断：先放入 pending，结果写入 diag_results
+        app["diag_set_pending_slots"]([7])
+
         while True:
             op_list = [
                 lambda: (print("[MAIN] sleep 3s"), time.sleep(3)),
@@ -23,8 +27,8 @@ def main():
                         print(
                             "[MAIN] diag_results[slot8] =>",
                             (
-                                app["diag_results"]()[7]
-                                if len(app["diag_results"]()) >= 8
+                                app["diag_results"]()[8]
+                                if len(app["diag_results"]()) >= 9
                                 else None
                             ),
                         ),
@@ -46,7 +50,11 @@ def main():
                     (app["periodic_enable"]("PeriodicSwitchMsg2")),
                 ),
             ]
-
+            time.sleep(2)
+            slots = Tools.get_active_slots(app)
+            print(f"[MAIN] slot{slots} results =>", slots)
+            result = Tools.get_slots_results(app, slots)
+            print(f"[MAIN] slot{slots} detailed results =>", result)
             # for op in op_list:
             #     op()
     except KeyboardInterrupt:

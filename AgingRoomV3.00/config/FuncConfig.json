@@ -29,7 +29,8 @@
         "ComPort": ["COM3", "COM4"],
         "BaudRate": 9600,
         "GroupPerPowerSupply": 1,
-        "VoltageCompensation": 2
+        "VoltageCompensation": 2,
+        "DarkCurrent": 5.0
     },
     "Tx": {
         "RetransmissionMechanism": true,

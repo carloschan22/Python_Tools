@@ -5,14 +5,21 @@ from typing import Any, Optional
 
 from Protocol import split_by_can_id, get_slot_id_by_can_id
 from Logger import LoggerMixin
-from Tools import SELECTED_PROJECT, FUNCTION_CONFIG, PROJECT_CONFIG
+from Tools import (
+    SELECTED_PROJECT,
+    FUNCTION_CONFIG,
+    PROJECT_CONFIG,
+    create_slot_table,
+)
 
 
 class CustomRxMsg(LoggerMixin):
     """自定义采集卡报文解析基类"""
 
     def __init__(self, dbc: Any):
-        self.status = [{} for _ in range(FUNCTION_CONFIG["UI"]["IndexPerGroup"] + 1)]
+        self.status = create_slot_table(
+            FUNCTION_CONFIG["UI"]["IndexPerGroup"], default_factory=dict
+        )
         self.decoder = DbcDecoder(dbc=dbc, data_list=self.status)
 
 
@@ -72,18 +79,22 @@ class AgingStatus(LoggerMixin):
     """解析采集卡老化状态"""
 
     def __init__(self):
-        self.status = [
-            {
-                "Timestamp": "",
-                "Status": "Default",
-                "Voltage": 0,
-                "Current": 0,
-                "CardInfo": {},
-                "CardTemperature": 20,
-                "ResistorInfo": {},
-            }
-            for _ in range(FUNCTION_CONFIG["UI"]["IndexPerGroup"] + 1)
-        ]
+        self.status = create_slot_table(
+            FUNCTION_CONFIG["UI"]["IndexPerGroup"],
+            default_factory=self._blank_status,
+        )
+
+    @staticmethod
+    def _blank_status():
+        return {
+            "Timestamp": "",
+            "Status": 0,
+            "Voltage": 0,
+            "Current": 0,
+            "CardInfo": {},
+            "CardTemperature": 20,
+            "ResistorInfo": {},
+        }
 
     def decode_status(self, msg: can.Message) -> None:
         """解析采集卡状态"""
@@ -144,14 +155,51 @@ class AgingStatus(LoggerMixin):
         """解析当前温度报文"""
         return round(msg.data[7] - 40)
 
+    def mapping_statuts(self, current, voltage):
+        """
+        根据电流、电压判断状态码：
+        - status = 0: 未接产品，UI不判断
+        - status = -1: 超出暗电流范围，处于正常工作电压范围，低于工作电流范围，UI报警
+        - status = -2: 超出暗电流范围，处于正常工作电流范围，低于工作电压范围，UI报警
+        - status = 1: 正常工作电压、电流，UI正常
+        - status = 2: 超出暗电流范围，处于正常工作电压范围，超出工作电流范围，UI报警
+        - status = 3: 超出暗电流范围，处于正常工作电压范围，超出工作电压范围，UI报警
+        """
+
+        status = 0
+        dark_current: float = FUNCTION_CONFIG["PowerSupply"]["DarkCurrent"]
+        voltage_range: list[int] = PROJECT_CONFIG[SELECTED_PROJECT]["工作电压范围"]
+        current_range: list[int] = PROJECT_CONFIG[SELECTED_PROJECT]["工作电流范围"]
+
+        if current < dark_current:
+            status = 0
+        else:
+            if voltage_range[0] <= voltage <= voltage_range[1]:
+                if current_range[0] <= current <= current_range[1]:
+                    status = 1
+                elif current < current_range[0]:
+                    status = -1
+                else:
+                    status = 2
+            else:
+                if current_range[0] <= current <= current_range[1]:
+                    status = -2
+                else:
+                    status = 3
+        return status
+
     def decoding(self, msg: can.Message):
         """启动DBC解码器"""
         index = get_slot_id_by_can_id(msg.arbitration_id)
+        current = self.decode_current(msg)
+        voltage = self.decode_voltage(msg)
+        status = self.mapping_statuts(current, voltage)
+
         self.status[index] = {
             "Timestamp": msg.timestamp,
-            "Status": True,
-            "Voltage": self.decode_voltage(msg),
-            "Current": self.decode_current(msg),
+            "Status": status,
+            "Voltage": voltage,
+            "Current": current,
             "CardInfo": self.decode_status(msg),
             "CardTemperature": self.decode_temperature(msg),
             "ResistorInfo": self.decode_resistor(msg),

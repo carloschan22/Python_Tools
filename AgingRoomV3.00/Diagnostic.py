@@ -14,7 +14,15 @@ from udsoncan.client import Client
 from udsoncan.typing import ClientConfig
 
 
-from Tools import SELECTED_PROJECT, FUNCTION_CONFIG, PROJECT_CONFIG
+from Tools import (
+    SELECTED_PROJECT,
+    FUNCTION_CONFIG,
+    PROJECT_CONFIG,
+    create_slot_table,
+    normalize_slots,
+    set_slot_value,
+    validate_slot,
+)
 
 
 class DefineDidCodec(udsoncan.DidCodec):
@@ -40,12 +48,8 @@ class SecurityAlgorithm(LoggerMixin):
     def security_algo(level, seed):
         """计算安全密钥"""
         dll_file_name = PROJECT_CONFIG[SELECTED_PROJECT]["DLL路径"]
-        dll_path = Tools._normalize_path(
-            "comm/dll", Path(f"comm/dll/{dll_file_name}.dll")
-        )
-        dll_func_name = Tools.get_dll_func_names(dll_path)[0]
-
-        ZeekrSeedKey = ctypes.CDLL(str(dll_path))
+        dll_func_name = Tools.get_dll_func_names(dll_file_name)[0]
+        ZeekrSeedKey = ctypes.CDLL(str(dll_file_name))
         GenerateKeyEx = ZeekrSeedKey.__getattr__(dll_func_name)
 
         GenerateKeyEx.argtypes = [
@@ -63,7 +67,7 @@ class SecurityAlgorithm(LoggerMixin):
         iVariant = ctypes.c_ubyte()
         iKeyArray = (ctypes.c_ubyte * len(seed))()
         iKeyLen = ctypes.c_ushort(
-            PROJECT_CONFIG[SELECTED_PROJECT]["SecurityFeedbackBytes"]
+            PROJECT_CONFIG[SELECTED_PROJECT]["Diag"]["SecurityFeedbackBytes"]
         )
 
         GenerateKeyEx(
@@ -333,25 +337,33 @@ class MultiSlotDiagnostic(LoggerMixin):
         self.bus = bus
         self.notifier = notifier
         self.slot_count = int(slot_count)
+        self.project_cfg = PROJECT_CONFIG[SELECTED_PROJECT]
+        self.diag_cfg = self.project_cfg.get("Diag", self.project_cfg)
 
         # 周期线程与外部调用可能并发：这里用一把锁保护状态与 isotp/uds 交互
         self._lock = threading.Lock()
 
-        # slot 索引：外部使用 1..N；内部 list index 使用 0..N-1
-        self._slot_addrs: list[tuple[int, int]] = [
-            get_phy_addr_by_slot(slot_id) for slot_id in range(1, self.slot_count + 1)
-        ]
+        # slot 索引：外部使用 1..N；内部也用 1..N（index 0 为空）
+        self._slot_addrs: list[tuple[int, int] | None] = create_slot_table(
+            self.slot_count
+        )
+        for slot_id in range(1, self.slot_count + 1):
+            self._slot_addrs[slot_id] = get_phy_addr_by_slot(slot_id)
 
         # 80 个独立客户端对象（按 slot 固定初始化地址）
-        self.clients: list[UDSClient] = [
-            UDSClient(bus, notifier, physical_tx=tx, physical_rx=rx)
-            for (tx, rx) in self._slot_addrs
-        ]
+        self.clients: list[UDSClient | None] = create_slot_table(self.slot_count)
+        for slot_id in range(1, self.slot_count + 1):
+            tx, rx = self._slot_addrs[slot_id]
+            self.clients[slot_id] = UDSClient(
+                bus, notifier, physical_tx=tx, physical_rx=rx
+            )
 
         # Diagnostic: 待诊断 slot 列表（1-based）
         self.pending_slots: list[int] = []
-        # Diagnostic: 成功后结果存放（index=slot-1）
-        self.results: list[Optional[dict[str, Any]]] = [None] * self.slot_count
+        # Diagnostic: 成功后结果存放（slot 即物理序号；index 0 为空）
+        self.results: list[Optional[dict[str, Any]]] = create_slot_table(
+            self.slot_count
+        )
 
         # PeriodicDiag
         self.periodic_slots: list[int] = []
@@ -359,23 +371,111 @@ class MultiSlotDiagnostic(LoggerMixin):
         self.rediag_interval_s: float = 1.0
         self.periodic_dids: list[str] = []
         self._periodic_next_due: dict[int, float] = {}
-        self.periodic_last: list[Optional[dict[str, Any]]] = [None] * self.slot_count
-        self.periodic_last_error: list[Optional[str]] = [None] * self.slot_count
+        self.periodic_last: list[Optional[dict[str, Any]]] = create_slot_table(
+            self.slot_count
+        )
+        self.periodic_last_error: list[Optional[str]] = create_slot_table(
+            self.slot_count
+        )
 
     def _validate_slot(self, slot: int) -> int:
-        if not isinstance(slot, int):
-            raise TypeError("slot must be int")
-        if slot < 1 or slot > self.slot_count:
-            raise ValueError(f"slot must be in [1, {self.slot_count}]")
-        return slot
+        return validate_slot(int(slot), self.slot_count)
 
     def _ensure_client(self, slot: int) -> tuple[UDSClient, Client, int, int]:
         slot = self._validate_slot(slot)
-        idx = slot - 1
-        uds = self.clients[idx].initialize()
+        uds = self.clients[slot].initialize()
         client = uds.get_client()
-        tx, rx = self._slot_addrs[idx]
+        tx, rx = self._slot_addrs[slot]
         return uds, client, tx, rx
+
+    def _get_did_cfg(self) -> dict:
+        diag_cfg = self.diag_cfg or {}
+        return diag_cfg.get("DidConfig") or self.project_cfg.get("did_config") or {}
+
+    def _get_did_type(self, did_hex: str) -> Optional[str]:
+        info = self._get_did_cfg().get(did_hex) or {}
+        did_type = info.get("type") or info.get("Type")
+        if did_type is None:
+            return None
+        return str(did_type).strip().lower()
+
+    def _encode_did_value(self, did_hex: str, value: Any) -> Optional[bytes]:
+        if value is None:
+            return None
+        did_type = self._get_did_type(did_hex)
+        info = self._get_did_cfg().get(did_hex) or {}
+        size = info.get("size") or info.get("Size")
+        padding = info.get("Padding") or info.get("padding") or "0x00"
+
+        def _to_padding_byte(pad_val) -> int:
+            if isinstance(pad_val, int):
+                return pad_val & 0xFF
+            s = str(pad_val).strip().lower()
+            if s.startswith("0x"):
+                s = s[2:]
+            return int(s, 16) & 0xFF
+
+        if did_type == "bytes":
+            if isinstance(value, (bytes, bytearray)):
+                payload = bytes(value)
+            elif isinstance(value, str):
+                s = value.strip().lower()
+                if s.startswith("0x"):
+                    s = s[2:]
+                s = "".join(s.split())
+                payload = bytes.fromhex(s)
+            elif isinstance(value, (list, tuple)):
+                payload = bytes(int(v) for v in value)
+            elif isinstance(value, int):
+                length = max(1, (value.bit_length() + 7) // 8)
+                payload = value.to_bytes(length, byteorder="big", signed=False)
+            else:
+                payload = bytes(value)
+        elif did_type == "string":
+            if isinstance(value, (bytes, bytearray)):
+                payload = bytes(value)
+            else:
+                payload = str(value).encode("utf-8")
+        else:
+            if isinstance(value, (bytes, bytearray)):
+                payload = bytes(value)
+            elif isinstance(value, str):
+                payload = value.encode("utf-8")
+            else:
+                payload = str(value).encode("utf-8")
+
+        if size is not None:
+            try:
+                size = int(size)
+            except Exception:
+                size = None
+
+        if size is not None:
+            if len(payload) < size:
+                pad_byte = _to_padding_byte(padding)
+                payload = payload + bytes([pad_byte]) * (size - len(payload))
+            elif len(payload) > size:
+                self.log.warning(
+                    f"DID {did_hex} payload too long ({len(payload)}>{size}), truncating"
+                )
+                payload = payload[:size]
+
+        return payload
+
+    def _decode_did_value(self, did_hex: str, value: Any) -> Any:
+        did_type = self._get_did_type(did_hex)
+        if did_type == "string":
+            if isinstance(value, (bytes, bytearray)):
+                result = bytes(value).decode("utf-8", errors="ignore")
+                return result.replace(" ", "")
+            return str(value)
+        if did_type == "bytes":
+            if isinstance(value, bytearray):
+                value = bytes(value)
+            if isinstance(value, (bytes, bytearray)):
+                return bytes(value).hex()
+            return value
+        return value
 
     def read_dids(self, slot: int, dids: list[str]) -> dict[str, Any]:
         with self._lock:
@@ -388,19 +488,97 @@ class MultiSlotDiagnostic(LoggerMixin):
                 for did_hex in dids:
                     did_int = Tools.hex_to_int(did_hex)
                     rsp = client.read_data_by_identifier(did_int)
-                    out[did_hex] = _extract_rdbi_value(rsp, did_int)
+                    raw = _extract_rdbi_value(rsp, did_int)
+                    out[did_hex] = self._decode_did_value(did_hex, raw)
+            return out
+
+    def write_dids(
+        self, slot: int, dids: list[str], values: Optional[dict[str, Any]] = None
+    ) -> dict[str, Any]:
+        with self._lock:
+            uds, client, tx, rx = self._ensure_client(slot)
+            # 采集卡转发：每次诊断前必须更新物理地址
+            uds.update_address(tx, rx)
+
+            did_cfg = self._get_did_cfg()
+            values = values or {}
+
+            out: dict[str, Any] = {}
+            with client:
+                # 先切换会话与安全访问（只做一次）
+                try:
+                    rsp = client.change_session(3)
+                except Exception as exc:
+                    self.log.error(f"Slot {slot} 切换会话异常: {exc}")
+                    for did_hex in dids:
+                        out[did_hex] = None
+                    return out
+
+                if rsp.positive:
+                    self.log.debug(f"Slot {slot} 切换会话成功，开始安全访问")
+                    try:
+                        rsp = client.unlock_security_access(1)
+                    except Exception as exc:
+                        self.log.error(f"Slot {slot} 安全访问异常: {exc}")
+                        for did_hex in dids:
+                            out[did_hex] = None
+                        return out
+
+                    if rsp.positive:
+                        self.log.debug(f"Slot {slot} 安全访问成功")
+                    else:
+                        self.log.warning(
+                            f"Slot {slot} 安全访问失败，响应码: {rsp.code_name}"
+                        )
+                else:
+                    self.log.warning(
+                        f"Slot {slot} 切换会话失败，响应码: {rsp.code_name}"
+                    )
+
+                if not rsp.positive:
+                    for did_hex in dids:
+                        out[did_hex] = None
+                    return out
+
+                for did_hex in dids:
+                    did_int = Tools.hex_to_int(did_hex)
+                    info = did_cfg.get(did_hex) or {}
+                    raw_value = values.get(
+                        did_hex, info.get("value") or info.get("Value")
+                    )
+                    payload = self._encode_did_value(did_hex, raw_value)
+                    if payload is None:
+                        out[did_hex] = None
+                        self.log.warning(
+                            f"Slot {slot} DID {did_hex} 写入失败，未配置 value"
+                        )
+                        continue
+                    self.log.debug(
+                        f"Slot {slot} 写入 DID {did_hex}，值: {raw_value}, 编码后: {list(payload)}"
+                    )
+                    try:
+                        rsp = client.write_data_by_identifier(did_int, payload)
+                    except Exception as exc:
+                        out[did_hex] = None
+                        self.log.error(f"Slot {slot} DID {did_hex} 写入异常: {exc}")
+                        continue
+                    if rsp.positive:
+                        out[did_hex] = _extract_rdbi_value(rsp, did_int)
+                        self.log.debug(
+                            f"Slot {slot} DID {did_hex} 写入成功，响应: {out[did_hex]}"
+                        )
+                    else:
+                        out[did_hex] = None
+                        self.log.warning(
+                            f"Slot {slot} DID {did_hex} 写入失败，响应码: {rsp.code_name}"
+                        )
             return out
 
     # -------- Diagnostic (one-shot success) --------
 
     def set_pending_slots(self, slots: list[int]) -> None:
         with self._lock:
-            cleaned: list[int] = []
-            for s in slots:
-                s = self._validate_slot(int(s))
-                if s not in cleaned:
-                    cleaned.append(s)
-            self.pending_slots = cleaned
+            self.pending_slots = normalize_slots(slots, self.slot_count)
 
     def add_pending_slots(self, slots: list[int]) -> None:
         with self._lock:
@@ -416,11 +594,38 @@ class MultiSlotDiagnostic(LoggerMixin):
         with self._lock:
             slots = list(self.pending_slots)
 
+        # 根据配置中的 Operation 决定读/写
+        did_cfg = self._get_did_cfg()
+
+        def _op_for(did_hex: str) -> str:
+            info = did_cfg.get(did_hex) or {}
+            op = info.get("Operation") or info.get("operation") or "Read"
+            return str(op).strip().lower()
+
+        read_dids: list[str] = []
+        write_dids: list[str] = []
+        for did in dids:
+            op = _op_for(did)
+            if op == "write":
+                write_dids.append(did)
+            else:
+                read_dids.append(did)
+
         for slot in slots:
             try:
-                data = self.read_dids(slot, dids)
+                data: dict[str, Any] = {}
+                if read_dids:
+                    data.update(self.read_dids(slot, read_dids))
+                if write_dids:
+                    values = {
+                        did: (did_cfg.get(did) or {}).get("value")
+                        or (did_cfg.get(did) or {}).get("Value")
+                        for did in write_dids
+                    }
+                    self.log.debug(f"Slot {slot} 写入值: {values}")
+                    data.update(self.write_dids(slot, write_dids, values))
                 with self._lock:
-                    self.results[slot - 1] = data
+                    set_slot_value(self.results, slot, data, self.slot_count)
                 ok.append(slot)
             except Exception as exc:
                 fail[slot] = str(exc)
@@ -447,12 +652,7 @@ class MultiSlotDiagnostic(LoggerMixin):
 
     def set_periodic_slots(self, slots: list[int]) -> None:
         with self._lock:
-            cleaned: list[int] = []
-            for s in slots:
-                s = self._validate_slot(int(s))
-                if s not in cleaned:
-                    cleaned.append(s)
-            self.periodic_slots = cleaned
+            self.periodic_slots = normalize_slots(slots, self.slot_count)
             now = time.time()
             # 新设置的 slot 立即触发一次
             for s in self.periodic_slots:
@@ -477,13 +677,23 @@ class MultiSlotDiagnostic(LoggerMixin):
             try:
                 data = self.read_dids(slot, dids)
                 with self._lock:
-                    self.periodic_last[slot - 1] = data
-                    self.periodic_last_error[slot - 1] = None
+                    set_slot_value(self.periodic_last, slot, data, self.slot_count)
+                    set_slot_value(
+                        self.periodic_last_error,
+                        slot,
+                        None,
+                        self.slot_count,
+                    )
                     self._periodic_next_due[slot] = now + interval_s
             except Exception as exc:
                 with self._lock:
-                    self.periodic_last[slot - 1] = None
-                    self.periodic_last_error[slot - 1] = str(exc)
+                    set_slot_value(self.periodic_last, slot, None, self.slot_count)
+                    set_slot_value(
+                        self.periodic_last_error,
+                        slot,
+                        str(exc),
+                        self.slot_count,
+                    )
                     self._periodic_next_due[slot] = now + rediag_s
 
         return {
@@ -520,12 +730,13 @@ if __name__ == "__main__":
     ).initialize()
     client = uds_client.get_client()
 
-    diag_slot = 8
+    diag_slot = 7
     tx, rx = get_phy_addr_by_slot(diag_slot)
     print(f"Slot {diag_slot} PHY TX: {hex(tx)}, RX: {hex(rx)}")
     try:
         with client:
             uds_client.update_address(tx, rx)
+
             response = client.read_data_by_identifier(0xFD00)
             print(f"DID 0xFD00 Data: {_extract_rdbi_value(response, 0xFD00)}")
     except Exception as e:

@@ -2,7 +2,7 @@ import json
 import logging
 from pathlib import Path
 from Logger import configure_default_logging
-from typing import Iterable, List, Union
+from typing import Callable, Iterable, List, Optional, Union
 
 _log = logging.getLogger(__name__)
 
@@ -201,6 +201,149 @@ def refresh_configs():
     FUNCTION_CONFIG = load_config("FuncConfig.json")
     PROJECT_CONFIG = load_config("ProjectConfig.json")
     SELECTED_PROJECT = FUNCTION_CONFIG["UI"]["DefaultProject"]
+
+
+# -------- Slot helpers (1-based indexing) --------
+
+
+def validate_slot(slot: int, slot_count: int) -> int:
+    """Ensure slot uses physical 1-based index within range."""
+    if not isinstance(slot, int):
+        raise TypeError("slot must be int")
+    if slot < 1 or slot > int(slot_count):
+        raise ValueError(f"slot must be in [1, {int(slot_count)}]")
+    return slot
+
+
+def create_slot_table(
+    slot_count: int,
+    default: Optional[object] = None,
+    *,
+    default_factory: Optional[Callable[[], object]] = None,
+) -> list:
+    """Create a 1-based slot table with a sentinel at index 0."""
+    count = int(slot_count)
+    if count < 1:
+        raise ValueError("slot_count must be >=1")
+    table = [None] * (count + 1)
+    for slot in range(1, count + 1):
+        table[slot] = default_factory() if default_factory else default
+    return table
+
+
+def set_slot_value(
+    table: list, slot: int, value: object, slot_count: Optional[int] = None
+) -> list:
+    """Set value by physical slot index (1-based)."""
+    count = int(slot_count) if slot_count is not None else len(table) - 1
+    slot = validate_slot(int(slot), count)
+    if slot >= len(table):
+        raise ValueError("slot table is smaller than slot index")
+    table[slot] = value
+    return table
+
+
+def get_slot_value(
+    table: list, slot: int, slot_count: Optional[int] = None, default: object = None
+):
+    """Get value by physical slot index (1-based)."""
+    count = int(slot_count) if slot_count is not None else len(table) - 1
+    slot = validate_slot(int(slot), count)
+    if slot >= len(table):
+        return default
+    return table[slot]
+
+
+def normalize_slots(slots: Iterable[int], slot_count: int) -> list[int]:
+    """Deduplicate + validate slots while keeping order (1-based)."""
+    cleaned: list[int] = []
+    for s in slots:
+        slot = validate_slot(int(s), slot_count)
+        if slot not in cleaned:
+            cleaned.append(slot)
+    return cleaned
+
+
+def get_slot_results(app, slot):
+    """获取指定槽位的card_status\custom_rx1\custom_rx2\diag_results\diag_periodic_snapshot结果的集合"""
+
+    def _get_op(name: str):
+        """兼容 ComponentsInstantiation 的 ops 映射或直接属性调用。"""
+        if hasattr(app, "ops") and isinstance(getattr(app, "ops"), dict):
+            func = getattr(app, "ops").get(name)
+            if callable(func):
+                return func
+        if hasattr(app, name):
+            func = getattr(app, name)
+            if callable(func):
+                return func
+        return None
+
+    status_fn = _get_op("get_status")
+    diag_results_fn = _get_op("diag_results")
+    diag_snapshot_fn = _get_op("diag_periodic_snapshot")
+
+    card_status = status_fn("card_status", slot) if status_fn else None
+    custom_rx1 = status_fn("custom_rx1", slot) if status_fn else None
+    custom_rx2 = status_fn("custom_rx2", slot) if status_fn else None
+
+    diag_results = diag_results_fn() if diag_results_fn else []
+    diag_result_slot = diag_results[slot] if len(diag_results) > slot else None
+
+    snapshot = diag_snapshot_fn() if diag_snapshot_fn else {}
+    data_list = snapshot.get("data", []) if isinstance(snapshot, dict) else []
+    diag_periodic_slot = data_list[slot] if len(data_list) > slot else None
+
+    return {
+        "card_status": card_status,
+        "custom_rx1": custom_rx1,
+        "custom_rx2": custom_rx2,
+        "diag_results": diag_result_slot,
+        "diag_periodic_snapshot": diag_periodic_slot,
+    }
+
+
+def get_slots_results(app, slots: int | list[int]) -> dict[int, dict]:
+    """获取指定一个或若干个槽位的card_status\custom_rx1\custom_rx2\diag_results\diag_periodic_snapshot结果的集合"""
+    slot_count = FUNCTION_CONFIG["UI"]["IndexPerGroup"]
+    if isinstance(slots, int):
+        slots = [slots]
+    slots = normalize_slots(slots, slot_count)
+    results = {}
+    for slot in slots:
+        results[slot] = get_slot_results(app, slot)
+    return results
+
+
+def get_all_slots_results(app):
+    """获取所有槽位的card_status\custom_rx1\custom_rx2\diag_results\diag_periodic_snapshot结果的集合"""
+    slot_count = FUNCTION_CONFIG["UI"]["IndexPerGroup"]
+    results = {}
+    for slot in range(1, slot_count + 1):
+        results[slot] = get_slot_results(app, slot)
+    return results
+
+
+def get_active_slots(app) -> list[int]:
+    """获取当前所有激活槽位列表,基于 card_status 中status状态判断,返回Status非0的槽位列表"""
+    slot_count = FUNCTION_CONFIG["UI"]["IndexPerGroup"]
+    status_fn = None
+    if hasattr(app, "ops") and isinstance(getattr(app, "ops"), dict):
+        status_fn = getattr(app, "ops").get("get_status")
+    if not status_fn and hasattr(app, "get_status"):
+        status_fn = getattr(app, "get_status")
+    if not callable(status_fn):
+        _log.warning("无法获取 get_status 方法，无法判断激活槽位")
+        return []
+
+    active_slots: list[int] = []
+    for slot in range(1, slot_count + 1):
+        card_status = status_fn("card_status", slot)
+        if isinstance(card_status, dict):
+            status = card_status.get("Status", 0)
+            if status != 0:
+                active_slots.append(slot)
+    return active_slots
 
 
 if __name__ == "__main__":

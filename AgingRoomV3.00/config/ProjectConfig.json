@@ -6,6 +6,10 @@
             6
         ],
         "默认老化时长": 4,
+        "工作电压范围": [
+            9,
+            16
+        ],
         "工作电流范围": [
             500,
             1500
@@ -58,7 +62,7 @@
             "DataOfTxMsg2": {},
             "PeriodicSwitching": {
                 "SwitchMsg1": {
-                    "SwitchInterval": 5,
+                    "SwitchInterval": 10,
                     "Data": [
                         {
                             "HU_SMIRMColorTest": "Red"
@@ -78,10 +82,10 @@
                     ]
                 },
                 "SwitchMsg2": {
-                    "SwitchInterval": 1,
+                    "SwitchInterval": 5,
                     "Data": [
                         {
-                            "HU_Light_ValueMalCmd": 100
+                            "HU_Light_ValueMalCmd": 40
                         },
                         {
                             "HU_Light_ValueMalCmd": 10
@@ -91,27 +95,32 @@
             }
         },
         "Diag": {
+            "SecurityFeedbackBytes": 4,
             "DiagPhyAddr": [
                 1940,
                 1948
             ],
             "DidConfig": {
                 "0xF193": {
+                    "Operation":"Write",
                     "name": "Ecu Hardware Version",
                     "size": 2,
-                    "type": "string",
-                    "expected": "F1930002",
+                    "type": "bytes",
+                    "value": "0004",
+                    "Padding":"0x20",
                     "offset": null
                 },
                 "0xFD00": {
+                    "operation":"Write",
                     "name": "Ecu Software Version",
                     "size": 16,
                     "type": "string",
-                    "expected": "V1.70.96",
+                    "value": "V1.70.95",
+                    "Padding":"0x20",
                     "offset": null
                 }
             },
-            "PeriodicDiag":{
+            "PeriodicDiag": {
                 "Interval": 2,
                 "ReDiagInterval": 1,
                 "Dids": [
