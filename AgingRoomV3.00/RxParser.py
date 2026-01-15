@@ -1,0 +1,218 @@
+import can
+
+from typing import Any, Optional
+
+
+from Protocol import split_by_can_id, get_slot_id_by_can_id
+from Logger import LoggerMixin
+from Tools import SELECTED_PROJECT, FUNCTION_CONFIG, PROJECT_CONFIG
+
+
+class CustomRxMsg(LoggerMixin):
+    """自定义采集卡报文解析基类"""
+
+    def __init__(self, dbc: Any):
+        self.status = [{} for _ in range(FUNCTION_CONFIG["UI"]["IndexPerGroup"] + 1)]
+        self.decoder = DbcDecoder(dbc=dbc, data_list=self.status)
+
+
+class DbcDecoder(LoggerMixin):
+    """DBC解析器"""
+
+    def __init__(self, dbc: Any, data_list: Optional[list] = None):
+        self.dbc = dbc
+        self.data_list = data_list
+
+    def on_message_decode(self, msg: can.Message, origin_msg_id: int) -> None:
+        if self.dbc is None:
+            raise RuntimeError(
+                "DbcDecoder.dbc 未初始化，请从 CanBusManager.get_dbc() 注入"
+            )
+        index = get_slot_id_by_can_id(msg.arbitration_id)
+        try:
+            self.data_list[index] = self.dbc.decode_message(origin_msg_id, msg.data)
+        except Exception as e:
+            self.log.info(
+                f"无法使用DBC解码消息: ID={origin_msg_id}, Data={msg.data.hex()}"
+            )
+            self.log.error(f"处理接收消息时出错: {e}")
+
+
+class CustomRxMsg1(CustomRxMsg, LoggerMixin):
+    """自定义采集卡报文1解析"""
+
+    def __init__(self, dbc: Any):
+        super().__init__(dbc)
+
+    def decoding(self, msg: can.Message):
+        """启动DBC解码器"""
+        rx_cfg = PROJECT_CONFIG.get(SELECTED_PROJECT, {}).get("RX", {})
+        origin_id = rx_cfg.get("IdOfRxMsg1")
+        if origin_id is None:
+            return
+        self.decoder.on_message_decode(msg, origin_id)
+
+
+class CustomRxMsg2(CustomRxMsg, LoggerMixin):
+    """自定义采集卡报文2解析"""
+
+    def __init__(self, dbc: Any):
+        super().__init__(dbc)
+
+    def decoding(self, msg: can.Message):
+        """启动DBC解码器"""
+        rx_cfg = PROJECT_CONFIG.get(SELECTED_PROJECT, {}).get("RX", {})
+        origin_id = rx_cfg.get("IdOfRxMsg2")
+        if origin_id is None:
+            return
+        self.decoder.on_message_decode(msg, origin_id)
+
+
+class AgingStatus(LoggerMixin):
+    """解析采集卡老化状态"""
+
+    def __init__(self):
+        self.status = [
+            {
+                "Timestamp": "",
+                "Status": "Default",
+                "Voltage": 0,
+                "Current": 0,
+                "CardInfo": {},
+                "CardTemperature": 20,
+                "ResistorInfo": {},
+            }
+            for _ in range(FUNCTION_CONFIG["UI"]["IndexPerGroup"] + 1)
+        ]
+
+    def decode_status(self, msg: can.Message) -> None:
+        """解析采集卡状态"""
+        map = {
+            "slave_configed": ["configed", "not_configed"],
+            "reserve_1": ["default", "default"],
+            "output_status": ["open", "close"],
+            "current_status": ["normal", "abnormal"],
+            "voltage_status": ["normal", "abnormal"],
+            "can_status": ["normal", "abnormal"],
+            "reserve_2": ["default", "default"],
+            "reserve_3": ["default", "default"],
+        }
+
+        def byte_to_bit_list(byte_val):
+            return [(byte_val >> i) & 1 for i in range(8)]
+
+        status_list = byte_to_bit_list(msg.data[5])
+
+        mapped_status = {}
+        for key, value in zip(map.keys(), status_list):
+            mapped_status[key] = map[key][value]
+        return mapped_status
+
+    def decode_resistor(self, msg: can.Message) -> dict:
+        """ "解析采集卡电阻配置报文"""
+        resistor_byte = msg.data[6]
+        if isinstance(resistor_byte, bytes):
+            if len(resistor_byte) != 1:
+                raise ValueError("Input bytes must be of length 1.")
+            value = resistor_byte[0]
+        elif isinstance(resistor_byte, int):
+            value = resistor_byte
+        else:
+            raise ValueError("Input must be a single byte or int.")
+
+        reverse_map = {0: 9999, 1: 120, 2: 240, 3: -1}
+        config_keys = ["main_can", "can_1", "can_2"]
+        bit_shifts = [4, 2, 0]
+
+        result = {}
+        for key, shift in zip(config_keys, bit_shifts):
+            code = (value >> shift) & 0x03
+            result[key] = reverse_map[code]
+        return result
+
+    def decode_voltage(self, msg: can.Message) -> None:
+        """解析当前电压报文"""
+        return round(msg.data[1] * 0.1, 2)
+
+    def decode_current(self, msg: can.Message) -> None:
+        """解析当前老化状态报文"""
+        return round(
+            int.from_bytes(msg.data[2:5], byteorder="big", signed=False) * 0.001, 2
+        )
+
+    def decode_temperature(self, msg: can.Message) -> None:
+        """解析当前温度报文"""
+        return round(msg.data[7] - 40)
+
+    def decoding(self, msg: can.Message):
+        """启动DBC解码器"""
+        index = get_slot_id_by_can_id(msg.arbitration_id)
+        self.status[index] = {
+            "Timestamp": msg.timestamp,
+            "Status": True,
+            "Voltage": self.decode_voltage(msg),
+            "Current": self.decode_current(msg),
+            "CardInfo": self.decode_status(msg),
+            "CardTemperature": self.decode_temperature(msg),
+            "ResistorInfo": self.decode_resistor(msg),
+        }
+
+
+class RxSplitter(can.Listener, LoggerMixin):
+    """来自采集卡Can报文分流器,三个节点报文解析"""
+
+    def __init__(self, dbc: Any, switcher: Optional[list[bool]] = None):
+        if switcher is None:
+            switcher = [True, True, True]
+        if len(switcher) != 3:
+            raise ValueError(
+                "switcher 必须为长度=3的列表: [AgingStatus, CustomRxMsg1, CustomRxMsg2]"
+            )
+
+        self.rx_msg_managers: list[
+            Optional[AgingStatus | CustomRxMsg1 | CustomRxMsg2]
+        ] = [
+            AgingStatus() if switcher[0] else None,
+            CustomRxMsg1(dbc) if switcher[1] else None,
+            CustomRxMsg2(dbc) if switcher[2] else None,
+        ]
+
+        self._dispatch = {}
+        if self.rx_msg_managers[0] is not None:
+            self._dispatch["CH1_STATUS"] = self.rx_msg_managers[0].decoding
+            self._dispatch["CH2_STATUS"] = self.rx_msg_managers[0].decoding
+        if self.rx_msg_managers[1] is not None:
+            self._dispatch["CH1_APP_RX1"] = self.rx_msg_managers[1].decoding
+            self._dispatch["CH2_APP_RX1"] = self.rx_msg_managers[1].decoding
+        if self.rx_msg_managers[2] is not None:
+            self._dispatch["CH1_APP_RX2"] = self.rx_msg_managers[2].decoding
+            self._dispatch["CH2_APP_RX2"] = self.rx_msg_managers[2].decoding
+
+    def on_message_received(self, msg: can.Message) -> None:
+        try:
+            key = split_by_can_id(msg.arbitration_id)
+        except ValueError:
+            # 非协议内可分流的帧（例如回环/噪声/其它模块帧），直接忽略
+            return
+
+        try:
+            handler = self._dispatch.get(key)
+            if handler is None:
+                # 例如 OUTPUT_CTRL_1 / CH1_TX1 等回环帧，不参与接收解析
+                return
+            handler(msg)
+        except Exception as e:
+            self.log.error(f"处理接收消息时出错: {e}")
+
+    def get_status(self, which: str, slot: int = None):
+        mapping = {
+            "card_status": 0,
+            "custom_rx1": 1,
+            "custom_rx2": 2,
+        }
+        manager = self.rx_msg_managers[mapping[which]]
+        if manager is None:
+            return None if slot is not None else []
+        if slot is None:
+            return manager.status
+        return manager.status[slot]

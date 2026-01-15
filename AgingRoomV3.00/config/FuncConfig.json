@@ -1,0 +1,47 @@
+{
+    "UI": {
+        "Version": "V3.00",
+        "GroupCount": 2,
+        "IndexPerGroup": 80,
+        "SlotRefreshInterval": 1,
+        "OperatorList": ["魁小立", "朱燕波", "李新成"],
+        "DefaultOperator": "魁小立",
+        "DefaultProject": "Q5030",
+        "Remap":true
+    },
+    "Logging": {
+        "EnableLogging": true,
+        "LogPath": "logs/app.log",
+        "LogLevel": "DEBUG",
+        "MaxLogFileSizeMB": 100,
+        "RetentionPeriod": 3
+    },
+    "CanBus":{
+        "Interface": "kvaser",
+        "Channel": 0,
+        "Bitrate": 500000,
+        "DataBitrate": 2000000,
+        "ReceiveOwnMessages": false,
+        "FD": true
+    },
+    "PowerSupply": {
+        "Type": "DY4010",
+        "ComPort": ["COM3", "COM4"],
+        "BaudRate": 9600,
+        "GroupPerPowerSupply": 1,
+        "VoltageCompensation": 2
+    },
+    "Tx": {
+        "RetransmissionMechanism": true,
+        "RetransmissionTimes": 3,
+        "RetransmissionInterval": 0.1
+    },
+    "Rx": {
+        "TimesToChangeStatus": 3,
+        "StatusReset": true,
+        "TimesToResetStatus": 5
+    },
+    "Threading": {
+        "SchedulingGranularity": 0.1
+    }
+}
