@@ -1,5 +1,4 @@
 import can
-import sys
 import time
 import isotp
 import ctypes
@@ -78,9 +77,6 @@ class SecurityAlgorithm(LoggerMixin):
             iKeyArray,
             ctypes.byref(iKeyLen),
         )
-        SecurityAlgorithm.log.debug(
-            f"level: {level}, seed: {seed}, return key: {list(iKeyArray)}"
-        )
         return bytes(iKeyArray)
 
 
@@ -124,7 +120,7 @@ class UDSClient(LoggerMixin):
         Args:
             bus: CAN总线实例
             notifier: Notifier实例（用于注册isotp stack）
-            config: 诊断配置，如果为None则使用默认配置
+            config: 诊断配置, 如果为None则使用默认配置
         """
         self.bus = bus
         self.notifier = notifier
@@ -228,7 +224,7 @@ class UDSClient(LoggerMixin):
     def get_client(self) -> Client:
         """获取UDS客户端实例"""
         if not self._initialized:
-            raise RuntimeError("UDSClient未初始化，请先调用initialize()")
+            raise RuntimeError("UDSClient未初始化, 请先调用initialize()")
         return self.client
 
     def update_address(self, txid: int, rxid: int) -> None:
@@ -325,7 +321,7 @@ class MultiSlotDiagnostic(LoggerMixin):
 
     - 为每个 slot 维护独立的 UDSClient（独立 stack/connection）
     - 诊断前强制 update_address(tx, rx)（采集卡转发场景的正确用法）
-    - Diagnostic：对 pending_slots 执行“成功一次即移除”，结果写入 results
+    - Diagnostic：对 pending_slots 执行“成功一次即移除”, 结果写入 results
     - PeriodicDiag：对 periodic_slots 周期诊断；失败按 ReDiagInterval 更快重试
     """
 
@@ -369,7 +365,11 @@ class MultiSlotDiagnostic(LoggerMixin):
         self.periodic_slots: list[int] = []
         self.periodic_interval_s: float = 10.0
         self.rediag_interval_s: float = 1.0
+        # PeriodicDiag: 读 DIDs 与写入计划（写入时可按值列表轮询）
         self.periodic_dids: list[str] = []
+        self.periodic_read_dids: list[str] = []
+        self.periodic_write_plan: dict[str, list[Any]] = {}
+        self._periodic_write_idx: dict[int, dict[str, int]] = {}
         self._periodic_next_due: dict[int, float] = {}
         self.periodic_last: list[Optional[dict[str, Any]]] = create_slot_table(
             self.slot_count
@@ -515,7 +515,7 @@ class MultiSlotDiagnostic(LoggerMixin):
                     return out
 
                 if rsp.positive:
-                    self.log.debug(f"Slot {slot} 切换会话成功，开始安全访问")
+                    self.log.debug(f"Slot {slot} 切换会话成功, 开始安全访问")
                     try:
                         rsp = client.unlock_security_access(1)
                     except Exception as exc:
@@ -524,15 +524,13 @@ class MultiSlotDiagnostic(LoggerMixin):
                             out[did_hex] = None
                         return out
 
-                    if rsp.positive:
-                        self.log.debug(f"Slot {slot} 安全访问成功")
-                    else:
+                    if not rsp.positive:
                         self.log.warning(
-                            f"Slot {slot} 安全访问失败，响应码: {rsp.code_name}"
+                            f"Slot {slot} 安全访问失败, 响应码: {rsp.code_name}"
                         )
                 else:
                     self.log.warning(
-                        f"Slot {slot} 切换会话失败，响应码: {rsp.code_name}"
+                        f"Slot {slot} 切换会话失败, 响应码: {rsp.code_name}"
                     )
 
                 if not rsp.positive:
@@ -550,12 +548,9 @@ class MultiSlotDiagnostic(LoggerMixin):
                     if payload is None:
                         out[did_hex] = None
                         self.log.warning(
-                            f"Slot {slot} DID {did_hex} 写入失败，未配置 value"
+                            f"Slot {slot} DID {did_hex} 写入失败, 未配置 value"
                         )
                         continue
-                    self.log.debug(
-                        f"Slot {slot} 写入 DID {did_hex}，值: {raw_value}, 编码后: {list(payload)}"
-                    )
                     try:
                         rsp = client.write_data_by_identifier(did_int, payload)
                     except Exception as exc:
@@ -564,13 +559,10 @@ class MultiSlotDiagnostic(LoggerMixin):
                         continue
                     if rsp.positive:
                         out[did_hex] = _extract_rdbi_value(rsp, did_int)
-                        self.log.debug(
-                            f"Slot {slot} DID {did_hex} 写入成功，响应: {out[did_hex]}"
-                        )
                     else:
                         out[did_hex] = None
                         self.log.warning(
-                            f"Slot {slot} DID {did_hex} 写入失败，响应码: {rsp.code_name}"
+                            f"Slot {slot} DID {did_hex} 写入失败, 响应码: {rsp.code_name}"
                         )
             return out
 
@@ -587,7 +579,10 @@ class MultiSlotDiagnostic(LoggerMixin):
                 if s not in self.pending_slots:
                     self.pending_slots.append(s)
 
-    def run_pending_once(self, dids: list[str]) -> dict[str, Any]:
+    def run_pending_once(self, dids: list[str] | dict) -> dict[str, Any]:
+        # 支持 PeriodicDiag.Dids 为 dict 时仅取键作为 DID 列表
+        if isinstance(dids, dict):
+            dids = list(dids.keys())
         ok: list[int] = []
         fail: dict[int, str] = {}
 
@@ -622,7 +617,6 @@ class MultiSlotDiagnostic(LoggerMixin):
                         or (did_cfg.get(did) or {}).get("Value")
                         for did in write_dids
                     }
-                    self.log.debug(f"Slot {slot} 写入值: {values}")
                     data.update(self.write_dids(slot, write_dids, values))
                 with self._lock:
                     set_slot_value(self.results, slot, data, self.slot_count)
@@ -643,12 +637,40 @@ class MultiSlotDiagnostic(LoggerMixin):
     # -------- PeriodicDiag --------
 
     def configure_periodic(
-        self, interval_s: float, rediag_interval_s: float, dids: list[str]
+        self, interval_s: float, rediag_interval_s: float, dids: list[str] | dict
     ) -> None:
+        def _normalize_value_list(values: Any) -> list[Any]:
+            if values is None:
+                return []
+            if isinstance(values, str):
+                return [v.strip() for v in values.split(",") if v.strip()]
+            if isinstance(values, (list, tuple)):
+                out: list[Any] = []
+                for v in values:
+                    if isinstance(v, str):
+                        parts = [p.strip() for p in v.split(",") if p.strip()]
+                        out.extend(parts)
+                    else:
+                        out.append(v)
+                return out
+            return [values]
+
         with self._lock:
             self.periodic_interval_s = float(interval_s)
             self.rediag_interval_s = float(rediag_interval_s)
-            self.periodic_dids = list(dids)
+            self.periodic_read_dids = []
+            self.periodic_write_plan = {}
+            self._periodic_write_idx = {}
+
+            if isinstance(dids, dict):
+                for did_hex, values in dids.items():
+                    vlist = _normalize_value_list(values)
+                    if vlist:
+                        self.periodic_write_plan[str(did_hex)] = vlist
+                self.periodic_dids = list(self.periodic_write_plan.keys())
+            else:
+                self.periodic_read_dids = list(dids or [])
+                self.periodic_dids = list(self.periodic_read_dids)
 
     def set_periodic_slots(self, slots: list[int]) -> None:
         with self._lock:
@@ -657,6 +679,7 @@ class MultiSlotDiagnostic(LoggerMixin):
             # 新设置的 slot 立即触发一次
             for s in self.periodic_slots:
                 self._periodic_next_due.setdefault(s, now)
+                self._periodic_write_idx.setdefault(s, {})
 
     def periodic_tick(self) -> dict[str, Any]:
         now = time.time()
@@ -664,9 +687,37 @@ class MultiSlotDiagnostic(LoggerMixin):
 
         with self._lock:
             slots = list(self.periodic_slots)
-            dids = list(self.periodic_dids)
+            read_dids = list(self.periodic_read_dids)
+            write_plan = {k: list(v) for k, v in self.periodic_write_plan.items()}
             interval_s = float(self.periodic_interval_s)
             rediag_s = float(self.rediag_interval_s)
+
+        # 根据配置中的 Operation 决定读/写
+        did_cfg = self._get_did_cfg()
+
+        def _op_for(did_hex: str) -> str:
+            info = did_cfg.get(did_hex) or {}
+            op = info.get("Operation") or info.get("operation") or "Read"
+            return str(op).strip().lower()
+
+        def _next_write_value(slot: int, did_hex: str, values: list[Any]) -> Any:
+            if not values:
+                return None
+            with self._lock:
+                slot_map = self._periodic_write_idx.setdefault(slot, {})
+                idx = slot_map.get(did_hex, 0)
+                slot_map[did_hex] = idx + 1
+            return values[idx % len(values)]
+
+        # 若使用 list 配置, 则按 DID 配置决定读/写
+        read_list: list[str] = []
+        write_list: list[str] = []
+        if read_dids:
+            for did in read_dids:
+                if _op_for(did) == "write":
+                    write_list.append(did)
+                else:
+                    read_list.append(did)
 
         for slot in slots:
             with self._lock:
@@ -675,7 +726,27 @@ class MultiSlotDiagnostic(LoggerMixin):
                 continue
             ran.append(slot)
             try:
-                data = self.read_dids(slot, dids)
+                data: dict[str, Any] = {}
+
+                if read_list:
+                    data.update(self.read_dids(slot, read_list))
+
+                if write_list:
+                    values = {
+                        did: (did_cfg.get(did) or {}).get("value")
+                        or (did_cfg.get(did) or {}).get("Value")
+                        for did in write_list
+                    }
+                    data.update(self.write_dids(slot, write_list, values))
+
+                if write_plan:
+                    write_dids = list(write_plan.keys())
+                    values = {
+                        did: _next_write_value(slot, did, write_plan.get(did, []))
+                        for did in write_dids
+                    }
+                    data.update(self.write_dids(slot, write_dids, values))
+
                 with self._lock:
                     set_slot_value(self.periodic_last, slot, data, self.slot_count)
                     set_slot_value(
@@ -717,27 +788,3 @@ class MultiSlotDiagnostic(LoggerMixin):
                 uds.shutdown()
             except Exception:
                 pass
-
-
-if __name__ == "__main__":
-    from CanInitializer import CanBusManager
-    from Protocol import get_phy_addr_by_slot
-
-    can_manager = CanBusManager()
-    can_manager.initialize()
-    uds_client = UDSClient(
-        can_manager.get_bus(), can_manager.get_notifier()
-    ).initialize()
-    client = uds_client.get_client()
-
-    diag_slot = 7
-    tx, rx = get_phy_addr_by_slot(diag_slot)
-    print(f"Slot {diag_slot} PHY TX: {hex(tx)}, RX: {hex(rx)}")
-    try:
-        with client:
-            uds_client.update_address(tx, rx)
-
-            response = client.read_data_by_identifier(0xFD00)
-            print(f"DID 0xFD00 Data: {_extract_rdbi_value(response, 0xFD00)}")
-    except Exception as e:
-        print(f"诊断通信失败: {e}", file=sys.stderr)

@@ -33,7 +33,7 @@ class DbcDecoder(LoggerMixin):
     def on_message_decode(self, msg: can.Message, origin_msg_id: int) -> None:
         if self.dbc is None:
             raise RuntimeError(
-                "DbcDecoder.dbc 未初始化，请从 CanBusManager.get_dbc() 注入"
+                "DbcDecoder.dbc 未初始化, 请从 CanBusManager.get_dbc() 注入"
             )
         index = get_slot_id_by_can_id(msg.arbitration_id)
         try:
@@ -155,37 +155,48 @@ class AgingStatus(LoggerMixin):
         """解析当前温度报文"""
         return round(msg.data[7] - 40)
 
-    def mapping_statuts(self, current, voltage):
+    def mapping_status(self, current, voltage):
         """
         根据电流、电压判断状态码：
-        - status = 0: 未接产品，UI不判断
-        - status = -1: 超出暗电流范围，处于正常工作电压范围，低于工作电流范围，UI报警
-        - status = -2: 超出暗电流范围，处于正常工作电流范围，低于工作电压范围，UI报警
-        - status = 1: 正常工作电压、电流，UI正常
-        - status = 2: 超出暗电流范围，处于正常工作电压范围，超出工作电流范围，UI报警
-        - status = 3: 超出暗电流范围，处于正常工作电压范围，超出工作电压范围，UI报警
+        - status = 0: 状态为初始值, UI不更新底色
+        - status = -5: 采集卡丢失（电压/电流为0或异常）, UI报警
+        - status = -4: 低于暗电流范围, 未接产品, UI不判断
+        - status = -3: 超出暗电流范围, 低于工作电压范围, 低于工作电流范围, UI报警
+        - status = -2: 超出暗电流范围, 处于正常工作电流范围, 低于工作电压范围, UI报警
+        - status = -1: 超出暗电流范围, 处于正常工作电压范围, 低于工作电流范围, UI报警
+        - status = 1: 正常工作电压、电流, UI正常
+        - status = 2: 超出暗电流范围, 处于正常工作电压范围, 超出工作电流范围, UI报警
+        - status = 3: 超出暗电流范围, 低于工作电流范围, 高于工作电压范围, UI报警
+        - status = 4: 超出暗电流范围, 高于工作电压范围, 超出工作电流范围, UI报警
         """
 
         status = 0
         dark_current: float = FUNCTION_CONFIG["PowerSupply"]["DarkCurrent"]
         voltage_range: list[int] = PROJECT_CONFIG[SELECTED_PROJECT]["工作电压范围"]
         current_range: list[int] = PROJECT_CONFIG[SELECTED_PROJECT]["工作电流范围"]
+        if voltage <= 0 and current <= 0:
+            return -5
 
-        if current < dark_current:
-            status = 0
-        else:
-            if voltage_range[0] <= voltage <= voltage_range[1]:
-                if current_range[0] <= current <= current_range[1]:
-                    status = 1
-                elif current < current_range[0]:
-                    status = -1
-                else:
-                    status = 2
+        if current <= dark_current:
+            return -4
+
+        if voltage_range[0] <= voltage <= voltage_range[1]:
+            if current_range[0] <= current <= current_range[1]:
+                status = 1
+            elif current < current_range[0]:
+                status = -1
             else:
-                if current_range[0] <= current <= current_range[1]:
-                    status = -2
-                else:
-                    status = 3
+                status = 2
+        elif voltage < voltage_range[0]:
+            if current < current_range[0]:
+                status = -3
+            else:
+                status = -2
+        else:
+            if current < current_range[0]:
+                status = 3
+            else:
+                status = 4
         return status
 
     def decoding(self, msg: can.Message):
@@ -193,7 +204,7 @@ class AgingStatus(LoggerMixin):
         index = get_slot_id_by_can_id(msg.arbitration_id)
         current = self.decode_current(msg)
         voltage = self.decode_voltage(msg)
-        status = self.mapping_statuts(current, voltage)
+        status = self.mapping_status(current, voltage)
 
         self.status[index] = {
             "Timestamp": msg.timestamp,
@@ -240,13 +251,13 @@ class RxSplitter(can.Listener, LoggerMixin):
         try:
             key = split_by_can_id(msg.arbitration_id)
         except ValueError:
-            # 非协议内可分流的帧（例如回环/噪声/其它模块帧），直接忽略
+            # 非协议内可分流的帧（例如回环/噪声/其它模块帧）, 直接忽略
             return
 
         try:
             handler = self._dispatch.get(key)
             if handler is None:
-                # 例如 OUTPUT_CTRL_1 / CH1_TX1 等回环帧，不参与接收解析
+                # 例如 OUTPUT_CTRL_1 / CH1_TX1 等回环帧, 不参与接收解析
                 return
             handler(msg)
         except Exception as e:

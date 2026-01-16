@@ -76,12 +76,12 @@ def get_slot_id_by_can_id(can_id: int) -> int:
     约定（与 UI 展示一致）：
     - “站点编号”使用奇数：1,3,5,...,79（每个站点有 CH1/CH2 两个通道）
     - slot=站点编号表示 CH1；slot=站点编号+1 表示 CH2
-    - 若开启 UI.Remap，则返回“外壳通道视角”的 slot（即 CH1/CH2 互换后）。
+    - 若开启 UI.Remap, 则返回“外壳通道视角”的 slot（即 CH1/CH2 互换后）。
     """
     slave_id = get_slave_id_by_can_id(can_id)
     offset = can_id % MAGNIFICATION
 
-    # 基站点编号（奇数）。若出现偶数，降级到其前一个奇数。
+    # 基站点编号（奇数）。若出现偶数, 降级到其前一个奇数。
     base_station = slave_id if (slave_id % 2 == 1) else (slave_id - 1)
     if base_station < 1:
         base_station = 1
@@ -89,13 +89,13 @@ def get_slot_id_by_can_id(can_id: int) -> int:
     # MCU 通道判定：0=CH1, 1=CH2
     mcu_ch_index = 1 if offset >= CH2_INFO_OFFSET else 0
 
-    # 返回时按需做通道重映射（CH1/CH2 互换），得到外壳通道
+    # 返回时按需做通道重映射（CH1/CH2 互换）, 得到外壳通道
     if _is_channel_remap_enabled():
         shell_ch_index = 1 - mcu_ch_index
     else:
         shell_ch_index = mcu_ch_index
 
-    # slot：CH1=base_station，CH2=base_station+1
+    # slot：CH1=base_station, CH2=base_station+1
     slot_id = base_station + shell_ch_index
     return slot_id
 
@@ -106,9 +106,9 @@ def split_by_can_id(can_id: int) -> str:
     - 采集卡上报（按 slave 分组）: CH1_STATUS / CH2_APP_RX1 等
     - 本机发送/配置类（可能因 ReceiveOwnMessages 回环进入接收队列）: OUTPUT_CTRL_1 / CH1_TX1 等
 
-    注意：若开启 UI.Remap，则 CH1/CH2 键名按“外壳通道定义”互换。
+    注意：若开启 UI.Remap, 则 CH1/CH2 键名按“外壳通道定义”互换。
     """
-    # 先处理“全局/本机发送类”的小 ID，避免 ReceiveOwnMessages 回环导致解析失败
+    # 先处理“全局/本机发送类”的小 ID, 避免 ReceiveOwnMessages 回环导致解析失败
     if can_id in _GLOBAL_ID_TO_KEY:
         return _GLOBAL_ID_TO_KEY[can_id]
 
@@ -150,9 +150,9 @@ def get_phy_addr_by_slot(slot_id: int) -> tuple[int, int]:
     """根据采集卡索引获取物理地址。
 
     注意：
-    - slot_id 从 1 开始（外壳/展示通道编号），不是从 0 开始。
+    - slot_id 从 1 开始（外壳/展示通道编号）, 不是从 0 开始。
     - slot_id 的 ch 含义按 UI.Remap 视角（外壳通道定义）。
-      若开启 UI.Remap，则需要在这里把 CH1/CH2 互换回 MCU 通道后，再计算物理地址。
+      若开启 UI.Remap, 则需要在这里把 CH1/CH2 互换回 MCU 通道后, 再计算物理地址。
     """
     max_slots = SLAVE_COUNT * 2
     if slot_id < 1 or slot_id > max_slots:
@@ -177,17 +177,3 @@ def get_phy_addr_by_slot(slot_id: int) -> tuple[int, int]:
     phy_tx = phy_addr + DIAG_TX_OFFSET
     phy_rx = phy_addr + DIAG_RX_OFFSET
     return phy_tx, phy_rx
-
-
-if __name__ == "__main__":
-    id = 0x47
-
-    print(get_slave_id_by_can_id(id))
-    print(get_slot_id_by_can_id(id))
-    print(split_by_can_id(id))
-    slot = 8
-    print(get_phy_addr_by_slot(slot))
-    # _slot_addrs: list[tuple[int, int]] = [
-    #     get_phy_addr_by_slot(slot_id) for slot_id in range(1, 81)
-    # ]
-    # print(_slot_addrs)

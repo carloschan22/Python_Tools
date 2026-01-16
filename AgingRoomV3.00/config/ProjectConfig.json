@@ -7,12 +7,12 @@
         ],
         "默认老化时长": 4,
         "工作电压范围": [
-            9,
-            16
+            11,
+            13
         ],
         "工作电流范围": [
             500,
-            1500
+            1000
         ],
         "老化温度范围": [
             70,
@@ -102,7 +102,7 @@
             ],
             "DidConfig": {
                 "0xF193": {
-                    "Operation":"Write",
+                    "Operation":"Read",
                     "name": "Ecu Hardware Version",
                     "size": 2,
                     "type": "bytes",
@@ -111,7 +111,7 @@
                     "offset": null
                 },
                 "0xFD00": {
-                    "operation":"Write",
+                    "operation":"Read",
                     "name": "Ecu Software Version",
                     "size": 16,
                     "type": "string",
@@ -164,23 +164,27 @@
             }
         }
     },
-    "Q5034": {
+    "Q5010B": {
         "老化时长": [
             2,
             4,
             6
         ],
         "默认老化时长": 4,
+        "工作电压范围": [
+            11,
+            13
+        ],
         "工作电流范围": [
             500,
-            1500
+            1000
         ],
         "老化温度范围": [
             70,
             80
         ],
-        "DBC路径": "dbc/Q5030.dbc",
-        "DLL路径": "dll/Q5030.dll",
+        "DBC路径": "dbc/Q5010B.dbc",
+        "DLL路径": "dll/Q5010B.dll",
         "是否电压偏移老化": true,
         "老化电压偏移范围": [
             -2,
@@ -198,10 +202,7 @@
             "CustomRxMsg1",
             "CustomRxMsg2",
             "Diagnostic",
-            "OTA",
             "PowerCycle",
-            "PeriodicSwitchMsg1",
-            "PeriodicSwitchMsg2",
             "PeriodicDiag"
         ],
         "RX": {
@@ -214,83 +215,71 @@
             "IdOfTxMsg1": 1782,
             "TypeOfTxMsg1": "CANFD",
             "IntervalOfTxMsg1": 0.2,
-            "DataOfTxMsg1": {
-                "HU_SMIRMColorTest": "Default"
-            },
+            "DataOfTxMsg1": {},
+
             "IdOfTxMsg2": 1454,
             "TypeOfTxMsg2": "CANFD",
             "IntervalOfTxMsg2": 0.2,
             "DataOfTxMsg2": {},
+            
             "PeriodicSwitching": {
                 "SwitchMsg1": {
-                    "Switch": true,
-                    "SwitchInterval": 5,
+                    "SwitchInterval": null,
                     "Data": [
-                        {
-                            "HU_SMIRMColorTest": "Red"
-                        },
-                        {
-                            "HU_SMIRMColorTest": "Blue"
-                        },
-                        {
-                            "HU_SMIRMColorTest": "Green"
-                        },
-                        {
-                            "HU_SMIRMColorTest": "White"
-                        },
-                        {
-                            "HU_SMIRMColorTest": "Gray"
-                        }
                     ]
                 },
                 "SwitchMsg2": {
-                    "Switch": true,
-                    "SwitchInterval": 5,
+                    "SwitchInterval": null,
                     "Data": [
-                        {
-                            "HU_Light_ValueMalCmd": 100
-                        },
-                        {
-                            "HU_Light_ValueMalCmd": 50
-                        }
                     ]
                 }
             }
         },
         "Diag": {
+            "SecurityFeedbackBytes": 16,
             "DiagPhyAddr": [
-                1940,
-                1948
+                1874,
+                2002
             ],
             "DidConfig": {
-                "0xF193": {
-                    "name": "Ecu Hardware Version",
-                    "size": 2,
-                    "type": "string",
-                    "expected": "F1930002",
+                "0x8114": {
+                    "Operation":"Write",
+                    "name": "Display Mode",
+                    "size": 3,
+                    "type": "bytes",
+                    "value": "010100",
+                    "Padding":"0x20",
                     "offset": null
                 },
-                "0xFD00": {
-                    "name": "Ecu Software Version",
+                "0x811C": {
+                    "Operation":"Read",
+                    "name": "App Version",
                     "size": 16,
                     "type": "string",
-                    "expected": "V1.70.96",
+                    "value": "R01.00.44",
+                    "Padding":"0x20",
                     "offset": null
                 }
             },
+            "PeriodicDiag": {
+                "Interval": 2,
+                "ReDiagInterval": 1,
+                "Dids": {"0x8114":["010100,010200,010300,010400,010500"]}
+            },
             "Params": {
-                "isotp_params": {
-                    "stmin": 24,
-                    "blocksize": 8,
-                    "wftmax": 0,
-                    "tx_data_length": 64,
-                    "tx_data_min_length": 8,
-                    "can_fd": true,
-                    "tx_padding": 204,
-                    "rx_flowcontrol_timeout": 1000,
-                    "rx_consecutive_frame_timeout": 1000,
-                    "max_frame_size": 4095
-                },
+            "isotp_params": {
+                "stmin": 0,
+                "blocksize": 0,
+                "wftmax": 0,
+                "tx_data_length": 8,
+                "tx_data_min_length": 8,
+                "can_fd": false,
+                "tx_padding": 0,
+                "rx_flowcontrol_timeout": 1000,
+                "rx_consecutive_frame_timeout": 1000,
+                "squash_stmin_requirement": false,
+                "max_frame_size": 4095
+            },
                 "default_client_config": {
                     "exception_on_negative_response": true,
                     "exception_on_invalid_response": true,

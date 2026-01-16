@@ -14,8 +14,3 @@ class DCPS1216(LoggerMixin):
 
     def __init__(self):
         pass
-
-
-if __name__ == "__main__":
-    print(FUNCTION_CONFIG)
-    print(PROJECT_CONFIG)

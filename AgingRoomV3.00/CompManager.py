@@ -70,10 +70,12 @@ class ComponentsInstantiation(LoggerMixin):
         self,
         group_index: int = 0,
         injectors: Optional[list[Callable[["ComponentsInstantiation"], None]]] = None,
+        autostart: bool = True,
     ):
-        self.can_manager: Optional[CanBusManager] = CanBusManager().initialize(
-            index=group_index
-        )
+        self._group_index = group_index
+        self._injectors = list(injectors or [])
+        self._started = False
+        self.can_manager: Optional[CanBusManager] = None
 
         self.project_cfg = PROJECT_CONFIG.get(SELECTED_PROJECT, {})
         self.supported = set(self.project_cfg.get("SupportedComponents", []))
@@ -81,26 +83,13 @@ class ComponentsInstantiation(LoggerMixin):
         if "AgingStatus" not in self.supported:
             # AgingStatus 是基础能力：建议所有项目都显式列出
             self.log.warning(
-                "SupportedComponents 未包含 AgingStatus，已默认启用（建议补充到配置）"
+                "SupportedComponents 未包含 AgingStatus, 已默认启用（建议补充到配置）"
             )
 
-        rx_cfg = self.project_cfg.get("RX", {})
-        rx_id1 = rx_cfg.get("IdOfRxMsg1")
-        rx_id2 = rx_cfg.get("IdOfRxMsg2")
-
-        rx_switcher = [
-            True,  # AgingStatus 基础能力
-            ("CustomRxMsg1" in self.supported) and (rx_id1 is not None),
-            ("CustomRxMsg2" in self.supported) and (rx_id2 is not None),
-        ]
-        rx_splitter = RxSplitter(self.can_manager.get_dbc(), switcher=rx_switcher)
-        if any(rx_switcher):
-            self.can_manager.register_listener(rx_splitter)
-
         self._instant_manager: dict[str, Any] = {
-            "AgingStatus": rx_splitter if rx_switcher[0] else None,
-            "CustomRxMsg1": rx_splitter if rx_switcher[1] else None,
-            "CustomRxMsg2": rx_splitter if rx_switcher[2] else None,
+            "AgingStatus": None,
+            "CustomRxMsg1": None,
+            "CustomRxMsg2": None,
             "CustomTxMsg1": None,
             "CustomTxMsg2": None,
             "Diagnostic": None,
@@ -121,8 +110,35 @@ class ComponentsInstantiation(LoggerMixin):
         # 后台周期任务执行器（用于 PeriodicSwitch/PeriodicDiag 这类需要线程的业务）
         self._periodic_worker: Optional[_PeriodicWorker] = None
 
-        # 注册表：保存所有可用周期 job（即使被 remove_job 停用，也能再 enable）
+        # 注册表：保存所有可用周期 job（即使被 remove_job 停用, 也能再 enable）
         self._periodic_job_registry: dict[str, tuple[float, Callable[[], None]]] = {}
+
+        if autostart:
+            self.startup()
+
+    def startup(self) -> None:
+        if self._started:
+            return
+        self._started = True
+
+        self.can_manager = CanBusManager().initialize(index=self._group_index)
+
+        rx_cfg = self.project_cfg.get("RX", {})
+        rx_id1 = rx_cfg.get("IdOfRxMsg1")
+        rx_id2 = rx_cfg.get("IdOfRxMsg2")
+
+        rx_switcher = [
+            True,  # AgingStatus 基础能力
+            ("CustomRxMsg1" in self.supported) and (rx_id1 is not None),
+            ("CustomRxMsg2" in self.supported) and (rx_id2 is not None),
+        ]
+        rx_splitter = RxSplitter(self.can_manager.get_dbc(), switcher=rx_switcher)
+        if any(rx_switcher):
+            self.can_manager.register_listener(rx_splitter)
+
+        self._instant_manager["AgingStatus"] = rx_splitter if rx_switcher[0] else None
+        self._instant_manager["CustomRxMsg1"] = rx_splitter if rx_switcher[1] else None
+        self._instant_manager["CustomRxMsg2"] = rx_splitter if rx_switcher[2] else None
 
         # Custom TX
         if "CustomTxMsg1" in self.supported:
@@ -152,7 +168,7 @@ class ComponentsInstantiation(LoggerMixin):
                     slot_count=80,
                 )
             except Exception as exc:
-                # Diagnostic.py 依赖的 Tools/第三方库可能未就绪，避免影响其它功能
+                # Diagnostic.py 依赖的 Tools/第三方库可能未就绪, 避免影响其它功能
                 self.log.error(f"Diagnostic 实例化失败: {exc}")
 
         # OTA / Updater
@@ -181,8 +197,8 @@ class ComponentsInstantiation(LoggerMixin):
         self._register_default_ops()
 
         # 允许外部注入：新项目可通过 injectors 注入新组件/新操作
-        if injectors:
-            for injector in injectors:
+        if self._injectors:
+            for injector in self._injectors:
                 try:
                     injector(self)
                 except Exception as exc:
@@ -224,7 +240,7 @@ class ComponentsInstantiation(LoggerMixin):
         id_tx1 = tx_cfg.get("IdOfTxMsg1")
         id_tx2 = tx_cfg.get("IdOfTxMsg2")
 
-        # 缓存：每个 Msg* 固定存 [ch1_task, ch2_task]，允许某通道为 None
+        # 缓存：每个 Msg* 固定存 [ch1_task, ch2_task], 允许某通道为 None
         periodic_tasks: dict[str, Any] = {
             "TxMsg1": None,
             "TxMsg2": None,
@@ -237,7 +253,7 @@ class ComponentsInstantiation(LoggerMixin):
             def _tx1_set(signal_data: dict, message_name_or_id=None):
                 tasks = periodic_tasks.get("TxMsg1")
                 if tasks is None:
-                    # 默认创建 CH1+CH2 两路周期任务；若只需要单路，可调用 tx1_start
+                    # 默认创建 CH1+CH2 两路周期任务；若只需要单路, 可调用 tx1_start
                     tasks = tx1.create_periodic_task(ch1=True, ch2=True)
                     periodic_tasks["TxMsg1"] = tasks
                 if message_name_or_id is None:
@@ -295,7 +311,7 @@ class ComponentsInstantiation(LoggerMixin):
                     if dids is None:
                         did_cfg = diag_cfg.get("DidConfig") or {}
                         dids = list(did_cfg.keys())
-                return diag.run_pending_once(list(dids or []))
+                return diag.run_pending_once(dids or [])
 
             self.register_op("diag_run_pending_once", _diag_run_pending_once)
 
@@ -406,8 +422,8 @@ class ComponentsInstantiation(LoggerMixin):
                     data_list = list(sw.get("Data") or [])
                     idx = {"i": 0}
 
-                    # 注意：Python 没有 block-scope，下面的 data_list/idx 会被后续 if 覆盖。
-                    # 用默认参数绑定，确保 SwitchMsg1 永远使用自己的 Data。
+                    # 注意：Python 没有 block-scope, 下面的 data_list/idx 会被后续 if 覆盖。
+                    # 用默认参数绑定, 确保 SwitchMsg1 永远使用自己的 Data。
                     def _job_msg1(_data_list=data_list, _idx=idx, _msg_id=id_tx1):
                         item = _data_list[_idx["i"] % len(_data_list)]
                         _idx["i"] += 1
@@ -434,7 +450,7 @@ class ComponentsInstantiation(LoggerMixin):
                     data_list = list(sw.get("Data") or [])
                     idx = {"i": 0}
 
-                    # 同上：用默认参数绑定，避免闭包拿到 SwitchMsg1 的变量或被覆盖。
+                    # 同上：用默认参数绑定, 避免闭包拿到 SwitchMsg1 的变量或被覆盖。
                     def _job_msg2(_data_list=data_list, _idx=idx, _msg_id=id_tx2):
                         item = _data_list[_idx["i"] % len(_data_list)]
                         _idx["i"] += 1
@@ -457,7 +473,7 @@ class ComponentsInstantiation(LoggerMixin):
             if "PeriodicDiag" in self.supported:
                 if diag is None:
                     self.log.warning(
-                        "PeriodicDiag 已启用，但 Diagnostic 未启用/实例化失败；将跳过周期诊断"
+                        "PeriodicDiag 已启用, 但 Diagnostic 未启用/实例化失败；将跳过周期诊断"
                     )
                 else:
                     diag_cfg = self.project_cfg.get("Diag", {})
@@ -481,9 +497,15 @@ class ComponentsInstantiation(LoggerMixin):
                         did_cfg = diag_cfg.get("DidConfig") or {}
                         did_list = list(did_cfg.keys())
 
-                    if not isinstance(did_list, list) or not did_list:
+                    if isinstance(did_list, dict):
+                        if not did_list:
+                            self.log.warning(
+                                "PeriodicDiag 已启用, 但 Diag.PeriodicDiag.Dids 为空；将跳过周期诊断"
+                            )
+                            did_list = {}
+                    elif not isinstance(did_list, list) or not did_list:
                         self.log.warning(
-                            "PeriodicDiag 已启用，但 Diag.PeriodicDiag.Dids 为空；将跳过周期诊断"
+                            "PeriodicDiag 已启用, 但 Diag.PeriodicDiag.Dids 为空；将跳过周期诊断"
                         )
                         did_list = []
 
@@ -495,10 +517,10 @@ class ComponentsInstantiation(LoggerMixin):
                         diag.configure_periodic(
                             interval_s=interval,
                             rediag_interval_s=rediag_interval,
-                            dids=list(did_list),
+                            dids=did_list,
                         )
 
-                        # 默认：若外部没设置 periodic_slots，则不自动跑（避免误扫全部80个slot）
+                        # 默认：若外部没设置 periodic_slots, 则不自动跑（避免误扫全部80个slot）
                         self.register_op(
                             "diag_set_periodic_slots", diag.set_periodic_slots
                         )
@@ -506,7 +528,7 @@ class ComponentsInstantiation(LoggerMixin):
                             "diag_get_periodic_slots", lambda: list(diag.periodic_slots)
                         )
 
-                        # 为了支持 ReDiagInterval，这个 job 的运行频率取 min(interval, rediag_interval)
+                        # 为了支持 ReDiagInterval, 这个 job 的运行频率取 min(interval, rediag_interval)
                         tick_interval = (
                             min(interval, rediag_interval)
                             if rediag_interval > 0

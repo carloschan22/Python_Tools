@@ -1,6 +1,6 @@
 # 组件注入与配方配置指南
 
-目标：通过 `config/ProjectConfig.json` 的 `SupportedComponents` 来组合项目功能；新项目通过“注入”快速扩展能力，而不是改动大量主流程。
+目标：通过 `config/ProjectConfig.json` 的 `SupportedComponents` 来组合项目功能；新项目通过“注入”快速扩展能力, 而不是改动大量主流程。
 
 ## 1. 配置驱动的功能开关
 
@@ -19,7 +19,7 @@
 
 ## 2. PinControl 风格的调用方式
 
-`CompManager.ComponentsInstantiation` 会根据配置初始化组件，并暴露统一的 `ops` 操作集合。
+`CompManager.ComponentsInstantiation` 会根据配置初始化组件, 并暴露统一的 `ops` 操作集合。
 
 ```python
 from CompManager import ComponentsInstantiation
@@ -71,7 +71,7 @@ print(app["foo_hello"]())
 ## 4. 周期任务 vs CAN 周期发送
 
 - `python-can` 的 `send_periodic` 是“CAN 周期发送任务”（由库内部驱动）。
-- `PeriodicTask`（本项目）是“业务周期任务线程”，用于定期执行任意 Python 回调（例如轮询、策略、心跳、定时切换信号等）。
+- `PeriodicTask`（本项目）是“业务周期任务线程”, 用于定期执行任意 Python 回调（例如轮询、策略、心跳、定时切换信号等）。
 
 二者可以叠加使用：
 - 先创建 CAN 周期发送任务

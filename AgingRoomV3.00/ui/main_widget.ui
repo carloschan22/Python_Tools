@@ -1,0 +1,972 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWidget</class>
+ <widget class="QWidget" name="MainWidget">
+  <property name="minimumSize">
+   <size>
+	<width>1400</width>
+	<height>800</height>
+   </size>
+  </property>
+  <layout class="QVBoxLayout" name="mainLayout">
+	<item>
+	 <widget class="QMenuBar" name="menuBar">
+	  <property name="nativeMenuBar">
+		<bool>false</bool>
+	  </property>
+	  <addaction name="action_home"/>
+	  <addaction name="action_history"/>
+	  <addaction name="action_about"/>
+	 </widget>
+	</item>
+   <item>
+	<widget class="QStackedWidget" name="stackedPages">
+	 <property name="currentIndex">
+	  <number>0</number>
+	 </property>
+	 <widget class="QWidget" name="page_home">
+	  <layout class="QVBoxLayout" name="homeLayout">
+	   <item>
+		<widget class="QGroupBox" name="groupBox_1">
+		 <property name="title">
+		  <string>第1组</string>
+		 </property>
+		 <layout class="QHBoxLayout" name="groupLayout_1">
+					<item>
+					 <widget class="QFrame" name="iconFrame_1">
+						<property name="sizePolicy">
+						 <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+							<horstretch>0</horstretch>
+							<verstretch>0</verstretch>
+						 </sizepolicy>
+						</property>
+			<property name="frameShape">
+			 <enum>QFrame::StyledPanel</enum>
+			</property>
+			<layout class="QVBoxLayout" name="iconLayout_1">
+						 <item>
+							<widget class="QTableWidget" name="iconTable_1">
+							 <property name="sizePolicy">
+								<sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+								 <horstretch>0</horstretch>
+								 <verstretch>0</verstretch>
+								</sizepolicy>
+							 </property>
+							 <property name="horizontalScrollBarPolicy">
+								<enum>Qt::ScrollBarAlwaysOff</enum>
+							 </property>
+							 <property name="verticalScrollBarPolicy">
+								<enum>Qt::ScrollBarAlwaysOff</enum>
+							 </property>
+			   <property name="rowCount">
+				<number>4</number>
+			   </property>
+			   <property name="columnCount">
+				<number>25</number>
+			   </property>
+			  </widget>
+			 </item>
+			</layout>
+		   </widget>
+		  </item>
+					<item>
+					 <widget class="QFrame" name="controlFrame_1">
+						<property name="minimumSize">
+						 <size>
+							<width>360</width>
+							<height>0</height>
+						 </size>
+						</property>
+						<property name="maximumSize">
+						 <size>
+							<width>360</width>
+							<height>16777215</height>
+						 </size>
+						</property>
+						<property name="sizePolicy">
+						 <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
+							<horstretch>0</horstretch>
+							<verstretch>0</verstretch>
+						 </sizepolicy>
+						</property>
+			<property name="frameShape">
+			 <enum>QFrame::StyledPanel</enum>
+			</property>
+			<layout class="QGridLayout" name="controlLayout_1">
+			 <property name="horizontalSpacing">
+			  <number>6</number>
+			 </property>
+			 <property name="verticalSpacing">
+			  <number>6</number>
+			 </property>
+			 <item row="0" column="2">
+			  <widget class="QLabel" name="lbl_runtime_1">
+			   <property name="text">
+				<string>运行时间：</string>
+			   </property>
+			  </widget>
+			 </item>
+			 <item row="0" column="3">
+			  <widget class="QLineEdit" name="edit_runtime_1">
+			   <property name="readOnly">
+				<bool>true</bool>
+			   </property>
+			  </widget>
+			 </item>
+			 <item row="1" column="2">
+			  <widget class="QLabel" name="lbl_remaining_1">
+			   <property name="text">
+				<string>剩余时间：</string>
+			   </property>
+			  </widget>
+			 </item>
+			 <item row="1" column="3">
+			  <widget class="QLineEdit" name="edit_remaining_1">
+			   <property name="readOnly">
+				<bool>true</bool>
+			   </property>
+			  </widget>
+			 </item>
+			 <item row="0" column="0">
+			  <widget class="QLabel" name="lbl_product_1">
+			   <property name="text">
+				<string>产品型号：</string>
+			   </property>
+			  </widget>
+			 </item>
+			 <item row="0" column="1">
+			  <widget class="QComboBox" name="combo_product_1"/>
+			 </item>
+			 <item row="1" column="0">
+			  <widget class="QLabel" name="lbl_aging_time_1">
+			   <property name="text">
+				<string>老化时间：</string>
+			   </property>
+			  </widget>
+			 </item>
+			 <item row="1" column="1">
+			  <widget class="QComboBox" name="combo_aging_time_1"/>
+			 </item>
+			 <item row="2" column="0">
+			  <widget class="QLabel" name="lbl_qty_1">
+			   <property name="text">
+				<string>数量：</string>
+			   </property>
+			  </widget>
+			 </item>
+			 <item row="2" column="1">
+			  <widget class="QLabel" name="edit_qty_1">
+			   <property name="text">
+				<string>0 Pcs</string>
+			   </property>
+			  </widget>
+			 </item>
+			 <item row="3" column="0">
+			  <widget class="QLabel" name="lbl_good_1">
+			   <property name="text">
+				<string>良品：</string>
+			   </property>
+			  </widget>
+			 </item>
+			 <item row="3" column="1">
+			  <widget class="QLabel" name="edit_good_1">
+			   <property name="text">
+				<string>0 Pcs</string>
+			   </property>
+			  </widget>
+			 </item>
+			 <item row="4" column="0">
+			  <widget class="QLabel" name="lbl_bad_1">
+			   <property name="text">
+				<string>不良品：</string>
+			   </property>
+			  </widget>
+			 </item>
+			 <item row="4" column="1">
+			  <widget class="QLabel" name="edit_bad_1">
+			   <property name="text">
+				<string>0 Pcs</string>
+			   </property>
+			  </widget>
+			 </item>
+			 <item row="5" column="0">
+			  <widget class="QLabel" name="lbl_pass_rate_1">
+			   <property name="text">
+				<string>合格率：</string>
+			   </property>
+			  </widget>
+			 </item>
+			 <item row="5" column="1">
+			  <widget class="QLabel" name="text_pass_rate_1">
+			   <property name="text">
+				<string>0.00%</string>
+			   </property>
+			  </widget>
+			 </item>
+			 <item row="6" column="0">
+			  <widget class="QLabel" name="lbl_fail_rate_1">
+			   <property name="text">
+				<string>不合格率：</string>
+			   </property>
+			  </widget>
+			 </item>
+			 <item row="6" column="1">
+			  <widget class="QLabel" name="text_fail_rate_1">
+			   <property name="text">
+				<string>0.00%</string>
+			   </property>
+			  </widget>
+			 </item>
+			 <item row="2" column="2">
+			  <widget class="QLabel" name="lbl_temp_1">
+			   <property name="text">
+				<string>当前温度：</string>
+			   </property>
+			  </widget>
+			 </item>
+			 <item row="2" column="3">
+			  <widget class="QLabel" name="text_temp_1">
+			   <property name="text">
+				<string>0°</string>
+			   </property>
+			  </widget>
+			 </item>
+			 <item row="3" column="2">
+			  <widget class="QLabel" name="lbl_worker_1">
+			   <property name="text">
+				<string>操作人员：</string>
+			   </property>
+			  </widget>
+			 </item>
+			 <item row="3" column="3">
+			  <widget class="QComboBox" name="combo_worker_1"/>
+			 </item>
+			 <item row="4" column="2">
+			  <widget class="QLabel" name="lbl_start_time_1">
+			   <property name="text">
+				<string>开始时间：</string>
+			   </property>
+			  </widget>
+			 </item>
+			 <item row="4" column="3">
+			  <widget class="QLabel" name="text_start_time_1">
+			   <property name="text">
+				<string>--</string>
+			   </property>
+			  </widget>
+			 </item>
+			 <item row="5" column="2">
+			  <widget class="QLabel" name="lbl_end_time_1">
+			   <property name="text">
+				<string>结束时间：</string>
+			   </property>
+			  </widget>
+			 </item>
+			 <item row="5" column="3">
+			  <widget class="QLabel" name="text_end_time_1">
+			   <property name="text">
+				<string>--</string>
+			   </property>
+			  </widget>
+			 </item>
+			 <item row="6" column="2">
+			  <widget class="QPushButton" name="btn_start_1">
+			   <property name="text">
+				<string>启动老化</string>
+			   </property>
+			  </widget>
+			 </item>
+			 <item row="6" column="3">
+			  <widget class="QPushButton" name="btn_pause_1">
+			   <property name="text">
+				<string>暂停</string>
+			   </property>
+			   <property name="enabled">
+				<bool>false</bool>
+			   </property>
+			  </widget>
+			 </item>
+			</layout>
+		   </widget>
+		  </item>
+		 </layout>
+		</widget>
+	   </item>
+	   <item>
+		<widget class="QGroupBox" name="groupBox_2">
+		 <property name="title">
+		  <string>第2组</string>
+		 </property>
+		 <layout class="QHBoxLayout" name="groupLayout_2">
+					<item>
+					 <widget class="QFrame" name="iconFrame_2">
+						<property name="sizePolicy">
+						 <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+							<horstretch>0</horstretch>
+							<verstretch>0</verstretch>
+						 </sizepolicy>
+						</property>
+			<property name="frameShape">
+			 <enum>QFrame::StyledPanel</enum>
+			</property>
+			<layout class="QVBoxLayout" name="iconLayout_2">
+						 <item>
+							<widget class="QTableWidget" name="iconTable_2">
+							 <property name="sizePolicy">
+								<sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+								 <horstretch>0</horstretch>
+								 <verstretch>0</verstretch>
+								</sizepolicy>
+							 </property>
+							 <property name="horizontalScrollBarPolicy">
+								<enum>Qt::ScrollBarAlwaysOff</enum>
+							 </property>
+							 <property name="verticalScrollBarPolicy">
+								<enum>Qt::ScrollBarAlwaysOff</enum>
+							 </property>
+			   <property name="rowCount">
+				<number>4</number>
+			   </property>
+			   <property name="columnCount">
+				<number>25</number>
+			   </property>
+			  </widget>
+			 </item>
+			</layout>
+		   </widget>
+		  </item>
+					<item>
+					 <widget class="QFrame" name="controlFrame_2">
+						<property name="minimumSize">
+						 <size>
+							<width>360</width>
+							<height>0</height>
+						 </size>
+						</property>
+						<property name="maximumSize">
+						 <size>
+							<width>360</width>
+							<height>16777215</height>
+						 </size>
+						</property>
+						<property name="sizePolicy">
+						 <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
+							<horstretch>0</horstretch>
+							<verstretch>0</verstretch>
+						 </sizepolicy>
+						</property>
+			<property name="frameShape">
+			 <enum>QFrame::StyledPanel</enum>
+			</property>
+			<layout class="QGridLayout" name="controlLayout_2">
+			 <property name="horizontalSpacing">
+			  <number>6</number>
+			 </property>
+			 <property name="verticalSpacing">
+			  <number>6</number>
+			 </property>
+			 <item row="0" column="2">
+			  <widget class="QLabel" name="lbl_runtime_2">
+			   <property name="text">
+				<string>运行时间：</string>
+			   </property>
+			  </widget>
+			 </item>
+			 <item row="0" column="3">
+			  <widget class="QLineEdit" name="edit_runtime_2">
+			   <property name="readOnly">
+				<bool>true</bool>
+			   </property>
+			  </widget>
+			 </item>
+			 <item row="1" column="2">
+			  <widget class="QLabel" name="lbl_remaining_2">
+			   <property name="text">
+				<string>剩余时间：</string>
+			   </property>
+			  </widget>
+			 </item>
+			 <item row="1" column="3">
+			  <widget class="QLineEdit" name="edit_remaining_2">
+			   <property name="readOnly">
+				<bool>true</bool>
+			   </property>
+			  </widget>
+			 </item>
+			 <item row="0" column="0">
+			  <widget class="QLabel" name="lbl_product_2">
+			   <property name="text">
+				<string>产品型号：</string>
+			   </property>
+			  </widget>
+			 </item>
+			 <item row="0" column="1">
+			  <widget class="QComboBox" name="combo_product_2"/>
+			 </item>
+			 <item row="1" column="0">
+			  <widget class="QLabel" name="lbl_aging_time_2">
+			   <property name="text">
+				<string>老化时间：</string>
+			   </property>
+			  </widget>
+			 </item>
+			 <item row="1" column="1">
+			  <widget class="QComboBox" name="combo_aging_time_2"/>
+			 </item>
+			 <item row="2" column="0">
+			  <widget class="QLabel" name="lbl_qty_2">
+			   <property name="text">
+				<string>数量：</string>
+			   </property>
+			  </widget>
+			 </item>
+			 <item row="2" column="1">
+			  <widget class="QLabel" name="edit_qty_2">
+			   <property name="text">
+				<string>0 Pcs</string>
+			   </property>
+			  </widget>
+			 </item>
+			 <item row="3" column="0">
+			  <widget class="QLabel" name="lbl_good_2">
+			   <property name="text">
+				<string>良品：</string>
+			   </property>
+			  </widget>
+			 </item>
+			 <item row="3" column="1">
+			  <widget class="QLabel" name="edit_good_2">
+			   <property name="text">
+				<string>0 Pcs</string>
+			   </property>
+			  </widget>
+			 </item>
+			 <item row="4" column="0">
+			  <widget class="QLabel" name="lbl_bad_2">
+			   <property name="text">
+				<string>不良品：</string>
+			   </property>
+			  </widget>
+			 </item>
+			 <item row="4" column="1">
+			  <widget class="QLabel" name="edit_bad_2">
+			   <property name="text">
+				<string>0 Pcs</string>
+			   </property>
+			  </widget>
+			 </item>
+			 <item row="5" column="0">
+			  <widget class="QLabel" name="lbl_pass_rate_2">
+			   <property name="text">
+				<string>合格率：</string>
+			   </property>
+			  </widget>
+			 </item>
+			 <item row="5" column="1">
+			  <widget class="QLabel" name="text_pass_rate_2">
+			   <property name="text">
+				<string>0.00%</string>
+			   </property>
+			  </widget>
+			 </item>
+			 <item row="6" column="0">
+			  <widget class="QLabel" name="lbl_fail_rate_2">
+			   <property name="text">
+				<string>不合格率：</string>
+			   </property>
+			  </widget>
+			 </item>
+			 <item row="6" column="1">
+			  <widget class="QLabel" name="text_fail_rate_2">
+			   <property name="text">
+				<string>0.00%</string>
+			   </property>
+			  </widget>
+			 </item>
+			 <item row="2" column="2">
+			  <widget class="QLabel" name="lbl_temp_2">
+			   <property name="text">
+				<string>当前温度：</string>
+			   </property>
+			  </widget>
+			 </item>
+			 <item row="2" column="3">
+			  <widget class="QLabel" name="text_temp_2">
+			   <property name="text">
+				<string>0°</string>
+			   </property>
+			  </widget>
+			 </item>
+			 <item row="3" column="2">
+			  <widget class="QLabel" name="lbl_worker_2">
+			   <property name="text">
+				<string>操作人员：</string>
+			   </property>
+			  </widget>
+			 </item>
+			 <item row="3" column="3">
+			  <widget class="QComboBox" name="combo_worker_2"/>
+			 </item>
+			 <item row="4" column="2">
+			  <widget class="QLabel" name="lbl_start_time_2">
+			   <property name="text">
+				<string>开始时间：</string>
+			   </property>
+			  </widget>
+			 </item>
+			 <item row="4" column="3">
+			  <widget class="QLabel" name="text_start_time_2">
+			   <property name="text">
+				<string>--</string>
+			   </property>
+			  </widget>
+			 </item>
+			 <item row="5" column="2">
+			  <widget class="QLabel" name="lbl_end_time_2">
+			   <property name="text">
+				<string>结束时间：</string>
+			   </property>
+			  </widget>
+			 </item>
+			 <item row="5" column="3">
+			  <widget class="QLabel" name="text_end_time_2">
+			   <property name="text">
+				<string>--</string>
+			   </property>
+			  </widget>
+			 </item>
+			 <item row="6" column="2">
+			  <widget class="QPushButton" name="btn_start_2">
+			   <property name="text">
+				<string>启动老化</string>
+			   </property>
+			  </widget>
+			 </item>
+			 <item row="6" column="3">
+			  <widget class="QPushButton" name="btn_pause_2">
+			   <property name="text">
+				<string>暂停</string>
+			   </property>
+			   <property name="enabled">
+				<bool>false</bool>
+			   </property>
+			  </widget>
+			 </item>
+			</layout>
+		   </widget>
+		  </item>
+		 </layout>
+		</widget>
+	   </item>
+	   <item>
+		<widget class="QGroupBox" name="groupBox_3">
+		 <property name="title">
+		  <string>第3组</string>
+		 </property>
+		 <layout class="QHBoxLayout" name="groupLayout_3">
+					<item>
+					 <widget class="QFrame" name="iconFrame_3">
+						<property name="sizePolicy">
+						 <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+							<horstretch>0</horstretch>
+							<verstretch>0</verstretch>
+						 </sizepolicy>
+						</property>
+			<property name="frameShape">
+			 <enum>QFrame::StyledPanel</enum>
+			</property>
+			<layout class="QVBoxLayout" name="iconLayout_3">
+						 <item>
+							<widget class="QTableWidget" name="iconTable_3">
+							 <property name="sizePolicy">
+								<sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+								 <horstretch>0</horstretch>
+								 <verstretch>0</verstretch>
+								</sizepolicy>
+							 </property>
+							 <property name="horizontalScrollBarPolicy">
+								<enum>Qt::ScrollBarAlwaysOff</enum>
+							 </property>
+							 <property name="verticalScrollBarPolicy">
+								<enum>Qt::ScrollBarAlwaysOff</enum>
+							 </property>
+			   <property name="rowCount">
+				<number>4</number>
+			   </property>
+			   <property name="columnCount">
+				<number>25</number>
+			   </property>
+			  </widget>
+			 </item>
+			</layout>
+		   </widget>
+		  </item>
+					<item>
+					 <widget class="QFrame" name="controlFrame_3">
+						<property name="minimumSize">
+						 <size>
+							<width>360</width>
+							<height>0</height>
+						 </size>
+						</property>
+						<property name="maximumSize">
+						 <size>
+							<width>360</width>
+							<height>16777215</height>
+						 </size>
+						</property>
+						<property name="sizePolicy">
+						 <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
+							<horstretch>0</horstretch>
+							<verstretch>0</verstretch>
+						 </sizepolicy>
+						</property>
+			<property name="frameShape">
+			 <enum>QFrame::StyledPanel</enum>
+			</property>
+			<layout class="QGridLayout" name="controlLayout_3">
+			 <property name="horizontalSpacing">
+			  <number>6</number>
+			 </property>
+			 <property name="verticalSpacing">
+			  <number>6</number>
+			 </property>
+			 <item row="0" column="2">
+			  <widget class="QLabel" name="lbl_runtime_3">
+			   <property name="text">
+				<string>运行时间：</string>
+			   </property>
+			  </widget>
+			 </item>
+			 <item row="0" column="3">
+			  <widget class="QLineEdit" name="edit_runtime_3">
+			   <property name="readOnly">
+				<bool>true</bool>
+			   </property>
+			  </widget>
+			 </item>
+			 <item row="1" column="2">
+			  <widget class="QLabel" name="lbl_remaining_3">
+			   <property name="text">
+				<string>剩余时间：</string>
+			   </property>
+			  </widget>
+			 </item>
+			 <item row="1" column="3">
+			  <widget class="QLineEdit" name="edit_remaining_3">
+			   <property name="readOnly">
+				<bool>true</bool>
+			   </property>
+			  </widget>
+			 </item>
+			 <item row="0" column="0">
+			  <widget class="QLabel" name="lbl_product_3">
+			   <property name="text">
+				<string>产品型号：</string>
+			   </property>
+			  </widget>
+			 </item>
+			 <item row="0" column="1">
+			  <widget class="QComboBox" name="combo_product_3"/>
+			 </item>
+			 <item row="1" column="0">
+			  <widget class="QLabel" name="lbl_aging_time_3">
+			   <property name="text">
+				<string>老化时间：</string>
+			   </property>
+			  </widget>
+			 </item>
+			 <item row="1" column="1">
+			  <widget class="QComboBox" name="combo_aging_time_3"/>
+			 </item>
+			 <item row="2" column="0">
+			  <widget class="QLabel" name="lbl_qty_3">
+			   <property name="text">
+				<string>数量：</string>
+			   </property>
+			  </widget>
+			 </item>
+			 <item row="2" column="1">
+			  <widget class="QLabel" name="edit_qty_3">
+			   <property name="text">
+				<string>0 Pcs</string>
+			   </property>
+			  </widget>
+			 </item>
+			 <item row="3" column="0">
+			  <widget class="QLabel" name="lbl_good_3">
+			   <property name="text">
+				<string>良品：</string>
+			   </property>
+			  </widget>
+			 </item>
+			 <item row="3" column="1">
+			  <widget class="QLabel" name="edit_good_3">
+			   <property name="text">
+				<string>0 Pcs</string>
+			   </property>
+			  </widget>
+			 </item>
+			 <item row="4" column="0">
+			  <widget class="QLabel" name="lbl_bad_3">
+			   <property name="text">
+				<string>不良品：</string>
+			   </property>
+			  </widget>
+			 </item>
+			 <item row="4" column="1">
+			  <widget class="QLabel" name="edit_bad_3">
+			   <property name="text">
+				<string>0 Pcs</string>
+			   </property>
+			  </widget>
+			 </item>
+			 <item row="5" column="0">
+			  <widget class="QLabel" name="lbl_pass_rate_3">
+			   <property name="text">
+				<string>合格率：</string>
+			   </property>
+			  </widget>
+			 </item>
+			 <item row="5" column="1">
+			  <widget class="QLabel" name="text_pass_rate_3">
+			   <property name="text">
+				<string>0.00%</string>
+			   </property>
+			  </widget>
+			 </item>
+			 <item row="6" column="0">
+			  <widget class="QLabel" name="lbl_fail_rate_3">
+			   <property name="text">
+				<string>不合格率：</string>
+			   </property>
+			  </widget>
+			 </item>
+			 <item row="6" column="1">
+			  <widget class="QLabel" name="text_fail_rate_3">
+			   <property name="text">
+				<string>0.00%</string>
+			   </property>
+			  </widget>
+			 </item>
+			 <item row="2" column="2">
+			  <widget class="QLabel" name="lbl_temp_3">
+			   <property name="text">
+				<string>当前温度：</string>
+			   </property>
+			  </widget>
+			 </item>
+			 <item row="2" column="3">
+			  <widget class="QLabel" name="text_temp_3">
+			   <property name="text">
+				<string>0°</string>
+			   </property>
+			  </widget>
+			 </item>
+			 <item row="3" column="2">
+			  <widget class="QLabel" name="lbl_worker_3">
+			   <property name="text">
+				<string>操作人员：</string>
+			   </property>
+			  </widget>
+			 </item>
+			 <item row="3" column="3">
+			  <widget class="QComboBox" name="combo_worker_3"/>
+			 </item>
+			 <item row="4" column="2">
+			  <widget class="QLabel" name="lbl_start_time_3">
+			   <property name="text">
+				<string>开始时间：</string>
+			   </property>
+			  </widget>
+			 </item>
+			 <item row="4" column="3">
+			  <widget class="QLabel" name="text_start_time_3">
+			   <property name="text">
+				<string>--</string>
+			   </property>
+			  </widget>
+			 </item>
+			 <item row="5" column="2">
+			  <widget class="QLabel" name="lbl_end_time_3">
+			   <property name="text">
+				<string>结束时间：</string>
+			   </property>
+			  </widget>
+			 </item>
+			 <item row="5" column="3">
+			  <widget class="QLabel" name="text_end_time_3">
+			   <property name="text">
+				<string>--</string>
+			   </property>
+			  </widget>
+			 </item>
+			 <item row="6" column="2">
+			  <widget class="QPushButton" name="btn_start_3">
+			   <property name="text">
+				<string>启动老化</string>
+			   </property>
+			  </widget>
+			 </item>
+			 <item row="6" column="3">
+			  <widget class="QPushButton" name="btn_pause_3">
+			   <property name="text">
+				<string>暂停</string>
+			   </property>
+			   <property name="enabled">
+				<bool>false</bool>
+			   </property>
+			  </widget>
+			 </item>
+			</layout>
+		   </widget>
+		  </item>
+		 </layout>
+		</widget>
+	   </item>
+	  </layout>
+	 </widget>
+	 <widget class="QWidget" name="page_history">
+	  <layout class="QVBoxLayout" name="historyLayout">
+	   <item>
+		<layout class="QHBoxLayout" name="historyControlLayout">
+		 <item>
+		  <widget class="QPushButton" name="btn_history_refresh">
+		   <property name="text">
+			<string>刷新</string>
+		   </property>
+		  </widget>
+		 </item>
+		 <item>
+		  <widget class="QPushButton" name="btn_history_restart">
+		   <property name="text">
+			<string>重新老化</string>
+		   </property>
+		  </widget>
+		 </item>
+		 <item>
+		  <widget class="QPushButton" name="btn_history_force_stop">
+		   <property name="text">
+			<string>强制终止</string>
+		   </property>
+		  </widget>
+		 </item>
+		 <item>
+		  <spacer name="historySpacer">
+		   <property name="orientation">
+			<enum>Qt::Horizontal</enum>
+		   </property>
+		   <property name="sizeHint" stdset="0">
+			<size>
+			 <width>40</width>
+			 <height>20</height>
+			</size>
+		   </property>
+		  </spacer>
+		 </item>
+		</layout>
+	   </item>
+	   <item>
+		<widget class="QTableWidget" name="historyTable"/>
+	   </item>
+	   <item>
+		<widget class="QLabel" name="historyStatus">
+		 <property name="text">
+		  <string>就绪</string>
+		 </property>
+		 <property name="frameShape">
+		  <enum>QFrame::StyledPanel</enum>
+		 </property>
+		</widget>
+	   </item>
+	  </layout>
+	 </widget>
+	 <widget class="QWidget" name="page_about">
+	  <layout class="QVBoxLayout" name="aboutLayout">
+	   <item>
+		<widget class="QLabel" name="aboutTitle">
+		 <property name="text">
+		  <string>钧捷智能 - 智能老化监控系统</string>
+		 </property>
+		 <property name="alignment">
+		  <set>Qt::AlignCenter</set>
+		 </property>
+		</widget>
+	   </item>
+	   <item>
+		<widget class="QLabel" name="aboutVersion">
+		 <property name="text">
+		  <string>Version: 1.0.0 (Build 2025)</string>
+		 </property>
+		 <property name="alignment">
+		  <set>Qt::AlignCenter</set>
+		 </property>
+		</widget>
+	   </item>
+	   <item>
+		<widget class="QLabel" name="aboutCopyright">
+		 <property name="text">
+		  <string>Copyright © 2025 Jun Jie Tech. All rights reserved.</string>
+		 </property>
+		 <property name="alignment">
+		  <set>Qt::AlignCenter</set>
+		 </property>
+		</widget>
+	   </item>
+	   <item>
+		<widget class="QLabel" name="aboutWebsite">
+		 <property name="text">
+		  <string>Website: https://www.junjiesz.com</string>
+		 </property>
+		 <property name="alignment">
+		  <set>Qt::AlignCenter</set>
+		 </property>
+		</widget>
+	   </item>
+	   <item>
+		<widget class="QLabel" name="aboutEmail">
+		 <property name="text">
+		  <string>Email: chenjintao@junjietech.com</string>
+		 </property>
+		 <property name="alignment">
+		  <set>Qt::AlignCenter</set>
+		 </property>
+		</widget>
+	   </item>
+	   <item>
+		<spacer name="aboutSpacer">
+		 <property name="orientation">
+		  <enum>Qt::Vertical</enum>
+		 </property>
+		 <property name="sizeHint" stdset="0">
+		  <size>
+		   <width>20</width>
+		   <height>40</height>
+		  </size>
+		 </property>
+		</spacer>
+	   </item>
+	  </layout>
+	 </widget>
+	</widget>
+   </item>
+  </layout>
+  <action name="action_home">
+	<property name="text">
+	<string>主页</string>
+	</property>
+  </action>
+  <action name="action_history">
+	<property name="text">
+	<string>历史</string>
+	</property>
+  </action>
+  <action name="action_about">
+	<property name="text">
+	<string>关于</string>
+	</property>
+  </action>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

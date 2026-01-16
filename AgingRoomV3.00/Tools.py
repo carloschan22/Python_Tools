@@ -1,3 +1,4 @@
+from __future__ import annotations
 import json
 import logging
 from pathlib import Path
@@ -5,6 +6,37 @@ from Logger import configure_default_logging
 from typing import Callable, Iterable, List, Optional, Union
 
 _log = logging.getLogger(__name__)
+
+
+def load_config(file_name) -> dict:
+    """加载配置文件"""
+    config_folder = Path(__file__).parent / "config"
+    with open(config_folder / file_name, "r", encoding="utf-8") as f:
+        return json.load(f)
+    raise FileNotFoundError(f"配置文件未找到: {file_name}")
+
+
+FUNCTION_CONFIG = load_config("FuncConfig.json")
+PROJECT_CONFIG = load_config("ProjectConfig.json")
+COLOR_MAPPING = FUNCTION_CONFIG.get("UI", {}).get(
+    "ColorMapping", FUNCTION_CONFIG.get("ColorMapping", {})
+)
+SELECTED_PROJECT = FUNCTION_CONFIG["UI"]["DefaultProject"]
+logging_level = getattr(logging, FUNCTION_CONFIG["Logging"]["LogLevel"], logging.INFO)
+logging_file = FUNCTION_CONFIG["Logging"]["LogPath"]
+configure_default_logging(level=logging_level, log_file=logging_file)
+
+_THIRD_PARTY_NOISE_LOGGERS = [
+    "isotp",
+    "can.kvaser",
+    "can.zlg",
+    "udsoncan",
+    "UdsClient",
+    "Connection[NotifierBasedIsoTpConnection]",
+]
+
+for _logger_name in _THIRD_PARTY_NOISE_LOGGERS:
+    logging.getLogger(_logger_name).setLevel(logging.WARNING)
 
 
 def hex_to_int(value: Union[str, int]) -> int:
@@ -32,7 +64,7 @@ def _normalize_path(_base_folder: str, rel_path: Path) -> Path:
     else:
         candidates.append(root / rel_path)
 
-        # 常见目录映射：历史上可能叫 comm/dll，现在是 dll/
+        # 常见目录映射：历史上可能叫 comm/dll, 现在是 dll/
         parts = list(rel_path.parts)
         if len(parts) >= 2 and parts[0].lower() == "comm" and parts[1].lower() == "dll":
             candidates.append(root / Path("dll") / Path(*parts[2:]))
@@ -50,7 +82,7 @@ def _normalize_path(_base_folder: str, rel_path: Path) -> Path:
 def get_dll_func_names(dll_path: Path) -> List[str]:
     """读取 DLL 导出函数名列表（纯 Python 解析 PE 导出表）。
 
-    说明：仅用于获取导出符号名，避免依赖额外第三方库。
+    说明：仅用于获取导出符号名, 避免依赖额外第三方库。
     """
     import struct
 
@@ -142,14 +174,6 @@ def get_dll_func_names(dll_path: Path) -> List[str]:
     return names
 
 
-def load_config(file_name) -> dict:
-    """加载配置文件"""
-    config_folder = Path(__file__).parent / "config"
-    with open(config_folder / file_name, "r", encoding="utf-8") as f:
-        return json.load(f)
-    raise FileNotFoundError(f"配置文件未找到: {file_name}")
-
-
 def change_json_value(file_name, key, new_value):
     """修改配置文件中的指定键值。支持点分隔的嵌套键"""
     config_folder = Path(__file__).parent / "config"
@@ -170,37 +194,15 @@ def change_json_value(file_name, key, new_value):
         json.dump(data, f, indent=4, ensure_ascii=False)
 
 
-FUNCTION_CONFIG = load_config("FuncConfig.json")
-PROJECT_CONFIG = load_config("ProjectConfig.json")
-SELECTED_PROJECT = FUNCTION_CONFIG["UI"]["DefaultProject"]
-logging_level = getattr(logging, FUNCTION_CONFIG["Logging"]["LogLevel"], logging.INFO)
-logging_file = FUNCTION_CONFIG["Logging"]["LogPath"]
-configure_default_logging(level=logging_level, log_file=logging_file)
-
-# 第三方库日志降噪：isotp 在 DEBUG 下会打印大量 Rx/Tx trace
-# 不影响业务 logger（你的 self.log.* 仍遵循 FUNCTION_CONFIG["Logging"]["LogLevel"]）
-
-# NOTE:
-# - udsoncan 默认使用名为 "UdsClient" 与 "Connection[<name>]" 的 logger
-# - isotp/udsoncan 都可能在 DEBUG 下刷屏；降到 WARNING 可以保留异常但不打印调试细节
-_THIRD_PARTY_NOISE_LOGGERS = [
-    "isotp",
-    "can.kvaser",
-    "udsoncan",
-    "UdsClient",
-    "Connection[NotifierBasedIsoTpConnection]",
-]
-
-for _logger_name in _THIRD_PARTY_NOISE_LOGGERS:
-    logging.getLogger(_logger_name).setLevel(logging.WARNING)
-
-
 def refresh_configs():
     """刷新全局配置变量"""
-    global FUNCTION_CONFIG, PROJECT_CONFIG, SELECTED_PROJECT
+    global FUNCTION_CONFIG, PROJECT_CONFIG, SELECTED_PROJECT, COLOR_MAPPING
     FUNCTION_CONFIG = load_config("FuncConfig.json")
     PROJECT_CONFIG = load_config("ProjectConfig.json")
     SELECTED_PROJECT = FUNCTION_CONFIG["UI"]["DefaultProject"]
+    COLOR_MAPPING = FUNCTION_CONFIG.get("UI", {}).get(
+        "ColorMapping", FUNCTION_CONFIG.get("ColorMapping", {})
+    )
 
 
 # -------- Slot helpers (1-based indexing) --------
@@ -333,7 +335,7 @@ def get_active_slots(app) -> list[int]:
     if not status_fn and hasattr(app, "get_status"):
         status_fn = getattr(app, "get_status")
     if not callable(status_fn):
-        _log.warning("无法获取 get_status 方法，无法判断激活槽位")
+        _log.warning("无法获取 get_status 方法, 无法判断激活槽位")
         return []
 
     active_slots: list[int] = []
@@ -341,16 +343,15 @@ def get_active_slots(app) -> list[int]:
         card_status = status_fn("card_status", slot)
         if isinstance(card_status, dict):
             status = card_status.get("Status", 0)
-            if status != 0:
+            if status not in (0, -4, -5):
                 active_slots.append(slot)
     return active_slots
 
 
-if __name__ == "__main__":
-
-    print(PROJECT_CONFIG["Q5030"]["默认老化时长"])
-    value = "IdOfTxMsg1"
-    change_json_value("ProjectConfig", f"Q5030.{value}", 4)
-    refresh_configs()
-
-    print(PROJECT_CONFIG["Q5030"]["默认老化时长"])
+{
+    "Idle": "#D3D3D3",
+    "good": "#90EE90",
+    "Paused": "#FFFF00",
+    "Warning": "#FF961E",
+    "Error": "#FF4500",
+}

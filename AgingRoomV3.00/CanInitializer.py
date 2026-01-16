@@ -1,5 +1,5 @@
 """
-CAN总线管理器 - 统一管理CAN总线和Notifier，所有监听器通过依赖注入注册
+CAN总线管理器 - 统一管理CAN总线和Notifier, 所有监听器通过依赖注入注册
 """
 
 import can
@@ -22,8 +22,8 @@ class CanBusManager(LoggerMixin):
         初始化CAN总线管理器
 
         Args:
-            config: CAN总线配置，如果为None则使用默认配置
-            business_parser: BusinessMessageParser实例，用于DBC编码（可选）
+            config: CAN总线配置, 如果为None则使用默认配置
+            business_parser: BusinessMessageParser实例, 用于DBC编码（可选）
         """
         self.config = FUNCTION_CONFIG["CanBus"]
         self.bus: Optional[can.BusABC] = None
@@ -38,15 +38,28 @@ class CanBusManager(LoggerMixin):
             f"CanBusManager initialized with business_parser: {business_parser}"
         )
 
-    def initialize(self, index:int = 0) -> "CanBusManager":
+    def initialize(self, index: int = 0) -> "CanBusManager":
         """初始化CAN总线和Notifier"""
+
+        def get_dev_index_ch(index: int) -> tuple[int, int]:
+            dev_type = self.config["DevType"]
+            ch_mapping = {41: 2, 76: 4}
+            if index < 1:
+                raise ValueError("index must be >= 1")
+            total_ch = ch_mapping[dev_type]
+            dev_index = (index - 1) // total_ch
+            ch = (index - 1) % total_ch
+            return dev_index, ch
+
         if self._started:
             return self
-
+        dev_index, ch = get_dev_index_ch(index + 1)
         # 创建CAN总线
         self.bus = can.Bus(
+            device_index=dev_index,
             interface=self.config["Interface"],
-            channel=self.config["Channel"],
+            channel=ch,
+            dev_type=self.config["DevType"],
             bitrate=self.config["Bitrate"],
             data_bitrate=self.config["DataBitrate"],
             receive_own_messages=self.config["ReceiveOwnMessages"],
@@ -67,7 +80,7 @@ class CanBusManager(LoggerMixin):
             listener: 实现了can.Listener接口的监听器
         """
         if not self._started:
-            raise RuntimeError("CanBusManager未初始化，请先调用initialize()")
+            raise RuntimeError("CanBusManager未初始化, 请先调用initialize()")
 
         if listener not in self._listeners:
             self._listeners.append(listener)
@@ -158,7 +171,7 @@ class CanBusManager(LoggerMixin):
         - periodic_task[1] 代表 CH2 的周期任务
 
         remap 的键对应 ProjectConfig 中的 IdOfTxMsg1 / IdOfTxMsg2。
-        当输入的 message_name_or_id（或 can_msg.arbitration_id）等于对应配置值时，
+        当输入的 message_name_or_id（或 can_msg.arbitration_id）等于对应配置值时,
         会将消息 ID 重映射为：
         - CH1_TX1_ID = 7
         - CH1_TX2_ID = 8
@@ -171,9 +184,7 @@ class CanBusManager(LoggerMixin):
             self.log.warning(RuntimeError("CanBusManager未初始化"))
 
         if not isinstance(periodic_task, (list, tuple)) or len(periodic_task) < 2:
-            raise ValueError(
-                "periodic_task 必须是长度>=2的列表: [ch1_task, ch2_task]"
-            )
+            raise ValueError("periodic_task 必须是长度>=2的列表: [ch1_task, ch2_task]")
 
         tasks = [periodic_task[0], periodic_task[1]]
 
@@ -195,13 +206,17 @@ class CanBusManager(LoggerMixin):
             return None
 
         base_msg: Optional[can.Message] = can_msg
-        if base_msg is None and message_name_or_id is not None and signal_data is not None:
+        if (
+            base_msg is None
+            and message_name_or_id is not None
+            and signal_data is not None
+        ):
             # self.log.debug(f"Encoding message for modification: {message_name_or_id} with signals {signal_data}")
             base_msg = self.encode_message(message_name_or_id, signal_data)
 
         if base_msg is None:
             raise ValueError(
-                "必须提供 can_msg，或同时提供 message_name_or_id 与 signal_data"
+                "必须提供 can_msg, 或同时提供 message_name_or_id 与 signal_data"
             )
 
         remap_key = _find_remap_key(message_name_or_id)
@@ -231,7 +246,7 @@ class CanBusManager(LoggerMixin):
             #     f"Modified periodic task for channel {ch_index+1} with message ID {ch_msg_id},data: {ch_msg.data.hex()}"
             # )
         return periodic_task
-    
+
     def stop_all_periodic_tasks(self):
         """停止所有周期性任务"""
         if self.bus:

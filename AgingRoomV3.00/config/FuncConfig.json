@@ -7,7 +7,14 @@
         "OperatorList": ["魁小立", "朱燕波", "李新成"],
         "DefaultOperator": "魁小立",
         "DefaultProject": "Q5030",
-        "Remap":true
+        "Remap":true,
+        "ColorMapping": {
+            "Idle": "#D3D3D3",
+            "good": "#90EE90",
+            "Paused": "#FFFF00",
+            "Warning": "#FF961E",
+            "Error": "#FF4500"
+        }
     },
     "Logging": {
         "EnableLogging": true,
@@ -17,7 +24,8 @@
         "RetentionPeriod": 3
     },
     "CanBus":{
-        "Interface": "kvaser",
+        "Interface": "zlg",
+        "DevType": 76,
         "Channel": 0,
         "Bitrate": 500000,
         "DataBitrate": 2000000,

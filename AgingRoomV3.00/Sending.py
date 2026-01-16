@@ -28,9 +28,6 @@ class OutputCtrl(LoggerMixin):
                 for _ in range(FUNCTION_CONFIG["Tx"]["RetransmissionTimes"]):
                     self.bus.send(msg)
                     time.sleep(FUNCTION_CONFIG["Tx"]["RetransmissionInterval"])
-                self.log.debug(
-                    f"Sent power mode message: ID={msg.arbitration_id}, Data={msg.data.hex()}, times={FUNCTION_CONFIG['Tx']['RetransmissionTimes']}"
-                )
             except Exception as e:
                 self.log.error(f"Failed to send power mode message: {e}")
         self.log.info(
@@ -64,7 +61,7 @@ class CustomTxMsg(LoggerMixin):
         if signal_data is None:
             signal_data = {}
 
-        # ProjectConfig 中 DataOfTxMsg* 现在为信号字典，需要先通过 DBC 编码为 payload
+        # ProjectConfig 中 DataOfTxMsg* 现在为信号字典, 需要先通过 DBC 编码为 payload
         encoded = self.can_manager.encode_message(msg_id, signal_data)
         payload = encoded.data
 
@@ -78,9 +75,6 @@ class CustomTxMsg(LoggerMixin):
                 is_fd=is_fd,
                 is_extended_id=False,
             )
-            self.log.debug(
-                f"Creating periodic task for CH1 with ID: {ch1_msg_id}, OriginID: {msg_id}, Period: {period}s, is_fd: {is_fd}, signals: {signal_data}"
-            )
             ch1_periodic_task = self.bus.send_periodic(ch1_can_msg, period)
 
         if ch2:
@@ -90,12 +84,9 @@ class CustomTxMsg(LoggerMixin):
                 is_fd=is_fd,
                 is_extended_id=False,
             )
-            self.log.debug(
-                f"Creating periodic task for CH2 with ID: {ch2_msg_id}, OriginID: {msg_id}, Period: {period}s, is_fd: {is_fd}, signals: {signal_data}"
-            )
             ch2_periodic_task = self.bus.send_periodic(ch2_can_msg, period)
 
-        # 为了与 modify_periodic_task 的通道约定兼容，固定返回 [ch1_task, ch2_task]
+        # 为了与 modify_periodic_task 的通道约定兼容, 固定返回 [ch1_task, ch2_task]
         return [ch1_periodic_task, ch2_periodic_task]
 
     def modify_periodic_task(
@@ -114,9 +105,6 @@ class CustomTxMsg(LoggerMixin):
         msg_id = message_name_or_id
         if msg_id is None and can_msg is not None:
             msg_id = can_msg.arbitration_id
-        self.log.debug(
-            f"Modified periodic tasks (CH1/CH2) for TxMsg ID: {msg_id}, Data: {signal_data if signal_data is not None else (can_msg.data.hex() if can_msg is not None else None)}"
-        )
 
 
 class CustomTxMsg1(CustomTxMsg):

@@ -84,7 +84,7 @@ def configure_default_logging(
     为根 logger 提供默认 handler（避免重复添加）。
 
     - 默认添加 StreamHandler（stderr）
-    - 若提供 log_file（或 default_log_file 不为 None），则额外添加 FileHandler
+    - 若提供 log_file（或 default_log_file 不为 None）, 则额外添加 FileHandler
     """
 
     root = logging.getLogger()
