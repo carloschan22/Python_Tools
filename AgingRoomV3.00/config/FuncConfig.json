@@ -3,7 +3,7 @@
         "Version": "V3.00",
         "GroupCount": 2,
         "IndexPerGroup": 80,
-        "SlotRefreshInterval": 1,
+        "SlotRefreshInterval": 0.5,
         "OperatorList": [
             "魁小立",
             "朱燕波",

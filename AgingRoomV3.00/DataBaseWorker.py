@@ -38,6 +38,7 @@ class DataBaseWorker(LoggerMixin):
     def create_new_table(self):
         """生成以日期和序号命名的新表,表名结构:yyyy_mm_dd_nn
         表数据结构:
+        - Id: INTEGER (自增序号)
         - Slot: INTEGER
         - Timestamp: REAL
         - Status: INTEGER
@@ -68,7 +69,8 @@ class DataBaseWorker(LoggerMixin):
 
         self.cursor.execute(
             f"""
-            CREATE TABLE IF NOT EXISTS {table_name} (
+            CREATE TABLE IF NOT EXISTS "{table_name}" (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
                 Slot INTEGER,
                 Timestamp REAL,
                 Status INTEGER,
@@ -91,7 +93,7 @@ class DataBaseWorker(LoggerMixin):
     ) -> List[Tuple[Any, ...]]:
         if not table_name:
             return []
-        sql = f"SELECT * FROM {table_name}"
+        sql = f'SELECT * FROM "{table_name}"'
         if conditions:
             sql += f" WHERE {conditions}"
         self.cursor.execute(sql)
@@ -101,21 +103,32 @@ class DataBaseWorker(LoggerMixin):
     def start_querying(self): ...
     def stop_querying(self): ...
 
-    def insert_data(self, table_name: str, data: Tuple[Any, ...]):
+    def insert_data(self, table_name: str, data: Any):
         if not table_name:
             raise ValueError("table_name is required")
-        if len(data) != 10:
-            raise ValueError("data must contain 10 fields")
+
+        if isinstance(data, dict):
+            rows = self.build_rows_from_snapshot(data)
+            for row in rows:
+                self._insert_row(table_name, row)
+            self.connection.commit()
+            return
+
+        if not isinstance(data, (tuple, list)) or len(data) != 10:
+            raise ValueError("data must be a 10-field tuple or a snapshot dict")
+        self._insert_row(table_name, tuple(data))
+        self.connection.commit()
+
+    def _insert_row(self, table_name: str, row: Tuple[Any, ...]):
         self.cursor.execute(
             f"""
-            INSERT INTO {table_name} (
+            INSERT INTO "{table_name}" (
                 Slot, Timestamp, Status, Voltage, Current, Temperature,
                 DtcCodes, AdditionalInfo_1, AdditionalInfo_2, DiagResults
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            data,
+            row,
         )
-        self.connection.commit()
 
     def writing_thread(self):
         """后台写入线程：从队列取数据并写入数据库。"""
@@ -144,9 +157,18 @@ class DataBaseWorker(LoggerMixin):
             self._worker.join(timeout=2.0)
             self._worker = None
 
-    def enqueue(self, table_name: str, data: Tuple[Any, ...]):
+    def enqueue(self, table_name: str, data: Any):
         """可选：异步写入队列。"""
         self._queue.put((table_name, data))
+
+    @staticmethod
+    def _json_dumps(value: Any) -> str:
+        def _default(obj):
+            if isinstance(obj, (bytes, bytearray)):
+                return obj.hex()
+            return str(obj)
+
+        return json.dumps(value, ensure_ascii=False, default=_default)
 
     def build_row_from_status(self, slot: int, status: dict) -> Tuple[Any, ...]:
         """将单槽位状态转换为数据库行。"""
@@ -165,11 +187,7 @@ class DataBaseWorker(LoggerMixin):
         custom_rx2 = status.get("custom_rx2")
 
         diag_results = status.get("diag_results")
-        diag_periodic = status.get("diag_periodic_snapshot")
-        diag_payload = {
-            "diag_results": diag_results,
-            "diag_periodic_snapshot": diag_periodic,
-        }
+        diag_payload = diag_results
 
         return (
             int(slot),
@@ -178,10 +196,10 @@ class DataBaseWorker(LoggerMixin):
             voltage,
             current,
             temperature,
-            json.dumps(dtc_codes, ensure_ascii=False),
-            json.dumps(custom_rx1, ensure_ascii=False),
-            json.dumps(custom_rx2, ensure_ascii=False),
-            json.dumps(diag_payload, ensure_ascii=False),
+            self._json_dumps(dtc_codes),
+            self._json_dumps(custom_rx1),
+            self._json_dumps(custom_rx2),
+            self._json_dumps(diag_payload),
         )
 
     def build_rows_from_snapshot(self, snapshot: dict) -> List[Tuple[Any, ...]]:
@@ -196,3 +214,49 @@ class DataBaseWorker(LoggerMixin):
 
     def close(self):
         self.connection.close()
+
+
+if __name__ == "__main__":
+    db_worker = DataBaseWorker()
+    db_worker.initialization()
+    data = {
+        8: {
+            "card_status": {
+                "Timestamp": 1770020616.1704073,
+                "Status": -1,
+                "Voltage": 11.8,
+                "Current": 257.06,
+                "CardInfo": {
+                    "slave_configed": "configed",
+                    "reserve_1": "default",
+                    "output_status": "open",
+                    "current_status": "normal",
+                    "voltage_status": "normal",
+                    "can_status": "normal",
+                    "reserve_2": "default",
+                    "reserve_3": "default",
+                },
+                "CardTemperature": 40,
+                "ResistorInfo": {"main_can": 120, "can_1": 120, "can_2": 9999},
+            },
+            "custom_rx1": {
+                "CMSIVideoAngel": "FOV direction 5",
+                "CMSIVideoZoom": "Zoom level 1",
+                "CMSIDispMod": "Video mode",
+                "CMSIVideoBackLi": "Backlight brightness level 7",
+                "CMSII2BusErrSt": "Normal",
+                "CMSIPwrErrSt": "Normal",
+                "CMSILCDErrSt": "Normal",
+                "CMSISnsrErrSt": "Normal",
+                "CMSIVideoErrSt": "Fault",
+            },
+            "custom_rx2": None,
+            "diag_results": {"0x8114": None},
+            "diag_periodic_snapshot": {"0x8114": bytearray(b"\x81\x14")},
+        }
+    }
+    db_worker.create_new_table()
+    rows = db_worker.build_rows_from_snapshot(data)
+    for row in rows:
+        db_worker.insert_data("2026_02_02_01", row)
+    db_worker.close()

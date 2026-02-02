@@ -12,6 +12,7 @@ from typing import Optional
 from datetime import datetime, timedelta
 from ui.main_widget_ui import Ui_MainWidget
 from CompManager import ComponentsInstantiation
+from DataBaseWorker import DataBaseWorker
 from Tools import COLOR_MAPPING, FUNCTION_CONFIG, PROJECT_CONFIG
 from PySide6.QtCore import Qt, Signal, QThread, Slot, QTimer
 from PySide6.QtGui import QColor, QBrush
@@ -56,6 +57,10 @@ class Connector(QWidget):
         self._slot_status: dict[int, dict[int, int]] = {
             i: {} for i in range(1, self._group_count + 1)
         }
+        self._db_worker = DataBaseWorker()
+        self._db_worker.initialization()
+        self._db_worker.start_writing()
+        self._group_table: dict[int, str] = {}
         self.ui.setupUi(self)
         self._init_nav()
         self._apply_ui_config()
@@ -557,7 +562,16 @@ class Connector(QWidget):
         if worker is not None and worker.isRunning():
             return worker
         app = self._get_group_app(group_index)
-        worker = AgingThread(app, group_index=group_index)
+        table_name = self._group_table.get(group_index)
+        if table_name is None:
+            table_name = self._db_worker.create_new_table()
+            self._group_table[group_index] = table_name
+        worker = AgingThread(
+            app,
+            group_index=group_index,
+            db_worker=self._db_worker,
+            table_name=table_name,
+        )
         worker.slot_status_changed.connect(self.on_slot_status_changed)
         self._workers[group_index] = worker
         return worker
@@ -566,6 +580,9 @@ class Connector(QWidget):
         state = self._group_state[group_index]
         now = time.time()
         app = self._get_group_app(group_index)
+
+        if group_index not in self._group_table:
+            self._group_table[group_index] = self._db_worker.create_new_table()
 
         if not getattr(app, "_started", False):
             app.startup()
@@ -663,6 +680,7 @@ class Connector(QWidget):
         self._reset_group_labels(group_index)
         self._set_group_buttons_running(group_index, running=False, paused=False)
         self._clear_group_color(group_index)
+        self._group_table.pop(group_index, None)
 
         worker = self._workers.pop(group_index, None)
         if worker is not None and worker.isRunning():
@@ -729,10 +747,18 @@ class SlotDetailDialog(QDialog):
 class AgingThread(QThread):
     slot_status_changed = Signal(int, int, int)
 
-    def __init__(self, app: ComponentsInstantiation, group_index: int):
+    def __init__(
+        self,
+        app: ComponentsInstantiation,
+        group_index: int,
+        db_worker: DataBaseWorker,
+        table_name: str,
+    ):
         super().__init__()
         self.app = app
         self.group_index = group_index
+        self.db_worker = db_worker
+        self.table_name = table_name
         self.poll_interval = FUNCTION_CONFIG["UI"].get("SlotRefreshInterval", 1)
         self._running = True
         self._paused = False
@@ -782,8 +808,8 @@ class AgingThread(QThread):
                     self._last_active_slots = current_slots
 
             results = Tools.get_slots_results(self.app, active_slots)
-            print("当前活跃槽位：", active_slots)
-            print(results)
+            if results:
+                self.db_worker.enqueue(self.table_name, results)
 
             for slot in range(1, slot_count + 1):
                 card_status = status_fn("card_status", slot)
@@ -825,6 +851,9 @@ def main():
             if worker.isRunning():
                 worker.stop()
                 worker.wait(2000)
+        if connector._db_worker is not None:
+            connector._db_worker.stop_writing()
+            connector._db_worker.close()
         for app in list(connector._apps.values()):
             if hasattr(app, "shutdown"):
                 app.shutdown()
