@@ -194,6 +194,16 @@ def change_json_value(file_name, key, new_value):
         json.dump(data, f, indent=4, ensure_ascii=False)
 
 
+def refresh_ui_config(selected_project, selected_duration, selected_operator):
+    """刷新UI相关的全局配置变量"""
+    change_json_value("FuncConfig", "UI.DefaultProject", selected_project)
+    change_json_value("FuncConfig", "UI.DefaultOperator", selected_operator)
+    change_json_value(
+        "ProjectConfig", f"{selected_project}.默认老化时长", selected_duration
+    )
+    refresh_configs()
+
+
 def refresh_configs():
     """刷新全局配置变量"""
     global FUNCTION_CONFIG, PROJECT_CONFIG, SELECTED_PROJECT, COLOR_MAPPING

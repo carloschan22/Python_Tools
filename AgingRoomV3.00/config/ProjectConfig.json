@@ -5,7 +5,7 @@
             4,
             6
         ],
-        "默认老化时长": 4,
+        "默认老化时长": "2",
         "工作电压范围": [
             11,
             14
@@ -59,7 +59,6 @@
             "TypeOfTxMsg2": "CANFD",
             "IntervalOfTxMsg2": 0.2,
             "DataOfTxMsg2": {},
-            
             "PeriodicSwitching": {
                 "SwitchMsg1": {
                     "SwitchInterval": 10,
@@ -102,21 +101,21 @@
             ],
             "DidConfig": {
                 "0xF193": {
-                    "Operation":"Read",
+                    "Operation": "Read",
                     "name": "Ecu Hardware Version",
                     "size": 2,
                     "type": "bytes",
                     "value": "0004",
-                    "Padding":"0x20",
+                    "Padding": "0x20",
                     "offset": null
                 },
                 "0xFD00": {
-                    "operation":"Read",
+                    "operation": "Read",
                     "name": "Ecu Software Version",
                     "size": 16,
                     "type": "string",
                     "value": "V1.70.95",
-                    "Padding":"0x20",
+                    "Padding": "0x20",
                     "offset": null
                 }
             },
@@ -170,7 +169,7 @@
             4,
             6
         ],
-        "默认老化时长": 4,
+        "默认老化时长": "4",
         "工作电压范围": [
             11,
             13
@@ -216,22 +215,18 @@
             "TypeOfTxMsg1": "CANFD",
             "IntervalOfTxMsg1": 0.2,
             "DataOfTxMsg1": {},
-
             "IdOfTxMsg2": 1454,
             "TypeOfTxMsg2": "CANFD",
             "IntervalOfTxMsg2": 0.2,
             "DataOfTxMsg2": {},
-            
             "PeriodicSwitching": {
                 "SwitchMsg1": {
                     "SwitchInterval": null,
-                    "Data": [
-                    ]
+                    "Data": []
                 },
                 "SwitchMsg2": {
                     "SwitchInterval": null,
-                    "Data": [
-                    ]
+                    "Data": []
                 }
             }
         },
@@ -243,43 +238,47 @@
             ],
             "DidConfig": {
                 "0x8114": {
-                    "Operation":"Write",
+                    "Operation": "Write",
                     "name": "Display Mode",
                     "size": 3,
                     "type": "bytes",
                     "value": "010100",
-                    "Padding":"0x20",
+                    "Padding": "0x20",
                     "offset": null
                 },
                 "0x811C": {
-                    "Operation":"Read",
+                    "Operation": "Read",
                     "name": "App Version",
                     "size": 16,
                     "type": "string",
                     "value": "R01.00.44",
-                    "Padding":"0x20",
+                    "Padding": "0x20",
                     "offset": null
                 }
             },
             "PeriodicDiag": {
                 "Interval": 2,
                 "ReDiagInterval": 1,
-                "Dids": {"0x8114":["010100,010200,010300,010400,010500"]}
+                "Dids": {
+                    "0x8114": [
+                        "010100,010200,010300,010400,010500"
+                    ]
+                }
             },
             "Params": {
-            "isotp_params": {
-                "stmin": 0,
-                "blocksize": 0,
-                "wftmax": 0,
-                "tx_data_length": 8,
-                "tx_data_min_length": 8,
-                "can_fd": false,
-                "tx_padding": 0,
-                "rx_flowcontrol_timeout": 1000,
-                "rx_consecutive_frame_timeout": 1000,
-                "squash_stmin_requirement": false,
-                "max_frame_size": 4095
-            },
+                "isotp_params": {
+                    "stmin": 0,
+                    "blocksize": 0,
+                    "wftmax": 0,
+                    "tx_data_length": 8,
+                    "tx_data_min_length": 8,
+                    "can_fd": false,
+                    "tx_padding": 0,
+                    "rx_flowcontrol_timeout": 1000,
+                    "rx_consecutive_frame_timeout": 1000,
+                    "squash_stmin_requirement": false,
+                    "max_frame_size": 4095
+                },
                 "default_client_config": {
                     "exception_on_negative_response": true,
                     "exception_on_invalid_response": true,
@@ -309,7 +308,7 @@
             4,
             6
         ],
-        "默认老化时长": 2,
+        "默认老化时长": "2",
         "工作电压范围": [
             11,
             13
@@ -355,22 +354,18 @@
             "TypeOfTxMsg1": "CANFD",
             "IntervalOfTxMsg1": 0.2,
             "DataOfTxMsg1": {},
-
             "IdOfTxMsg2": 1454,
             "TypeOfTxMsg2": "CANFD",
             "IntervalOfTxMsg2": 0.2,
             "DataOfTxMsg2": {},
-            
             "PeriodicSwitching": {
                 "SwitchMsg1": {
                     "SwitchInterval": null,
-                    "Data": [
-                    ]
+                    "Data": []
                 },
                 "SwitchMsg2": {
                     "SwitchInterval": null,
-                    "Data": [
-                    ]
+                    "Data": []
                 }
             }
         },
@@ -382,28 +377,32 @@
             ],
             "DidConfig": {
                 "0x8114": {
-                    "Operation":"Write",
+                    "Operation": "Write",
                     "name": "Display Mode",
                     "size": 2,
                     "type": "bytes",
                     "value": "010100",
-                    "Padding":"0x20",
+                    "Padding": "0x20",
                     "offset": null
                 },
                 "0x811C": {
-                    "Operation":"Read",
+                    "Operation": "Read",
                     "name": "App Version",
                     "size": 16,
                     "type": "string",
                     "value": "R01.00.44",
-                    "Padding":"0x20",
+                    "Padding": "0x20",
                     "offset": null
                 }
             },
             "PeriodicDiag": {
                 "Interval": 5,
                 "ReDiagInterval": 1,
-                "Dids": {"0x8114":["010100,010200,010300,010400,010500"]}
+                "Dids": {
+                    "0x8114": [
+                        "010100,010200,010300,010400,010500"
+                    ]
+                }
             },
             "Params": {
                 "isotp_params": {

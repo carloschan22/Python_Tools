@@ -4,10 +4,14 @@
         "GroupCount": 2,
         "IndexPerGroup": 80,
         "SlotRefreshInterval": 1,
-        "OperatorList": ["魁小立", "朱燕波", "李新成"],
+        "OperatorList": [
+            "魁小立",
+            "朱燕波",
+            "李新成"
+        ],
         "DefaultOperator": "魁小立",
-        "DefaultProject": "Q5030",
-        "Remap":true,
+        "DefaultProject": "Q5010A",
+        "Remap": true,
         "ColorMapping": {
             "Idle": "#D3D3D3",
             "good": "#90EE90",
@@ -23,7 +27,7 @@
         "MaxLogFileSizeMB": 100,
         "RetentionPeriod": 3
     },
-    "CanBus":{
+    "CanBus": {
         "Interface": "kvaser",
         "DevType": 76,
         "Bitrate": 500000,
@@ -33,7 +37,10 @@
     },
     "PowerSupply": {
         "Type": "DY4010",
-        "ComPort": ["COM3", "COM4"],
+        "ComPort": [
+            "COM3",
+            "COM4"
+        ],
         "BaudRate": 9600,
         "GroupPerPowerSupply": 1,
         "VoltageCompensation": 2,

@@ -160,6 +160,7 @@ class UDSClient(LoggerMixin):
 
     def initialize(self) -> "UDSClient":
         """初始化ISO-TP栈和UDS客户端"""
+        self.log.debug(f"初始化UDS客户端, Config:{self.diag_cfg}")
         if self._initialized:
             return self
 
