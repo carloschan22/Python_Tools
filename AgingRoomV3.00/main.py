@@ -807,9 +807,9 @@ class AgingThread(QThread):
                     diag_once_set(active_slots)
                     self._last_active_slots = current_slots
 
-            results = Tools.get_slots_results(self.app, active_slots)
+            results = Tools.get_slots_results(self.app, active_slots)  # 状态更新
             if results:
-                self.db_worker.enqueue(self.table_name, results)
+                self.db_worker.enqueue(self.table_name, results)  # 状态写入数据库
 
             for slot in range(1, slot_count + 1):
                 card_status = status_fn("card_status", slot)
