@@ -15,10 +15,12 @@ from udsoncan.typing import ClientConfig
 from Tools import (
     SELECTED_PROJECT,
     PROJECT_CONFIG,
+    FUNCTION_CONFIG,
     create_slot_table,
     normalize_slots,
     set_slot_value,
     validate_slot,
+    remap_slot,
 )
 
 
@@ -334,7 +336,7 @@ class MultiSlotDiagnostic(LoggerMixin):
         self.slot_count = int(slot_count)
         self.project_cfg = PROJECT_CONFIG[SELECTED_PROJECT]
         self.diag_cfg = self.project_cfg.get("Diag", self.project_cfg)
-
+        self.remap = FUNCTION_CONFIG.get("UI", {}).get("Remap", False)
         # 周期线程与外部调用可能并发：这里用一把锁保护状态与 isotp/uds 交互
         self._lock = threading.Lock()
 
@@ -590,7 +592,6 @@ class MultiSlotDiagnostic(LoggerMixin):
 
         with self._lock:
             slots = list(self.pending_slots)
-
         # 根据配置中的 Operation 决定读/写
         did_cfg = self._get_did_cfg()
 
@@ -619,7 +620,11 @@ class MultiSlotDiagnostic(LoggerMixin):
                         or (did_cfg.get(did) or {}).get("Value")
                         for did in write_dids
                     }
-                    data.update(self.write_dids(slot, write_dids, values))
+                    data.update(
+                        self.write_dids(
+                            remap_slot(slot) if self.remap else slot, write_dids, values
+                        )
+                    )  # 诊断穴位重映射.
                 with self._lock:
                     set_slot_value(self.results, slot, data, self.slot_count)
                 ok.append(slot)

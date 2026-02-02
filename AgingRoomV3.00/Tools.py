@@ -433,16 +433,9 @@ def set_cards(bus: can.BusABC, status: bool, config: dict):
         set_card_addr(bus, config)
 
 
-# {
-#     "Idle": "#D3D3D3",
-#     "good": "#90EE90",
-#     "Paused": "#FFFF00C5",
-#     "Warning": "#FF961E",
-#     "Error": "#FF4500",
-# }
-
-
-if __name__ == "__main__":
-    config_list = [0x752, 0x6F6, 0x5AE]
-    data = ass_raw_data(config_list)
-    print(f"DATA:{data}")
+def remap_slot(slot: int) -> int:
+    if not isinstance(slot, int):
+        raise TypeError("slot must be int")
+    if slot < 1 or slot > 80:
+        raise ValueError("slot must be in [1, 80]")
+    return slot + 1 if slot % 2 == 1 else slot - 1

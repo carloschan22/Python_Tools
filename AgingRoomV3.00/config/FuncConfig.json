@@ -11,7 +11,7 @@
         ],
         "DefaultOperator": "魁小立",
         "DefaultProject": "Q5010A",
-        "Remap": false,
+        "Remap": true,
         "ColorMapping": {
             "Idle": "#D3D3D3",
             "good": "#90EE90",

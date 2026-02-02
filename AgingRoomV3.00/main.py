@@ -781,9 +781,9 @@ class AgingThread(QThread):
                     diag_once_set(active_slots)
                     self._last_active_slots = current_slots
 
-            # results = Tools.get_slots_results(self.app, active_slots)
-            # print("当前活跃槽位：", active_slots)
-            # print(results)
+            results = Tools.get_slots_results(self.app, active_slots)
+            print("当前活跃槽位：", active_slots)
+            print(results)
 
             for slot in range(1, slot_count + 1):
                 card_status = status_fn("card_status", slot)
