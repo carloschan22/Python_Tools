@@ -160,7 +160,6 @@ class UDSClient(LoggerMixin):
 
     def initialize(self) -> "UDSClient":
         """初始化ISO-TP栈和UDS客户端"""
-        self.log.debug(f"初始化UDS客户端, Config:{self.diag_cfg}")
         if self._initialized:
             return self
 
@@ -192,6 +191,7 @@ class UDSClient(LoggerMixin):
         self.client = Client(conn, config=client_config)
 
         self._initialized = True
+        # self.log.debug(f"初始化UDS客户端, Config:{self.diag_cfg}")
         return self
 
     def _create_client_config(self) -> ClientConfig:
@@ -496,6 +496,9 @@ class MultiSlotDiagnostic(LoggerMixin):
     ) -> dict[str, Any]:
         with self._lock:
             uds, client, tx, rx = self._ensure_client(slot)
+            self.log.debug(
+                f"Slot {slot} 开始写入 DIDs: {dids}, Values: {values}. with TX {tx}, RX {rx}"
+            )
             # 采集卡转发：每次诊断前必须更新物理地址
             uds.update_address(tx, rx)
 

@@ -1,4 +1,6 @@
 from __future__ import annotations
+import can
+import time
 import json
 import logging
 from pathlib import Path
@@ -358,10 +360,89 @@ def get_active_slots(app) -> list[int]:
     return active_slots
 
 
-{
-    "Idle": "#D3D3D3",
-    "good": "#90EE90",
-    "Paused": "#FFFF00",
-    "Warning": "#FF961E",
-    "Error": "#FF4500",
-}
+def set_card_output(bus: can.BusABC, statuts: bool) -> bool:
+    msg_mapping = {True: b"\xff" * 8, False: b"\x00" * 8}
+    for id in [1, 2]:
+        msg = can.Message(
+            arbitration_id=id,
+            data=msg_mapping[statuts],
+            is_extended_id=False,
+            is_fd=True,
+        )
+        for _ in range(3):
+            result = bus.send(msg)
+            print(f"SET OUTPUT MSG: {msg}, RESULT: {result}")
+            if not result:
+                return False
+    return True
+
+
+def ass_raw_data(config_list: list) -> bytes:
+    if not isinstance(config_list, list) or len(config_list) != 3:
+        raise ValueError("config_list must be a list of three integers")
+
+    values = []
+    for v in config_list:
+        if not isinstance(v, int):
+            raise TypeError("config_list items must be int")
+        if not (0 <= v <= 0xFFFF):
+            raise ValueError("config_list items must be in [0, 0xFFFF]")
+        values.append(v)
+
+    payload = bytearray()
+    payload.append(0xFF)
+    for v in values:
+        payload += v.to_bytes(2, "big")
+    payload.append(0x00)
+    return bytes(payload)
+
+
+def set_card_addr(bus: can.BusABC, config: dict) -> bool:
+    phy_addrs = config["Diag"].get("DiagPhyAddr", [])
+    tx_ids = [config["TX"]["IdOfTxMsg1"], config["TX"]["IdOfTxMsg2"]]
+    rx_ids = [config["RX"]["IdOfRxMsg1"], config["RX"]["IdOfRxMsg2"]]
+    mapping = {
+        (3, 4): [phy_addrs[1] if len(phy_addrs) > 1 else None, rx_ids[0], rx_ids[1]],
+        (5, 6): [phy_addrs[0] if len(phy_addrs) > 0 else None, tx_ids[0], tx_ids[1]],
+    }
+    for ids, addrs in mapping.items():
+        addrs = [a if isinstance(a, int) and a is not None else 0x0000 for a in addrs]
+        msg_1 = can.Message(
+            arbitration_id=ids[0],
+            data=ass_raw_data(addrs),
+            is_extended_id=False,
+            is_fd=True,
+        )
+        msg_2 = can.Message(
+            arbitration_id=ids[1],
+            data=ass_raw_data(addrs),
+            is_extended_id=False,
+            is_fd=True,
+        )
+        print(f"ASS MSG: {msg_1}, {msg_2}")
+        for _ in range(3):
+            bus.send(msg_1)
+            bus.send(msg_2)
+            time.sleep(0.1)
+
+
+def set_cards(bus: can.BusABC, status: bool, config: dict):
+    set_card_output(bus, status)
+    if status:
+        time.sleep(0.1)
+        set_card_addr(bus, config)
+
+
+# {
+#     "Idle": "#D3D3D3",
+#     "good": "#90EE90",
+#     "Paused": "#FFFF00C5",
+#     "Warning": "#FF961E",
+#     "Error": "#FF4500",
+# }
+
+
+if __name__ == "__main__":
+    config_list = [0x752, 0x6F6, 0x5AE]
+    data = ass_raw_data(config_list)
+    print(f"DATA:{data}")

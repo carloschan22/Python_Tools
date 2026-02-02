@@ -11,11 +11,11 @@
         ],
         "DefaultOperator": "魁小立",
         "DefaultProject": "Q5010A",
-        "Remap": true,
+        "Remap": false,
         "ColorMapping": {
             "Idle": "#D3D3D3",
             "good": "#90EE90",
-            "Paused": "#FFFF00",
+            "Paused": "#FFFF00C5",
             "Warning": "#FF961E",
             "Error": "#FF4500"
         }

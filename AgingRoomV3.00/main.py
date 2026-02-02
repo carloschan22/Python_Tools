@@ -477,6 +477,13 @@ class Connector(QWidget):
     def _set_group_buttons_running(
         self, group_index: int, running: bool, paused: bool = False
     ) -> None:
+        app = self._get_group_app(group_index)
+        app_started = getattr(app, "_started", False)
+        if running and not app_started:
+            app.startup()
+        elif not running and app_started:
+            app.shutdown()
+
         selected_project = getattr(self.ui, f"combo_product_{group_index}", None)
         selected_duration = getattr(self.ui, f"combo_aging_time_{group_index}", None)
         selected_operator = getattr(self.ui, f"combo_worker_{group_index}", None)

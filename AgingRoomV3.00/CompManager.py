@@ -5,7 +5,7 @@ from Logger import LoggerMixin
 from RxParser import RxSplitter
 from CanInitializer import CanBusManager
 from typing import Any, Callable, Optional
-from Tools import PROJECT_CONFIG, SELECTED_PROJECT
+from Tools import PROJECT_CONFIG, SELECTED_PROJECT, set_cards
 
 
 class _PeriodicWorker(LoggerMixin):
@@ -135,6 +135,8 @@ class ComponentsInstantiation(LoggerMixin):
         self._instant_manager["AgingStatus"] = rx_splitter if rx_switcher[0] else None
         self._instant_manager["CustomRxMsg1"] = rx_splitter if rx_switcher[1] else None
         self._instant_manager["CustomRxMsg2"] = rx_splitter if rx_switcher[2] else None
+
+        set_cards(self.can_manager.get_bus(), True, self.project_cfg)
 
         # Custom TX
         if "CustomTxMsg1" in self.supported:
@@ -374,12 +376,14 @@ class ComponentsInstantiation(LoggerMixin):
             self.register_op("periodic_list_jobs", _periodic_list_jobs)
 
             def _periodic_worker_stop(timeout: float = 2.0):
-                self._periodic_worker.stop(timeout=timeout)
+                if self._periodic_worker is not None:
+                    self._periodic_worker.stop(timeout=timeout)
 
             self.register_op("periodic_worker_stop", _periodic_worker_stop)
 
             def _periodic_worker_start():
-                self._periodic_worker.start()
+                if self._periodic_worker is not None:
+                    self._periodic_worker.start()
 
             self.register_op("periodic_worker_start", _periodic_worker_start)
 
@@ -559,6 +563,7 @@ class ComponentsInstantiation(LoggerMixin):
         # stop periodic worker first
         if self._periodic_worker is not None:
             self._periodic_worker.stop()
+            self._periodic_worker = None
 
         diag = self._instant_manager.get("Diagnostic")
         if diag is not None:
@@ -567,6 +572,11 @@ class ComponentsInstantiation(LoggerMixin):
                     diag.shutdown()
             except Exception:
                 pass
+        if hasattr(self.can_manager, "shutdown"):
+            set_cards(self.can_manager.get_bus(), False, self.project_cfg)
 
         if self.can_manager is not None:
             self.can_manager.shutdown()
+            self.can_manager = None
+
+        self._started = False

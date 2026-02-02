@@ -335,26 +335,23 @@
         ],
         "SupportedComponents": [
             "AgingStatus",
-            "CustomTxMsg1",
-            "CustomTxMsg2",
             "CustomRxMsg1",
-            "CustomRxMsg2",
             "Diagnostic",
             "PowerCycle",
             "PeriodicDiag"
         ],
         "RX": {
-            "IdOfRxMsg1": 1545,
-            "IdOfRxMsg2": 1530,
-            "GetTempById": 1530,
-            "GetTempBySigName": "SMIRM_NTC_Tem"
+            "IdOfRxMsg1": 1125,
+            "IdOfRxMsg2": null,
+            "GetTempById": null,
+            "GetTempBySigName": null
         },
         "TX": {
-            "IdOfTxMsg1": 1782,
+            "IdOfTxMsg1": null,
             "TypeOfTxMsg1": "CANFD",
             "IntervalOfTxMsg1": 0.2,
             "DataOfTxMsg1": {},
-            "IdOfTxMsg2": 1454,
+            "IdOfTxMsg2": null,
             "TypeOfTxMsg2": "CANFD",
             "IntervalOfTxMsg2": 0.2,
             "DataOfTxMsg2": {},
@@ -381,7 +378,7 @@
                     "name": "Display Mode",
                     "size": 2,
                     "type": "bytes",
-                    "value": "010100",
+                    "value": "0101",
                     "Padding": "0x20",
                     "offset": null
                 },
@@ -400,7 +397,7 @@
                 "ReDiagInterval": 1,
                 "Dids": {
                     "0x8114": [
-                        "010100,010200,010300,010400,010500"
+                        "0101,0102,0103,0104,0105"
                     ]
                 }
             },

@@ -177,3 +177,8 @@ def get_phy_addr_by_slot(slot_id: int) -> tuple[int, int]:
     phy_tx = phy_addr + DIAG_TX_OFFSET
     phy_rx = phy_addr + DIAG_RX_OFFSET
     return phy_tx, phy_rx
+
+
+if __name__ == "__main__":
+    slot_addrs = get_phy_addr_by_slot(7)
+    print(slot_addrs)
