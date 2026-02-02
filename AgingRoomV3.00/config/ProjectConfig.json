@@ -302,5 +302,143 @@
                 }
             }
         }
+    },
+    "Q5010A": {
+        "老化时长": [
+            2,
+            4,
+            6
+        ],
+        "默认老化时长": 2,
+        "工作电压范围": [
+            11,
+            13
+        ],
+        "工作电流范围": [
+            500,
+            1000
+        ],
+        "老化温度范围": [
+            70,
+            80
+        ],
+        "DBC路径": "dbc/Q5010A.dbc",
+        "DLL路径": "dll/Q5010A.dll",
+        "是否电压偏移老化": true,
+        "老化电压偏移范围": [
+            -2,
+            2
+        ],
+        "是否周期上电老化": true,
+        "带电老化/休眠老化时长": [
+            10,
+            1
+        ],
+        "SupportedComponents": [
+            "AgingStatus",
+            "CustomTxMsg1",
+            "CustomTxMsg2",
+            "CustomRxMsg1",
+            "CustomRxMsg2",
+            "Diagnostic",
+            "PowerCycle",
+            "PeriodicDiag"
+        ],
+        "RX": {
+            "IdOfRxMsg1": 1545,
+            "IdOfRxMsg2": 1530,
+            "GetTempById": 1530,
+            "GetTempBySigName": "SMIRM_NTC_Tem"
+        },
+        "TX": {
+            "IdOfTxMsg1": 1782,
+            "TypeOfTxMsg1": "CANFD",
+            "IntervalOfTxMsg1": 0.2,
+            "DataOfTxMsg1": {},
+
+            "IdOfTxMsg2": 1454,
+            "TypeOfTxMsg2": "CANFD",
+            "IntervalOfTxMsg2": 0.2,
+            "DataOfTxMsg2": {},
+            
+            "PeriodicSwitching": {
+                "SwitchMsg1": {
+                    "SwitchInterval": null,
+                    "Data": [
+                    ]
+                },
+                "SwitchMsg2": {
+                    "SwitchInterval": null,
+                    "Data": [
+                    ]
+                }
+            }
+        },
+        "Diag": {
+            "SecurityFeedbackBytes": 16,
+            "DiagPhyAddr": [
+                1874,
+                2002
+            ],
+            "DidConfig": {
+                "0x8114": {
+                    "Operation":"Write",
+                    "name": "Display Mode",
+                    "size": 2,
+                    "type": "bytes",
+                    "value": "010100",
+                    "Padding":"0x20",
+                    "offset": null
+                },
+                "0x811C": {
+                    "Operation":"Read",
+                    "name": "App Version",
+                    "size": 16,
+                    "type": "string",
+                    "value": "R01.00.44",
+                    "Padding":"0x20",
+                    "offset": null
+                }
+            },
+            "PeriodicDiag": {
+                "Interval": 5,
+                "ReDiagInterval": 1,
+                "Dids": {"0x8114":["010100,010200,010300,010400,010500"]}
+            },
+            "Params": {
+                "isotp_params": {
+                    "stmin": 24,
+                    "blocksize": 8,
+                    "wftmax": 0,
+                    "tx_data_length": 64,
+                    "tx_data_min_length": 8,
+                    "can_fd": true,
+                    "tx_padding": 204,
+                    "rx_flowcontrol_timeout": 1000,
+                    "rx_consecutive_frame_timeout": 1000,
+                    "max_frame_size": 4095
+                },
+                "default_client_config": {
+                    "exception_on_negative_response": true,
+                    "exception_on_invalid_response": true,
+                    "exception_on_unexpected_response": true,
+                    "security_algo": null,
+                    "security_algo_params": null,
+                    "tolerate_zero_padding": true,
+                    "ignore_all_zero_dtc": true,
+                    "dtc_snapshot_did_size": 2,
+                    "server_address_format": null,
+                    "server_memorysize_format": null,
+                    "data_identifiers": {},
+                    "input_output": {},
+                    "request_timeout": 5,
+                    "p2_timeout": 1,
+                    "p2_star_timeout": 5,
+                    "standard_version": 2020,
+                    "use_server_timing": true,
+                    "extended_data_size": null
+                }
+            }
+        }
     }
 }

@@ -28,7 +28,7 @@
         "DevType": 76,
         "Bitrate": 500000,
         "DataBitrate": 2000000,
-        "ReceiveOwnMessages": false,
+        "ReceiveOwnMessages": true,
         "FD": true
     },
     "PowerSupply": {

@@ -488,6 +488,7 @@ class ComponentsInstantiation(LoggerMixin):
                         rediag_interval = 1.0
 
                     did_list = periodic_diag_cfg.get("Dids")
+                    self.log.debug(f"PeriodicDiag 配置的周期DID列表: {did_list}")
                     if did_list is None:
                         # 兼容旧行为：未配置 Dids 时使用 DidConfig 全量
                         did_cfg = diag_cfg.get("DidConfig") or {}

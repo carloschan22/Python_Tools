@@ -1,0 +1,284 @@
+VERSION ""
+
+
+NS_ : 
+        NS_DESC_
+        CM_
+        BA_DEF_
+        BA_
+        VAL_
+        CAT_DEF_
+        CAT_
+        FILTER
+        BA_DEF_DEF_
+        EV_DATA_
+        ENVVAR_DATA_
+        SGTYPE_
+        SGTYPE_VAL_
+        BA_DEF_SGTYPE_
+        BA_SGTYPE_
+        SIG_TYPE_REF_
+        VAL_TABLE_
+        SIG_GROUP_
+        SIG_VALTYPE_
+        SIGTYPE_VALTYPE_
+        BO_TX_BU_
+        BA_DEF_REL_
+        BA_REL_
+        BA_DEF_DEF_REL_
+        BU_SG_REL_
+        BU_EV_REL_
+        BU_BO_REL_
+        SG_MUL_VAL_
+
+BS_:
+
+BU_: CMSI 
+
+
+BO_ 1125 CMSI_St: 8 CMSI
+ SG_ CMSIDispMod : 0|1@0+ (1,0) [0|1] ""  Vector__XXX
+ SG_ CMSIVideoZoom : 2|2@0+ (1,0) [0|3] ""  Vector__XXX
+ SG_ CMSIVideoAngel : 5|3@0+ (1,0) [0|7] ""  Vector__XXX
+ SG_ CMSIVideoBackLi : 10|3@0+ (1,0) [0|7] ""  Vector__XXX
+ SG_ CMSIVideoErrSt : 24|1@0+ (1,0) [0|1] ""  Vector__XXX
+ SG_ CMSISnsrErrSt : 25|1@0+ (1,0) [0|1] ""  Vector__XXX
+ SG_ CMSILCDErrSt : 26|1@0+ (1,0) [0|1] ""  Vector__XXX
+ SG_ CMSIPwrErrSt : 27|1@0+ (1,0) [0|1] ""  Vector__XXX
+ SG_ CMSII2BusErrSt : 28|1@0+ (1,0) [0|1] ""  Vector__XXX
+
+BO_ 782 CMSI_log_Cycle: 64 CMSI
+ SG_ log_Cycle : 7|64@0+ (1,0) [0|0] ""  Vector__XXX
+
+BO_ 787 CMSI_log_Event: 64 CMSI
+ SG_ log_Event : 7|64@0+ (1,0) [0|0] ""  Vector__XXX
+
+BO_ 1162 ONEBOX_1_G: 8 Vector__XXX
+ SG_ VehicleSpeedVSOSig : 23|13@0+ (0.0625,0) [0|511.875] "km/h"  CMSI
+ SG_ VehicleSpeedVSOSigValidData : 26|1@0+ (1,0) [0|1] ""  CMSI
+
+BO_ 1204 VCU_1_G: 8 Vector__XXX
+ SG_ VCU_PRNDGearAct : 62|3@0+ (1,0) [0|7] ""  CMSI
+
+BO_ 1314 CMSI_RemoteDiag: 32 CMSI
+ SG_ CMSI_TotalFaultNum : 7|8@0+ (1,0) [0|255] ""  Vector__XXX
+ SG_ CMSI_FrameIndex : 12|5@0+ (1,0) [0|31] ""  Vector__XXX
+ SG_ CMSI_SupplierNum : 15|3@0+ (1,0) [0|7] ""  Vector__XXX
+ SG_ CMSI_FaultNum1 : 23|12@0+ (1,0) [0|4095] ""  Vector__XXX
+ SG_ CMSI_FaultNum2 : 27|12@0+ (1,0) [0|4095] ""  Vector__XXX
+ SG_ CMSI_FaultNum3 : 47|12@0+ (1,0) [0|4095] ""  Vector__XXX
+ SG_ CMSI_FaultNum4 : 51|12@0+ (1,0) [0|4095] ""  Vector__XXX
+ SG_ CMSI_FaultNum5 : 71|12@0+ (1,0) [0|4095] ""  Vector__XXX
+ SG_ CMSI_FaultNum6 : 75|12@0+ (1,0) [0|4095] ""  Vector__XXX
+ SG_ CMSI_FaultNum7 : 95|12@0+ (1,0) [0|4095] ""  Vector__XXX
+ SG_ CMSI_FaultNum8 : 99|12@0+ (1,0) [0|4095] ""  Vector__XXX
+ SG_ CMSI_FaultNum9 : 119|12@0+ (1,0) [0|4095] ""  Vector__XXX
+ SG_ CMSI_FaultNum10 : 123|12@0+ (1,0) [0|4095] ""  Vector__XXX
+ SG_ CMSI_FaultNum11 : 143|12@0+ (1,0) [0|4095] ""  Vector__XXX
+ SG_ CMSI_FaultNum12 : 147|12@0+ (1,0) [0|4095] ""  Vector__XXX
+ SG_ CMSI_FaultNum13 : 167|12@0+ (1,0) [0|4095] ""  Vector__XXX
+ SG_ CMSI_FaultNum14 : 171|12@0+ (1,0) [0|4095] ""  Vector__XXX
+ SG_ CMSI_FaultNum15 : 191|12@0+ (1,0) [0|4095] ""  Vector__XXX
+ SG_ CMSI_FaultNum16 : 195|12@0+ (1,0) [0|4095] ""  Vector__XXX
+ SG_ CMSI_FaultNum17 : 215|12@0+ (1,0) [0|4095] ""  Vector__XXX
+ SG_ CMSI_FaultNum18 : 219|12@0+ (1,0) [0|4095] ""  Vector__XXX
+ SG_ CMSI_FaultNum19 : 239|12@0+ (1,0) [0|4095] ""  Vector__XXX
+ SG_ CMSI_FaultNum20 : 243|12@0+ (1,0) [0|4095] ""  Vector__XXX
+
+BO_ 1874 Diag_CMSI_RES: 8 CMSI
+ SG_ Diag_CMSI_RES : 7|64@0+ (1,0) [0|0] ""  Vector__XXX
+
+BO_ 2002 Diag_CMSI_REQ: 8 Vector__XXX
+ SG_ Diag_CMSI_REQ : 7|64@0+ (1,0) [0|0] ""  CMSI
+
+BO_ 2015 DIAG_OBD_REQ_Broadcast: 64 Vector__XXX
+ SG_ Diag_Functional_REQ : 7|64@0+ (1,0) [0|18446744073709551615] ""  CMSI
+
+
+CM_ "Version:V1.00,Date:2025.08.19,Author:TongTingting,Review:ZhonglingWang,Approval:JiancaiLi,Description:()first version;
+Version:V1.10,Date:2025.10.21,Author:TongTingting,Review:ZhonglingWang,Approval:JiancaiLi,Description:(CMSI_log_Cycle(0X30E))add this message and signal:log_Cycle`
+(CMSI_log_Event(0x313))add this message and signal:log_Event`
+(CMSI_RemoteDiag(0X522))add this message and signal;
+ ";
+
+CM_ BO_ 782 "8~64字节自适应";
+CM_ BO_ 787 "8~64字节自适应";
+CM_ BO_ 1874 "诊断报文长度可根据诊断需求调整";
+CM_ BO_ 2002 "诊断报文长度可根据诊断需求调整";
+CM_ BO_ 2015 "8~64字节自适应";
+CM_ SG_ 1125 CMSIDispMod "显示模式display mode";
+CM_ SG_ 1125 CMSIVideoZoom "视频视野缩放等级Video field of view zoom level";
+CM_ SG_ 1125 CMSIVideoAngel "视频视角角度Video perspective Angle";
+CM_ SG_ 1125 CMSIVideoBackLi "视频背光亮度等级Video backlight brightness level";
+CM_ SG_ 1125 CMSIVideoErrSt "解串器视频信号异常状态Abnormal state of the video signal of the deserializer";
+CM_ SG_ 1125 CMSISnsrErrSt "感光传感器异常状态Abnormal state of the photosensitive sensor";
+CM_ SG_ 1125 CMSILCDErrSt "LCD初始化异常状态LCD initialization abnormal state";
+CM_ SG_ 1125 CMSIPwrErrSt "电压异常状态Abnormal voltage state";
+CM_ SG_ 1125 CMSII2BusErrSt "I2C总线异常状态Abnormal status of the I2C bus";
+CM_ SG_ 1162 VehicleSpeedVSOSig "Vehicle Speed";
+CM_ SG_ 1162 VehicleSpeedVSOSigValidData "Valid check bit of the signal VehicleSpeedVSOSig";
+CM_ SG_ 1204 VCU_PRNDGearAct "Gear indication";
+CM_ SG_ 1314 CMSI_TotalFaultNum "当前故障总数";
+CM_ SG_ 1314 CMSI_FrameIndex "帧序号";
+CM_ SG_ 1314 CMSI_SupplierNum "供应商代码";
+CM_ SG_ 1314 CMSI_FaultNum1 "故障列表1";
+CM_ SG_ 1314 CMSI_FaultNum2 "故障列表2";
+CM_ SG_ 1314 CMSI_FaultNum3 "故障列表3";
+CM_ SG_ 1314 CMSI_FaultNum4 "故障列表4";
+CM_ SG_ 1314 CMSI_FaultNum5 "故障列表5";
+CM_ SG_ 1314 CMSI_FaultNum6 "故障列表6";
+CM_ SG_ 1314 CMSI_FaultNum7 "故障列表7";
+CM_ SG_ 1314 CMSI_FaultNum8 "故障列表8";
+CM_ SG_ 1314 CMSI_FaultNum9 "故障列表9";
+CM_ SG_ 1314 CMSI_FaultNum10 "故障列表10";
+CM_ SG_ 1314 CMSI_FaultNum11 "故障列表11";
+CM_ SG_ 1314 CMSI_FaultNum12 "故障列表12";
+CM_ SG_ 1314 CMSI_FaultNum13 "故障列表13";
+CM_ SG_ 1314 CMSI_FaultNum14 "故障列表14";
+CM_ SG_ 1314 CMSI_FaultNum15 "故障列表15";
+CM_ SG_ 1314 CMSI_FaultNum16 "故障列表16";
+CM_ SG_ 1314 CMSI_FaultNum17 "故障列表17";
+CM_ SG_ 1314 CMSI_FaultNum18 "故障列表18";
+CM_ SG_ 1314 CMSI_FaultNum19 "故障列表19";
+CM_ SG_ 1314 CMSI_FaultNum20 "故障列表20";
+CM_ SG_ 1874 Diag_CMSI_RES "诊断信号长度可根据诊断需求调整";
+CM_ SG_ 2002 Diag_CMSI_REQ "诊断信号长度可根据诊断需求调整";
+
+
+BA_DEF_ BO_  "NmMessage" ENUM "No","Yes";
+BA_DEF_ BO_  "DiagState" ENUM  "No","Yes";
+BA_DEF_ BO_  "DiagRequest" ENUM  "No","Yes";
+BA_DEF_ BO_  "DiagResponse" ENUM  "No","Yes";
+BA_DEF_ BO_  "GenMsgSendType" ENUM  "Cyclic","Event","IfActive","CE","CA","NoMsgSendType";
+BA_DEF_ BO_  "GenMsgCycleTime" INT 0 0;
+BA_DEF_ SG_  "GenSigSendType" ENUM  "Cyclic","OnChange","OnWrite","IfActive","OnChangeWithRepetition","OnWriteWithRepetition","IfActiveWithRepetition","NoSigSendType","OnChangeAndIfActive","OnChangeAndIfActiveWithRepetition","CA","CE","Event";
+BA_DEF_ SG_  "GenSigStartValue" INT 0 0;
+BA_DEF_ SG_  "GenSigInactiveValue" INT 0 0;
+BA_DEF_ BO_  "GenMsgCycleTimeFast" INT 0 0;
+BA_DEF_ BO_  "GenMsgNrOfRepetition" INT 0 0;
+BA_DEF_ BO_  "GenMsgDelayTime" INT 0 0;
+BA_DEF_  "DBName" STRING ;
+BA_DEF_ BO_  "CANFD_BRS" ENUM  "0","1";
+BA_DEF_ BO_  "VFrameFormat" ENUM  "StandardCAN","ExtendedCAN","reserved","reserved","reserved","reserved","reserved","reserved","reserved","reserved","reserved","reserved","reserved","reserved","StandardCAN_FD","ExtendedCAN_FD";
+BA_DEF_  "NmMessageCount" INT 0 255;
+BA_DEF_ BO_  "GenMsgILSupport" ENUM  "No","Yes";
+BA_DEF_ BO_  "GenMsgStartDelayTime" INT 0 65535;
+BA_DEF_ BU_  "NmStationAddress" INT 0 63;
+BA_DEF_ BU_  "NmNode" ENUM  "no","yes";
+BA_DEF_  "NmBaseAddress" HEX 1024 1087;
+BA_DEF_  "BusType" STRING ;
+BA_DEF_ BU_  "NodeLayerModules" STRING ;
+BA_DEF_ BU_  "ECU" STRING ;
+BA_DEF_ BU_  "CANoeJitterMax" INT 0 0;
+BA_DEF_ BU_  "CANoeJitterMin" INT 0 0;
+BA_DEF_ BU_  "CANoeDrift" INT 0 0;
+BA_DEF_ BU_  "CANoeStartDelay" INT 0 0;
+BA_DEF_ SG_ "GenSigMeplex" STRING;
+BA_DEF_ SG_ "GenSigASIL" ENUM "QM","A","B","C","D","";
+BA_DEF_DEF_  "NmMessage" "No";
+BA_DEF_DEF_  "DiagState" "No";
+BA_DEF_DEF_  "DiagRequest" "No";
+BA_DEF_DEF_  "DiagResponse" "No";
+BA_DEF_DEF_  "GenMsgSendType" "Cyclic";
+BA_DEF_DEF_  "GenMsgCycleTime" 0;
+BA_DEF_DEF_  "GenSigSendType" "Cyclic";
+BA_DEF_DEF_  "GenSigStartValue" 0;
+BA_DEF_DEF_  "GenSigInactiveValue" 0;
+BA_DEF_DEF_  "GenMsgCycleTimeFast" 0;
+BA_DEF_DEF_  "GenMsgNrOfRepetition" 0;
+BA_DEF_DEF_  "GenMsgDelayTime" 0;
+BA_DEF_DEF_  "DBName" "";
+BA_DEF_DEF_  "CANFD_BRS" "1";
+BA_DEF_DEF_  "VFrameFormat" "StandardCAN_FD";
+BA_DEF_DEF_  "NmMessageCount" 128;
+BA_DEF_DEF_  "GenMsgILSupport" "No";
+BA_DEF_DEF_  "GenMsgStartDelayTime" 0;
+BA_DEF_DEF_  "NmStationAddress" 0;
+BA_DEF_DEF_  "NmNode" "no";
+BA_DEF_DEF_  "NmBaseAddress" 1024;
+BA_DEF_DEF_  "BusType" "CAN FD";
+BA_DEF_DEF_  "NodeLayerModules" "";
+BA_DEF_DEF_  "ECU" "";
+BA_DEF_DEF_  "CANoeJitterMax" 0;
+BA_DEF_DEF_  "CANoeJitterMin" 0;
+BA_DEF_DEF_  "CANoeDrift" 0;
+BA_DEF_DEF_  "CANoeStartDelay" 0;
+BA_DEF_DEF_ "GenSigMeplex" "";
+BA_DEF_DEF_ "GenSigASIL" "QM";
+BA_ "DBName" "E0X_OT_Car CMSI Message list V1.10 Draft_202510271338 (2)";
+BA_ "GenMsgILSupport" BO_ 1125 1;
+BA_ "GenMsgCycleTime" BO_ 1125 100;
+BA_ "GenSigASIL"  SG_ 1125 CMSIDispMod 5;
+BA_ "GenSigASIL"  SG_ 1125 CMSIVideoZoom 5;
+BA_ "GenSigASIL"  SG_ 1125 CMSIVideoAngel 5;
+BA_ "GenSigASIL"  SG_ 1125 CMSIVideoBackLi 5;
+BA_ "GenSigASIL"  SG_ 1125 CMSIVideoErrSt 5;
+BA_ "GenSigASIL"  SG_ 1125 CMSISnsrErrSt 5;
+BA_ "GenSigASIL"  SG_ 1125 CMSILCDErrSt 5;
+BA_ "GenSigASIL"  SG_ 1125 CMSIPwrErrSt 5;
+BA_ "GenSigASIL"  SG_ 1125 CMSII2BusErrSt 5;
+BA_ "GenMsgILSupport" BO_ 782 1;
+BA_ "GenMsgCycleTime" BO_ 782 50;
+BA_ "GenSigASIL"  SG_ 782 log_Cycle 5;
+BA_ "GenMsgILSupport" BO_ 787 1;
+BA_ "GenMsgSendType" BO_ 787 1;
+BA_ "GenSigSendType" SG_ 787 log_Event 12;
+BA_ "GenSigASIL"  SG_ 787 log_Event 5;
+BA_ "GenMsgILSupport" BO_ 1162 1;
+BA_ "GenMsgCycleTime" BO_ 1162 100;
+BA_ "GenSigASIL"  SG_ 1162 VehicleSpeedVSOSig 2;
+BA_ "GenSigStartValue" SG_ 1162 VehicleSpeedVSOSigValidData 1;
+BA_ "GenSigASIL"  SG_ 1162 VehicleSpeedVSOSigValidData 2;
+BA_ "GenMsgILSupport" BO_ 1204 1;
+BA_ "GenMsgSendType" BO_ 1204 3;
+BA_ "GenMsgCycleTime" BO_ 1204 100;
+BA_ "GenMsgCycleTimeFast" BO_ 1204 100;
+BA_ "GenMsgNrOfRepetition" BO_ 1204 10;
+BA_ "GenSigASIL"  SG_ 1204 VCU_PRNDGearAct 2;
+BA_ "GenMsgILSupport" BO_ 1314 1;
+BA_ "GenMsgCycleTime" BO_ 1314 500;
+BA_ "GenSigASIL"  SG_ 1314 CMSI_TotalFaultNum 5;
+BA_ "GenSigASIL"  SG_ 1314 CMSI_FrameIndex 5;
+BA_ "GenSigASIL"  SG_ 1314 CMSI_SupplierNum 5;
+BA_ "GenSigASIL"  SG_ 1314 CMSI_FaultNum1 5;
+BA_ "GenSigASIL"  SG_ 1314 CMSI_FaultNum2 5;
+BA_ "GenSigASIL"  SG_ 1314 CMSI_FaultNum3 5;
+BA_ "GenSigASIL"  SG_ 1314 CMSI_FaultNum4 5;
+BA_ "GenSigASIL"  SG_ 1314 CMSI_FaultNum5 5;
+BA_ "GenSigASIL"  SG_ 1314 CMSI_FaultNum6 5;
+BA_ "GenSigASIL"  SG_ 1314 CMSI_FaultNum7 5;
+BA_ "GenSigASIL"  SG_ 1314 CMSI_FaultNum8 5;
+BA_ "GenSigASIL"  SG_ 1314 CMSI_FaultNum9 5;
+BA_ "GenSigASIL"  SG_ 1314 CMSI_FaultNum10 5;
+BA_ "GenSigASIL"  SG_ 1314 CMSI_FaultNum11 5;
+BA_ "GenSigASIL"  SG_ 1314 CMSI_FaultNum12 5;
+BA_ "GenSigASIL"  SG_ 1314 CMSI_FaultNum13 5;
+BA_ "GenSigASIL"  SG_ 1314 CMSI_FaultNum14 5;
+BA_ "GenSigASIL"  SG_ 1314 CMSI_FaultNum15 5;
+BA_ "GenSigASIL"  SG_ 1314 CMSI_FaultNum16 5;
+BA_ "GenSigASIL"  SG_ 1314 CMSI_FaultNum17 5;
+BA_ "GenSigASIL"  SG_ 1314 CMSI_FaultNum18 5;
+BA_ "GenSigASIL"  SG_ 1314 CMSI_FaultNum19 5;
+BA_ "GenSigASIL"  SG_ 1314 CMSI_FaultNum20 5;
+BA_ "GenMsgSendType" BO_ 1874 1;
+BA_ "GenSigSendType" SG_ 1874 Diag_CMSI_RES 2;
+BA_ "GenSigASIL"  SG_ 1874 Diag_CMSI_RES 5;
+BA_ "GenMsgSendType" BO_ 2002 1;
+BA_ "GenSigSendType" SG_ 2002 Diag_CMSI_REQ 2;
+BA_ "GenSigASIL"  SG_ 2002 Diag_CMSI_REQ 5;
+BA_ "DiagState" BO_ 2015 1;
+BA_ "GenMsgSendType" BO_ 2015 1;
+BA_ "GenSigSendType" SG_ 2015 Diag_Functional_REQ 2;
+BA_ "GenSigASIL"  SG_ 2015 Diag_Functional_REQ 5;
+VAL_ 1125 CMSIDispMod 1 "Video mode" 0 "Sight glass mode" ;
+VAL_ 1125 CMSIVideoZoom 3 "Zoom level 3" 2 "Zoom level 2" 1 "Zoom level 1" 0 "Invalid" ;
+VAL_ 1125 CMSIVideoAngel 7 "FOV direction 7" 6 "FOV direction 6" 5 "FOV direction 5" 4 "FOV direction 4" 3 "FOV direction 3" 2 "FOV direction 2" 1 "FOV direction 1" 0 "Invalid" ;
+VAL_ 1125 CMSIVideoBackLi 7 "Backlight brightness level 7" 6 "Backlight brightness level 6" 5 "Backlight brightness level 5" 4 "Backlight brightness level 4" 3 "Backlight brightness level 3" 2 "Backlight brightness level 2" 1 "Backlight brightness level 1" 0 "Invalid" ;
+VAL_ 1125 CMSIVideoErrSt 1 "Fault" 0 "Normal" ;
+VAL_ 1125 CMSISnsrErrSt 1 "Fault" 0 "Normal" ;
+VAL_ 1125 CMSILCDErrSt 1 "Fault" 0 "Normal" ;
+VAL_ 1125 CMSIPwrErrSt 1 "Fault" 0 "Normal" ;
+VAL_ 1125 CMSII2BusErrSt 1 "Fault" 0 "Normal" ;
+VAL_ 1162 VehicleSpeedVSOSig 8191 "Invalid" ;
+VAL_ 1162 VehicleSpeedVSOSigValidData 1 "Not valid" 0 "Valid" ;
+VAL_ 1204 VCU_PRNDGearAct 7 "Invalid" 6 "Reserved" 5 "Reserved" 4 "D" 3 "N" 2 "R" 1 "P" 0 "Init" ;
