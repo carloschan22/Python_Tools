@@ -1,16 +1,20 @@
-import sys
-from math import ceil
-import time
-import threading
+from __future__ import annotations
+
 import re
-from datetime import datetime, timedelta
-from typing import Optional
+import sys
+import time
 import Tools
-from Tools import COLOR_MAPPING, FUNCTION_CONFIG, PROJECT_CONFIG
-from CompManager import ComponentsInstantiation
+import threading
+from math import ceil
+
+
+from typing import Optional
+from datetime import datetime, timedelta
 from ui.main_widget_ui import Ui_MainWidget
+from CompManager import ComponentsInstantiation
+from Tools import COLOR_MAPPING, FUNCTION_CONFIG, PROJECT_CONFIG
 from PySide6.QtCore import Qt, Signal, QThread, Slot, QTimer
-from PySide6.QtGui import QColor
+from PySide6.QtGui import QColor, QBrush
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QApplication,
@@ -34,7 +38,8 @@ class Connector(QWidget):
         super().__init__()
         self.ui = ui
         self.app = app
-        self.worker: Optional[AgingThread] = None
+        self._workers: dict[int, AgingThread] = {}
+        self._apps: dict[int, ComponentsInstantiation] = {}
         self._group_count = int(FUNCTION_CONFIG.get("UI", {}).get("GroupCount", 1))
         self._group_state: dict[int, dict] = {
             i: {
@@ -339,42 +344,10 @@ class Connector(QWidget):
         if group_index is None:
             return
         state = self._group_state[group_index]
-        now = time.time()
-
-        if self.app is not None:
-            if not getattr(self.app, "_started", False):
-                self.app.startup()
-
-        if state["paused"]:
-            paused_at = state.get("paused_at") or now
-            state["paused_duration"] += max(0.0, now - paused_at)
-            state["paused_at"] = None
-        elif not state["running"]:
-            state["start_time"] = now
-            state["paused_duration"] = 0.0
-
-        state["running"] = True
-        state["paused"] = False
-
-        self._update_start_end_time_labels(group_index)
-        self._set_group_buttons_running(group_index, running=True)
-
-        if self.worker is not None and not self.worker.isRunning():
-            self.worker.start()
-        elif self.worker is not None:
-            self.worker.resume()
-
-        self._refresh_group_colors(group_index)
-
-        if self.app is not None:
-            if "periodic_worker_start" in self.app.ops:
-                self.app.ops["periodic_worker_start"]()
-            if not state.get("tx_started"):
-                if "tx1_start" in self.app.ops:
-                    self.app.ops["tx1_start"](ch1=True, ch2=True)
-                if "tx2_start" in self.app.ops:
-                    self.app.ops["tx2_start"](ch1=True, ch2=True)
-                state["tx_started"] = True
+        if state["running"]:
+            self._stop_group(group_index)
+        else:
+            self._start_group(group_index)
 
     def _bind_pause_clicks(self) -> None:
         for group_index in range(1, self._group_count + 1):
@@ -389,23 +362,10 @@ class Connector(QWidget):
         state = self._group_state[group_index]
         if not state["running"]:
             return
-
-        state["paused"] = True
-        state["paused_at"] = time.time()
-        self._set_group_buttons_running(group_index, running=False, paused=True)
-        self._set_group_color(group_index, "Paused", only_status_nonzero=True)
-
-        if self.worker is not None and self.worker.isRunning():
-            self.worker.pause()
-
-        if self.app is not None and "periodic_worker_stop" in self.app.ops:
-            self.app.ops["periodic_worker_stop"]()
-        if self.app is not None and hasattr(self.app, "can_manager"):
-            try:
-                self.app.can_manager.stop_all_periodic_tasks()
-            except Exception:
-                pass
-        state["tx_started"] = False
+        if state["paused"]:
+            self._resume_group(group_index)
+        else:
+            self._pause_group(group_index)
 
     def _bind_stop_clicks(self) -> None:
         btn_stop = getattr(self.ui, "btn_history_force_stop", None)
@@ -414,28 +374,7 @@ class Connector(QWidget):
 
     def _on_stop_clicked(self) -> None:
         for group_index in range(1, self._group_count + 1):
-            state = self._group_state[group_index]
-            state["running"] = False
-            state["paused"] = False
-            state["start_time"] = None
-            state["paused_at"] = None
-            state["paused_duration"] = 0.0
-            state["tx_started"] = False
-            self._reset_group_labels(group_index)
-            self._set_group_buttons_running(group_index, running=False, paused=False)
-            self._set_group_color(group_index, "Idle")
-
-        if self.worker is not None and self.worker.isRunning():
-            self.worker.stop()
-
-        if self.app is not None:
-            if "periodic_worker_stop" in self.app.ops:
-                self.app.ops["periodic_worker_stop"]()
-            if hasattr(self.app, "can_manager"):
-                try:
-                    self.app.can_manager.stop_all_periodic_tasks()
-                except Exception:
-                    pass
+            self._stop_group(group_index)
 
     def _extract_group_index_from_sender(self) -> Optional[int]:
         sender = self.sender()
@@ -541,13 +480,18 @@ class Connector(QWidget):
         btn_start = getattr(self.ui, f"btn_start_{group_index}", None)
         btn_pause = getattr(self.ui, f"btn_pause_{group_index}", None)
         if btn_start is not None:
-            btn_start.setEnabled(not running)
-            if paused:
-                btn_start.setText("继续老化")
+            if running:
+                btn_start.setEnabled(True)
+                btn_start.setText("停止老化")
             else:
+                btn_start.setEnabled(True)
                 btn_start.setText("启动老化")
         if btn_pause is not None:
-            btn_pause.setEnabled(running and not paused)
+            btn_pause.setEnabled(running)
+            if paused:
+                btn_pause.setText("继续")
+            else:
+                btn_pause.setText("暂停")
 
     def _set_group_color(
         self, group_index: int, key: str, only_status_nonzero: bool = False
@@ -574,10 +518,158 @@ class Connector(QWidget):
                         continue
                 item.setBackground(QColor(color))
 
+    def _clear_group_color(self, group_index: int) -> None:
+        table = getattr(self.ui, f"iconTable_{group_index}", None)
+        if table is None:
+            return
+        clear_brush = QBrush()
+        for r in range(table.rowCount()):
+            for c in range(table.columnCount()):
+                item = table.item(r, c)
+                if item is None:
+                    continue
+                if not item.text().strip():
+                    continue
+                item.setBackground(clear_brush)
+
     def _refresh_group_colors(self, group_index: int) -> None:
         status_map = self._slot_status.get(group_index, {})
         for slot_no, status in status_map.items():
             self._slot_change_color(group_index, slot_no, status)
+
+    def _ensure_worker(self, group_index: int) -> AgingThread:
+        worker = self._workers.get(group_index)
+        if worker is not None and worker.isRunning():
+            return worker
+        app = self._get_group_app(group_index)
+        worker = AgingThread(app, group_index=group_index)
+        worker.slot_status_changed.connect(self.on_slot_status_changed)
+        self._workers[group_index] = worker
+        return worker
+
+    def _start_group(self, group_index: int) -> None:
+        state = self._group_state[group_index]
+        now = time.time()
+        app = self._get_group_app(group_index)
+
+        if not getattr(app, "_started", False):
+            app.startup()
+
+        if state["paused"]:
+            paused_at = state.get("paused_at") or now
+            state["paused_duration"] += max(0.0, now - paused_at)
+            state["paused_at"] = None
+        elif not state["running"]:
+            state["start_time"] = now
+            state["paused_duration"] = 0.0
+
+        state["running"] = True
+        state["paused"] = False
+
+        self._update_start_end_time_labels(group_index)
+        self._set_group_buttons_running(group_index, running=True, paused=False)
+
+        if "periodic_worker_start" in app.ops:
+            app.ops["periodic_worker_start"]()
+
+        worker = self._ensure_worker(group_index)
+        if not worker.isRunning():
+            worker.start()
+        else:
+            worker.resume()
+
+        if not state.get("tx_started"):
+            if "tx1_start" in app.ops:
+                app.ops["tx1_start"](ch1=True, ch2=True)
+            if "tx2_start" in app.ops:
+                app.ops["tx2_start"](ch1=True, ch2=True)
+            state["tx_started"] = True
+
+        self._refresh_group_colors(group_index)
+
+    def _pause_group(self, group_index: int) -> None:
+        state = self._group_state[group_index]
+        app = self._get_group_app(group_index)
+        state["paused"] = True
+        state["paused_at"] = time.time()
+        self._set_group_buttons_running(group_index, running=True, paused=True)
+        self._set_group_color(group_index, "Paused", only_status_nonzero=True)
+
+        worker = self._workers.get(group_index)
+        if worker is not None and worker.isRunning():
+            worker.pause()
+
+        if "periodic_worker_stop" in app.ops:
+            app.ops["periodic_worker_stop"]()
+        if hasattr(app, "can_manager") and app.can_manager is not None:
+            try:
+                app.can_manager.stop_all_periodic_tasks()
+            except Exception:
+                pass
+        state["tx_started"] = False
+
+    def _resume_group(self, group_index: int) -> None:
+        state = self._group_state[group_index]
+        app = self._get_group_app(group_index)
+        now = time.time()
+        paused_at = state.get("paused_at") or now
+        state["paused_duration"] += max(0.0, now - paused_at)
+        state["paused_at"] = None
+        state["paused"] = False
+
+        self._set_group_buttons_running(group_index, running=True, paused=False)
+
+        worker = self._ensure_worker(group_index)
+        if not worker.isRunning():
+            worker.start()
+        else:
+            worker.resume()
+
+        if "periodic_worker_start" in app.ops:
+            app.ops["periodic_worker_start"]()
+        if not state.get("tx_started"):
+            if "tx1_start" in app.ops:
+                app.ops["tx1_start"](ch1=True, ch2=True)
+            if "tx2_start" in app.ops:
+                app.ops["tx2_start"](ch1=True, ch2=True)
+            state["tx_started"] = True
+
+        self._refresh_group_colors(group_index)
+
+    def _stop_group(self, group_index: int) -> None:
+        state = self._group_state[group_index]
+        app = self._apps.get(group_index)
+        state["running"] = False
+        state["paused"] = False
+        state["start_time"] = None
+        state["paused_at"] = None
+        state["paused_duration"] = 0.0
+        state["tx_started"] = False
+        self._reset_group_labels(group_index)
+        self._set_group_buttons_running(group_index, running=False, paused=False)
+        self._clear_group_color(group_index)
+
+        worker = self._workers.pop(group_index, None)
+        if worker is not None and worker.isRunning():
+            worker.stop()
+            worker.wait(2000)
+
+        if app is not None:
+            if "periodic_worker_stop" in app.ops:
+                app.ops["periodic_worker_stop"]()
+            if hasattr(app, "can_manager") and app.can_manager is not None:
+                try:
+                    app.can_manager.stop_all_periodic_tasks()
+                except Exception:
+                    pass
+
+    def _get_group_app(self, group_index: int) -> ComponentsInstantiation:
+        app = self._apps.get(group_index)
+        if app is not None:
+            return app
+        app = ComponentsInstantiation(group_index=group_index, autostart=False)
+        self._apps[group_index] = app
+        return app
 
     @staticmethod
     def _map_status_to_color(status: int) -> Optional[str]:
@@ -657,13 +749,24 @@ class AgingThread(QThread):
 
             active_slots = Tools.get_active_slots(self.app)
             diag_set_fn = None
+            diag_once_set = None
             if hasattr(self.app, "ops") and isinstance(getattr(self.app, "ops"), dict):
                 diag_set_fn = getattr(self.app, "ops").get("diag_set_periodic_slots")
+                diag_once_set = getattr(self.app, "ops").get("diag_set_pending_slots")
             if not diag_set_fn and hasattr(self.app, "diag_set_periodic_slots"):
                 diag_set_fn = getattr(self.app, "diag_set_periodic_slots")
+            if not diag_once_set and hasattr(self.app, "diag_set_pending_slots"):
+                diag_once_set = getattr(self.app, "diag_set_pending_slots")
             if callable(diag_set_fn):
                 diag_set_fn(active_slots)
-            results = Tools.get_slots_results(self.app, active_slots)
+            if callable(diag_once_set):
+                current_slots = set(active_slots)
+                last_slots = getattr(self, "_last_active_slots", set())
+                if current_slots != last_slots:
+                    diag_once_set(active_slots)
+                    self._last_active_slots = current_slots
+
+            # results = Tools.get_slots_results(self.app, active_slots)
             # print("当前活跃槽位：", active_slots)
             # print(results)
 
@@ -697,23 +800,19 @@ class AgingThread(QThread):
 
 
 def main():
-    app = ComponentsInstantiation(autostart=False)
-
     qt_app = QApplication(sys.argv)
     ui = Ui_MainWidget()
-    connector = Connector(ui, app=app)
+    connector = Connector(ui)
     connector.show()
 
-    worker = AgingThread(app, group_index=1)
-    worker.slot_status_changed.connect(connector.on_slot_status_changed)
-    connector.worker = worker
-
     def _cleanup():
-        if worker.isRunning():
-            worker.stop()
-            worker.wait(2000)
-        if hasattr(app, "shutdown"):
-            app.shutdown()
+        for worker in list(connector._workers.values()):
+            if worker.isRunning():
+                worker.stop()
+                worker.wait(2000)
+        for app in list(connector._apps.values()):
+            if hasattr(app, "shutdown"):
+                app.shutdown()
 
     qt_app.aboutToQuit.connect(_cleanup)
     return qt_app.exec()

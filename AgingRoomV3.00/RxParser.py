@@ -1,8 +1,6 @@
 import can
 
 from typing import Any, Optional
-
-
 from Protocol import split_by_can_id, get_slot_id_by_can_id
 from Logger import LoggerMixin
 from Tools import (

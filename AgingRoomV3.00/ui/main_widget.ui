@@ -206,7 +206,7 @@
 			 <item row="6" column="0">
 			  <widget class="QLabel" name="lbl_fail_rate_1">
 			   <property name="text">
-				<string>不合格率：</string>
+				<string>不良率：</string>
 			   </property>
 			  </widget>
 			 </item>
@@ -472,7 +472,7 @@
 			 <item row="6" column="0">
 			  <widget class="QLabel" name="lbl_fail_rate_2">
 			   <property name="text">
-				<string>不合格率：</string>
+				<string>不良率：</string>
 			   </property>
 			  </widget>
 			 </item>
@@ -738,7 +738,7 @@
 			 <item row="6" column="0">
 			  <widget class="QLabel" name="lbl_fail_rate_3">
 			   <property name="text">
-				<string>不合格率：</string>
+				<string>不良率：</string>
 			   </property>
 			  </widget>
 			 </item>

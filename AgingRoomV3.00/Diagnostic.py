@@ -5,17 +5,15 @@ import ctypes
 import udsoncan
 
 import Tools
-from typing import Any, Optional
 from pathlib import Path
-
 from Logger import LoggerMixin
+from typing import Any, Optional
 from udsoncan.client import Client
 from udsoncan.typing import ClientConfig
 
 
 from Tools import (
     SELECTED_PROJECT,
-    FUNCTION_CONFIG,
     PROJECT_CONFIG,
     create_slot_table,
     normalize_slots,

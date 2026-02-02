@@ -31,8 +31,8 @@ _THIRD_PARTY_NOISE_LOGGERS = [
     "can.kvaser",
     "can.zlg",
     "udsoncan",
-    "UdsClient",
-    "Connection[NotifierBasedIsoTpConnection]",
+    # "UdsClient",
+    # "Connection[NotifierBasedIsoTpConnection]",
 ]
 
 for _logger_name in _THIRD_PARTY_NOISE_LOGGERS:

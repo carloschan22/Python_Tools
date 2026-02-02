@@ -11,7 +11,7 @@ messages = [
         "content": [
             {
                 "type": "image",
-                "url": "C:/Users/carlo/Downloads/ScreenShot_2026-01-19_104301_237.jpg",
+                "url": "C:/Users/carlo/Downloads/test.jpg",
             },
             {
                 "type": "text",

@@ -1,15 +1,11 @@
 from __future__ import annotations
-
-import threading
 import time
-from typing import Any, Callable, Optional
-
+import threading
 from Logger import LoggerMixin
 from RxParser import RxSplitter
-import Tools
-from Tools import PROJECT_CONFIG, SELECTED_PROJECT
-
 from CanInitializer import CanBusManager
+from typing import Any, Callable, Optional
+from Tools import PROJECT_CONFIG, SELECTED_PROJECT
 
 
 class _PeriodicWorker(LoggerMixin):

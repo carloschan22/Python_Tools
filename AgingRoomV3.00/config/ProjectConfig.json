@@ -8,10 +8,10 @@
         "默认老化时长": 4,
         "工作电压范围": [
             11,
-            13
+            14
         ],
         "工作电流范围": [
-            500,
+            400,
             1000
         ],
         "老化温度范围": [
@@ -40,8 +40,7 @@
             "OTA",
             "PowerCycle",
             "PeriodicSwitchMsg1",
-            "PeriodicSwitchMsg2",
-            "PeriodicDiag"
+            "PeriodicSwitchMsg2"
         ],
         "RX": {
             "IdOfRxMsg1": 1545,
@@ -60,6 +59,7 @@
             "TypeOfTxMsg2": "CANFD",
             "IntervalOfTxMsg2": 0.2,
             "DataOfTxMsg2": {},
+            
             "PeriodicSwitching": {
                 "SwitchMsg1": {
                     "SwitchInterval": 10,

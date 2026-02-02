@@ -38,14 +38,14 @@ class CanBusManager(LoggerMixin):
             f"CanBusManager initialized with business_parser: {business_parser}"
         )
 
-    def initialize(self, index: int = 0) -> "CanBusManager":
+    def initialize(self, index: int = 1) -> "CanBusManager":
         """初始化CAN总线和Notifier"""
 
         def get_dev_index_ch(index: int) -> tuple[int, int]:
             dev_type = self.config["DevType"]
             ch_mapping = {41: 2, 76: 4}
-            if index < 1:
-                raise ValueError("index must be >= 1")
+            # if index < 1:
+            #     raise ValueError("index must be >= 1")
             total_ch = ch_mapping[dev_type]
             dev_index = (index - 1) // total_ch
             ch = (index - 1) % total_ch
@@ -53,13 +53,13 @@ class CanBusManager(LoggerMixin):
 
         if self._started:
             return self
-        dev_index, ch = get_dev_index_ch(index + 1)
+        dev_index, ch = get_dev_index_ch(index)
         # 创建CAN总线
         self.bus = can.Bus(
-            device_index=dev_index,
+            device_index=dev_index if self.config["Interface"] == "zlg" else None,
             interface=self.config["Interface"],
-            channel=ch,
-            dev_type=self.config["DevType"],
+            channel=ch if self.config["Interface"] == "zlg" else 0,
+            dev_type=self.config["DevType"] if self.config["DevType"] else None,
             bitrate=self.config["Bitrate"],
             data_bitrate=self.config["DataBitrate"],
             receive_own_messages=self.config["ReceiveOwnMessages"],

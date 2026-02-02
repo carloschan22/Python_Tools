@@ -125,7 +125,7 @@ if __name__ == "__main__":
     from CanInitializer import CanBusManager
 
     can_manager = CanBusManager()
-    can_manager.initialize()
+    can_manager.initialize(1)
     op = OutputCtrl(can_manager)
     op.setup_card_powermode(True)
     time.sleep(1)
