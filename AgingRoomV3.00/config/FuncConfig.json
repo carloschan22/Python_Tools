@@ -18,7 +18,15 @@
             "Paused": "#FFFF00C5",
             "Warning": "#FF961E",
             "Error": "#FF4500"
-        }
+        },
+        "NonRecoverableStatus": [
+            -3,
+            -2,
+            -1,
+            2,
+            3,
+            4
+        ]
     },
     "Logging": {
         "EnableLogging": true,

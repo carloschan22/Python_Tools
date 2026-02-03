@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import sqlite3
 from bisect import bisect_left
 import sys
 import time
@@ -36,6 +37,9 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QVBoxLayout,
+    QGridLayout,
+    QCheckBox,
+    QPushButton,
     QSizePolicy,
     QTableWidget,
     QTableWidgetItem,
@@ -44,6 +48,7 @@ from PySide6.QtWidgets import (
     QToolTip,
     QGraphicsLineItem,
     QGraphicsEllipseItem,
+    QMenu,
 )
 from PySide6.QtCharts import (
     QChart,
@@ -80,6 +85,13 @@ class Connector(QWidget):
         self._slot_status: dict[int, dict[int, int]] = {
             i: {} for i in range(1, self._group_count + 1)
         }
+        self._slot_raw_status: dict[int, dict[int, int]] = {
+            i: {} for i in range(1, self._group_count + 1)
+        }
+        self._slot_latched: dict[int, dict[int, int]] = {
+            i: {} for i in range(1, self._group_count + 1)
+        }
+        self._non_recoverable_status = self._load_non_recoverable_status()
         self._db_worker = DataBaseWorker()
         self._db_worker.initialization()
         self._db_worker.start_writing()
@@ -105,6 +117,11 @@ class Connector(QWidget):
         self.ui.action_about.triggered.connect(
             lambda: self.ui.stackedPages.setCurrentWidget(self.ui.page_about)
         )
+
+        settings_menu = QMenu("设置", self)
+        self.ui.menuBar.addMenu(settings_menu)
+        action_alarm = settings_menu.addAction("报警状态配置")
+        action_alarm.triggered.connect(self._open_alarm_status_config)
 
     def _apply_ui_config(self) -> None:
         ui_cfg = Tools.FUNCTION_CONFIG.get("UI", {})
@@ -310,8 +327,40 @@ class Connector(QWidget):
         self, group_index: int, slot_no: int, status: int
     ) -> None:
         """根据状态变更某个槽位的显示颜色"""
-        self._slot_status.setdefault(group_index, {})[slot_no] = status
-        self._slot_change_color(group_index, slot_no, status)
+        self._slot_raw_status.setdefault(group_index, {})[slot_no] = status
+        display_status = self._apply_latched_status(group_index, slot_no, status)
+        self._slot_status.setdefault(group_index, {})[slot_no] = display_status
+        self._slot_change_color(group_index, slot_no, display_status)
+
+    def on_group_summary_updated(
+        self,
+        group_index: int,
+        total: int,
+        good: int,
+        bad: int,
+        pass_rate: float,
+        fail_rate: float,
+        max_temp: Optional[float],
+    ) -> None:
+        qty_label = getattr(self.ui, f"edit_qty_{group_index}", None)
+        good_label = getattr(self.ui, f"edit_good_{group_index}", None)
+        bad_label = getattr(self.ui, f"edit_bad_{group_index}", None)
+        pass_label = getattr(self.ui, f"text_pass_rate_{group_index}", None)
+        fail_label = getattr(self.ui, f"text_fail_rate_{group_index}", None)
+        temp_label = getattr(self.ui, f"text_temp_{group_index}", None)
+
+        if qty_label is not None:
+            qty_label.setText(str(total))
+        if good_label is not None:
+            good_label.setText(str(good))
+        if bad_label is not None:
+            bad_label.setText(str(bad))
+        if pass_label is not None:
+            pass_label.setText(f"{pass_rate:.2f}%")
+        if fail_label is not None:
+            fail_label.setText(f"{fail_rate:.2f}%")
+        if temp_label is not None:
+            temp_label.setText("--" if max_temp is None else f"{max_temp:.1f}")
 
     def _slot_change_color(self, group_index: int, slot_no: int, status: int) -> None:
         """变更某个槽位的显示颜色"""
@@ -341,6 +390,45 @@ class Connector(QWidget):
             return
         color = COLOR_MAPPING.get(key, "#D3D3D3")
         item.setBackground(QColor(color))
+
+    def _load_non_recoverable_status(self) -> list[int]:
+        ui_cfg = FUNCTION_CONFIG.get("UI", {})
+        raw_list = ui_cfg.get("NonRecoverableStatus", [])
+        result: list[int] = []
+        for v in raw_list:
+            try:
+                result.append(int(v))
+            except Exception:
+                continue
+        return result
+
+    def _apply_latched_status(self, group_index: int, slot_no: int, status: int) -> int:
+        latched = self._slot_latched.setdefault(group_index, {})
+        if status in self._non_recoverable_status:
+            latched[slot_no] = status
+            return status
+        if status == 1 and slot_no in latched:
+            return latched[slot_no]
+        return status
+
+    def _open_alarm_status_config(self) -> None:
+        dialog = AlarmStatusConfigDialog(self, self._non_recoverable_status)
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+        selected = dialog.get_selected_statuses()
+        Tools.change_json_value("FuncConfig", "UI.NonRecoverableStatus", selected)
+        Tools.refresh_configs()
+        self._non_recoverable_status = self._load_non_recoverable_status()
+        for group_index in range(1, self._group_count + 1):
+            self._reapply_group_status(group_index)
+
+    def _reapply_group_status(self, group_index: int) -> None:
+        self._slot_latched[group_index] = {}
+        status_map = self._slot_raw_status.get(group_index, {})
+        for slot_no, status in status_map.items():
+            display_status = self._apply_latched_status(group_index, slot_no, status)
+            self._slot_status.setdefault(group_index, {})[slot_no] = display_status
+            self._slot_change_color(group_index, slot_no, display_status)
 
     def _on_select_changed(self, index: int) -> None:
         sender = self.sender()
@@ -596,6 +684,7 @@ class Connector(QWidget):
             table_name=table_name,
         )
         worker.slot_status_changed.connect(self.on_slot_status_changed)
+        worker.summary_updated.connect(self.on_group_summary_updated)
         self._workers[group_index] = worker
         return worker
 
@@ -758,6 +847,12 @@ class SlotDetailDialog(QDialog):
         self._group_index = group_index
         self._slot_no = slot_no
         self._charts: dict[str, dict] = {}
+        self._buffers: dict[str, list[tuple[int, float, Optional[int]]]] = {
+            "voltage": [],
+            "current": [],
+            "temperature": [],
+        }
+        self._max_points = 2000
 
         charts = QVBoxLayout()
         charts.setSpacing(8)
@@ -789,12 +884,8 @@ class SlotDetailDialog(QDialog):
 
         layout.addLayout(charts)
 
-        self._refresh_timer = QTimer(self)
-        self._refresh_timer.setInterval(1000)
-        self._refresh_timer.timeout.connect(self._load_and_draw)
-        self._refresh_timer.start()
-
-        self._load_and_draw()
+        self._data_worker: Optional[_ChartDataWorker] = None
+        self._start_data_worker()
 
     def _create_chart(self, title: str, y_label: str):
         chart = QChart()
@@ -843,6 +934,56 @@ class SlotDetailDialog(QDialog):
         view.set_series(series, value_label=y_label)
         return chart, view, series, alert_series, x_axis, y_axis
 
+    def _start_data_worker(self) -> None:
+        parent = self.parent()
+        db_worker = getattr(parent, "_db_worker", None)
+        table_name = getattr(parent, "_group_table", {}).get(self._group_index)
+        if db_worker is None or not table_name:
+            self._set_no_data("暂无数据")
+            return
+
+        db_path = getattr(db_worker, "db_path", "./aging_data.db")
+        self._data_worker = _ChartDataWorker(
+            db_path=db_path,
+            table_name=table_name,
+            slot_no=self._slot_no,
+            poll_interval=1.0,
+            initial_limit=self._max_points,
+        )
+        self._data_worker.data_ready.connect(self._on_rows_ready)
+        self._data_worker.start()
+
+    def _on_rows_ready(self, rows: list[tuple]) -> None:
+        if not rows:
+            return
+        for row in rows:
+            ts = row[2]
+            if ts is None:
+                continue
+            x_ms = int(float(ts) * 1000)
+            status = row[3]
+            if row[4] is not None:
+                self._append_point("voltage", x_ms, float(row[4]), status)
+            if row[5] is not None:
+                self._append_point("current", x_ms, float(row[5]), status)
+            if row[6] is not None:
+                self._append_point("temperature", x_ms, float(row[6]), status)
+
+        self._update_series("voltage", self._buffers["voltage"])
+        self._update_series("current", self._buffers["current"])
+        self._update_series("temperature", self._buffers["temperature"])
+
+    def _append_point(
+        self, key: str, x_ms: int, y: float, status: Optional[int]
+    ) -> None:
+        buf = self._buffers.get(key)
+        if buf is None:
+            return
+        buf.append((x_ms, y, status))
+        overflow = len(buf) - self._max_points
+        if overflow > 0:
+            del buf[:overflow]
+
     def _load_and_draw(self) -> None:
         parent = self.parent()
         db_worker = getattr(parent, "_db_worker", None)
@@ -857,7 +998,6 @@ class SlotDetailDialog(QDialog):
                 conditions=f"Slot={int(self._slot_no)} ORDER BY Timestamp ASC",
             )
         except Exception:
-            # 查询失败时保持上一次曲线，避免闪烁与误清空
             return
 
         if not rows:
@@ -883,6 +1023,13 @@ class SlotDetailDialog(QDialog):
         self._update_series("voltage", voltage_points)
         self._update_series("current", current_points)
         self._update_series("temperature", temperature_points)
+
+    def closeEvent(self, event) -> None:
+        if self._data_worker is not None:
+            self._data_worker.stop()
+            self._data_worker.wait(2000)
+            self._data_worker = None
+        super().closeEvent(event)
 
     def _set_no_data(self, reason: str) -> None:
         for key, cfg in self._charts.items():
@@ -940,6 +1087,61 @@ class SlotDetailDialog(QDialog):
                 QDateTime.fromMSecsSinceEpoch(max_x + x_pad),
             )
             y_axis.setRange(min_y - y_pad, max_y + y_pad)
+
+
+class AlarmStatusConfigDialog(QDialog):
+    def __init__(self, parent: QWidget, selected: list[int]):
+        super().__init__(parent)
+        self.setWindowTitle("报警状态配置")
+        self.resize(420, 320)
+        self._selected = set(int(v) for v in selected)
+        layout = QVBoxLayout(self)
+
+        grid = QGridLayout()
+        grid.setHorizontalSpacing(12)
+        grid.setVerticalSpacing(8)
+
+        status_items = [
+            (-5, "采集卡丢失（电压/电流为0或异常）"),
+            (-4, "低于暗电流范围，未接产品"),
+            (-3, "超出暗电流范围, 低于工作电压范围, 低于工作电流范围"),
+            (-2, "超出暗电流范围, 处于正常工作电流范围, 低于工作电压范围"),
+            (-1, "超出暗电流范围, 处于正常工作电压范围, 低于工作电流范围"),
+            (1, "正常工作电压/电流"),
+            (2, "超出暗电流范围, 处于正常工作电压范围, 超出工作电流范围"),
+            (3, "超出暗电流范围, 低于工作电流范围, 高于工作电压范围"),
+            (4, "超出暗电流范围, 高于工作电压范围, 超出工作电流范围"),
+            (0, "状态初始值"),
+        ]
+
+        self._boxes: dict[int, QCheckBox] = {}
+        row = 0
+        for value, text in status_items:
+            cb = QCheckBox(f"{value}: {text}")
+            if value in self._selected:
+                cb.setChecked(True)
+            self._boxes[value] = cb
+            grid.addWidget(cb, row, 0, 1, 1)
+            row += 1
+
+        layout.addLayout(grid)
+
+        btn_row = QHBoxLayout()
+        btn_row.addStretch(1)
+        btn_cancel = QPushButton("取消")
+        btn_ok = QPushButton("保存")
+        btn_cancel.clicked.connect(self.reject)
+        btn_ok.clicked.connect(self.accept)
+        btn_row.addWidget(btn_cancel)
+        btn_row.addWidget(btn_ok)
+        layout.addLayout(btn_row)
+
+    def get_selected_statuses(self) -> list[int]:
+        selected = []
+        for value, cb in self._boxes.items():
+            if cb.isChecked():
+                selected.append(int(value))
+        return selected
 
 
 class _ChartView(QChartView):
@@ -1095,8 +1297,74 @@ class _ChartView(QChartView):
         event.accept()
 
 
+class _ChartDataWorker(QThread):
+    data_ready = Signal(list)
+
+    def __init__(
+        self,
+        db_path: str,
+        table_name: str,
+        slot_no: int,
+        poll_interval: float = 1.0,
+        initial_limit: int = 2000,
+    ):
+        super().__init__()
+        self._db_path = db_path
+        self._table_name = table_name
+        self._slot_no = int(slot_no)
+        self._poll_ms = max(200, int(poll_interval * 1000))
+        self._initial_limit = max(0, int(initial_limit))
+        self._running = True
+        self._last_id = 0
+
+    def stop(self) -> None:
+        self._running = False
+
+    def run(self):
+        try:
+            conn = sqlite3.connect(self._db_path)
+            cursor = conn.cursor()
+            idx_name = f"idx_{self._table_name}_slot_id".replace("-", "_")
+            try:
+                cursor.execute(
+                    f'CREATE INDEX IF NOT EXISTS {idx_name} ON "{self._table_name}" (Slot, Id)'
+                )
+                conn.commit()
+            except Exception:
+                pass
+
+            if self._initial_limit > 0:
+                cursor.execute(
+                    f'SELECT * FROM "{self._table_name}" WHERE Slot=? ORDER BY Id DESC LIMIT ?',
+                    (self._slot_no, self._initial_limit),
+                )
+                rows = cursor.fetchall()[::-1]
+                if rows:
+                    self._last_id = rows[-1][0]
+                    self.data_ready.emit(rows)
+
+            while self._running:
+                cursor.execute(
+                    f'SELECT * FROM "{self._table_name}" WHERE Slot=? AND Id>? ORDER BY Id ASC',
+                    (self._slot_no, self._last_id),
+                )
+                rows = cursor.fetchall()
+                if rows:
+                    self._last_id = rows[-1][0]
+                    self.data_ready.emit(rows)
+                self.msleep(self._poll_ms)
+        except Exception:
+            return
+        finally:
+            try:
+                conn.close()
+            except Exception:
+                pass
+
+
 class AgingThread(QThread):
     slot_status_changed = Signal(int, int, int)
+    summary_updated = Signal(int, int, int, int, float, float, object)
 
     def __init__(
         self,
@@ -1162,15 +1430,44 @@ class AgingThread(QThread):
             if results:
                 self.db_worker.enqueue(self.table_name, results)  # 状态写入数据库
 
+            total = 0
+            good = 0
+            bad = 0
+
             for slot in range(1, slot_count + 1):
                 card_status = status_fn("card_status", slot)
                 status = 0
                 if isinstance(card_status, dict):
                     status = int(card_status.get("Status", 0))
+                    if status not in (0, -4):
+                        total += 1
+                        if status == 1:
+                            good += 1
+                        elif status in (-5, -3, -2, -1, 2, 3, 4):
+                            bad += 1
                 last = self._last_status.get(slot)
                 if last != status:
                     self._last_status[slot] = status
                     self.slot_status_changed.emit(self.group_index, slot, status)
+
+            max_temp: Optional[float] = None
+            for slot_data in (results or {}).values():
+                card_status = slot_data.get("card_status") or {}
+                temp = card_status.get("CardTemperature")
+                if temp is None:
+                    continue
+                try:
+                    temp_val = float(temp)
+                except Exception:
+                    continue
+                if max_temp is None or temp_val > max_temp:
+                    max_temp = temp_val
+
+            pass_rate = (good / total * 100.0) if total > 0 else 0.0
+            fail_rate = (bad / total * 100.0) if total > 0 else 0.0
+            self.summary_updated.emit(
+                self.group_index, total, good, bad, pass_rate, fail_rate, max_temp
+            )
 
             self.msleep(int(self.poll_interval * 1000))
 

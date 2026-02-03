@@ -15,6 +15,11 @@ class DataBaseWorker(LoggerMixin):
         self.db_path = "./aging_data.db"
         self.connection = sqlite3.connect(self.db_path, check_same_thread=False)
         self.cursor = self.connection.cursor()
+        try:
+            self.connection.execute("PRAGMA journal_mode=WAL")
+            self.connection.execute("PRAGMA synchronous=NORMAL")
+        except Exception:
+            pass
         self._queue: "queue.Queue[tuple[str, Tuple[Any, ...]]]" = queue.Queue()
         self._stop_event = threading.Event()
         self._worker: Optional[threading.Thread] = None
@@ -84,6 +89,12 @@ class DataBaseWorker(LoggerMixin):
             )
             """
         )
+        try:
+            self.cursor.execute(
+                f'CREATE INDEX IF NOT EXISTS idx_{table_name}_slot_id ON "{table_name}" (Slot, Id)'
+            )
+        except Exception:
+            pass
         self.connection.commit()
         self.log.info(f"Created table: {table_name}")
         return table_name
