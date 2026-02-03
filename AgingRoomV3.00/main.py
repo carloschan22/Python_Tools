@@ -1,20 +1,20 @@
 from __future__ import annotations
 
 import re
-import sqlite3
-from bisect import bisect_left
 import sys
 import time
 import Tools
-import threading
+import sqlite3
+import logging
+
 from math import ceil
-
-
+from bisect import bisect_left
 from typing import Optional
+from PowerSupply import set_powersupply_output
 from datetime import datetime, timedelta
+from DataBaseWorker import DataBaseWorker
 from ui.main_widget_ui import Ui_MainWidget
 from CompManager import ComponentsInstantiation
-from DataBaseWorker import DataBaseWorker
 from Tools import COLOR_MAPPING, FUNCTION_CONFIG, PROJECT_CONFIG
 from PySide6.QtCore import (
     Qt,
@@ -58,6 +58,8 @@ from PySide6.QtCharts import (
     QValueAxis,
     QScatterSeries,
 )
+
+_log = logging.getLogger(__name__)
 
 
 class Connector(QWidget):
@@ -326,9 +328,20 @@ class Connector(QWidget):
     def on_slot_status_changed(
         self, group_index: int, slot_no: int, status: int
     ) -> None:
-        """根据状态变更某个槽位的显示颜色"""
+        """根据状态变更某个槽位的显示颜色,延时报警功能"""
         self._slot_raw_status.setdefault(group_index, {})[slot_no] = status
-        display_status = self._apply_latched_status(group_index, slot_no, status)
+        if self._is_alarm_delay_active(group_index) and status in (
+            -3,
+            -2,
+            -1,
+            1,
+            2,
+            3,
+            4,
+        ):  # 设置特定状态延时报警
+            display_status = 1
+        else:
+            display_status = self._apply_latched_status(group_index, slot_no, status)
         self._slot_status.setdefault(group_index, {})[slot_no] = display_status
         self._slot_change_color(group_index, slot_no, display_status)
 
@@ -361,6 +374,20 @@ class Connector(QWidget):
             fail_label.setText(f"{fail_rate:.2f}%")
         if temp_label is not None:
             temp_label.setText("--" if max_temp is None else f"{max_temp:.1f}")
+
+    def _is_alarm_delay_active(self, group_index: int) -> bool:
+        delay = FUNCTION_CONFIG.get("UI", {}).get("AlarmDelaySeconds", 0)
+        try:
+            delay = float(delay)
+        except Exception:
+            delay = 0.0
+        if delay <= 0:
+            return False
+        state = self._group_state.get(group_index, {})
+        start_time = state.get("start_time")
+        if not start_time:
+            return False
+        return (time.time() - float(start_time)) < delay
 
     def _slot_change_color(self, group_index: int, slot_no: int, status: int) -> None:
         """变更某个槽位的显示颜色"""
@@ -692,6 +719,9 @@ class Connector(QWidget):
         state = self._group_state[group_index]
         now = time.time()
         app = self._get_group_app(group_index)
+
+        self._slot_latched[group_index] = {}
+        self._slot_raw_status[group_index] = {}
 
         if group_index not in self._group_table:
             self._group_table[group_index] = self._db_worker.create_new_table()
@@ -1489,12 +1519,16 @@ class AgingThread(QThread):
 
 
 def main():
+    _log.info("----应用启动----")
     qt_app = QApplication(sys.argv)
     ui = Ui_MainWidget()
     connector = Connector(ui)
     connector.show()
 
+    set_powersupply_output(True)  # 上电
+
     def _cleanup():
+        _log.info("----应用退出，开始清理----")
         for worker in list(connector._workers.values()):
             if worker.isRunning():
                 worker.stop()
@@ -1505,6 +1539,9 @@ def main():
         for app in list(connector._apps.values()):
             if hasattr(app, "shutdown"):
                 app.shutdown()
+
+        set_powersupply_output(False)  # 断电
+        _log.info("----清理完成----")
 
     qt_app.aboutToQuit.connect(_cleanup)
     return qt_app.exec()

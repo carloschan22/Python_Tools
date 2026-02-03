@@ -362,18 +362,23 @@ def get_active_slots(app) -> list[int]:
     return active_slots
 
 
-def set_card_output(bus: can.BusABC, statuts: bool) -> bool:
+def set_card_output(
+    bus: can.BusABC, status: bool, logger: Optional[logging.Logger] = None
+) -> bool:
+    if logger is None:
+        logger = _log
     msg_mapping = {True: b"\xff" * 8, False: b"\x00" * 8}
     for id in [1, 2]:
         msg = can.Message(
             arbitration_id=id,
-            data=msg_mapping[statuts],
+            data=msg_mapping[status],
             is_extended_id=False,
             is_fd=True,
         )
         for _ in range(3):
             result = bus.send(msg)
-            print(f"SET OUTPUT MSG: {msg}, RESULT: {result}")
+            if logger:
+                logger.info("Set Output:%s", status)
             if not result:
                 return False
     return True
@@ -399,7 +404,11 @@ def ass_raw_data(config_list: list) -> bytes:
     return bytes(payload)
 
 
-def set_card_addr(bus: can.BusABC, config: dict) -> bool:
+def set_card_addr(
+    bus: can.BusABC, config: dict, logger: Optional[logging.Logger] = None
+) -> bool:
+    if logger is None:
+        logger = _log
     phy_addrs = config["Diag"].get("DiagPhyAddr", [])
     tx_ids = [config["TX"]["IdOfTxMsg1"], config["TX"]["IdOfTxMsg2"]]
     rx_ids = [config["RX"]["IdOfRxMsg1"], config["RX"]["IdOfRxMsg2"]]
@@ -421,18 +430,21 @@ def set_card_addr(bus: can.BusABC, config: dict) -> bool:
             is_extended_id=False,
             is_fd=True,
         )
-        print(f"ASS MSG: {msg_1}, {msg_2}")
+        if logger:
+            logger.info(f"Setting Cards Id, Msg1:{msg_1}\n{' ' * 50}Msg2:{msg_2}")
         for _ in range(3):
             bus.send(msg_1)
             bus.send(msg_2)
             time.sleep(0.1)
 
 
-def set_cards(bus: can.BusABC, status: bool, config: dict):
-    set_card_output(bus, status)
+def set_cards(
+    bus: can.BusABC, status: bool, config: dict, logger: Optional[logging.Logger] = None
+):
+    set_card_output(bus, status, logger)
     if status:
         time.sleep(0.1)
-        set_card_addr(bus, config)
+        set_card_addr(bus, config, logger)
 
 
 def remap_slot(slot: int) -> int:

@@ -136,7 +136,11 @@ class ComponentsInstantiation(LoggerMixin):
         self._instant_manager["CustomRxMsg1"] = rx_splitter if rx_switcher[1] else None
         self._instant_manager["CustomRxMsg2"] = rx_splitter if rx_switcher[2] else None
 
-        set_cards(self.can_manager.get_bus(), True, self.project_cfg)
+        set_cards(
+            self.can_manager.get_bus(),
+            True,
+            self.project_cfg,
+        )
 
         # Custom TX
         if "CustomTxMsg1" in self.supported:

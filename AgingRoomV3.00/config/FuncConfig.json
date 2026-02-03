@@ -4,6 +4,7 @@
         "GroupCount": 2,
         "IndexPerGroup": 80,
         "SlotRefreshInterval": 0.5,
+        "AlarmDelaySeconds": 5,
         "OperatorList": [
             "魁小立",
             "朱燕波",
@@ -44,10 +45,18 @@
         "FD": true
     },
     "PowerSupply": {
-        "Type": "DY4010",
+        "Type": null,
         "ComPort": [
             "COM3",
             "COM4"
+        ],
+        "OutputCurrentLimit": [
+            100,
+            100
+        ],
+        "VoltageOffset": [
+            2.0,
+            2.0
         ],
         "BaudRate": 9600,
         "GroupPerPowerSupply": 1,
