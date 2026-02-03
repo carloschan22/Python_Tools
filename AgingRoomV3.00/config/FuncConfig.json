@@ -60,7 +60,6 @@
         ],
         "BaudRate": 9600,
         "GroupPerPowerSupply": 1,
-        "VoltageCompensation": 2,
         "DarkCurrent": 5.0
     },
     "Tx": {

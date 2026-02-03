@@ -1099,8 +1099,6 @@ class SlotDetailDialog(QDialog):
             return
         series = cfg["series"]
         alert_series = cfg["alert_series"]
-        series.clear()
-        alert_series.clear()
         if not points:
             cfg["chart"].setTitle(f"{cfg['title']} (暂无数据)")
             cfg["view"].clear_hover()
@@ -1110,14 +1108,17 @@ class SlotDetailDialog(QDialog):
 
         clean_points = []
         alert_points = []
+        series_points = []
+        alert_series_points = []
         for x_ms, y, status in points:
-            series.append(x_ms, y)
             clean_points.append((x_ms, y))
+            series_points.append(QPointF(x_ms, y))
             if status is not None and status not in (1, -4):
                 alert_points.append((x_ms, y))
+                alert_series_points.append(QPointF(x_ms, y))
 
-        for x_ms, y in alert_points:
-            alert_series.append(x_ms, y)
+        series.replace(series_points)
+        alert_series.replace(alert_series_points)
 
         cfg["view"].set_points(clean_points)
 
