@@ -260,6 +260,9 @@ class ComponentsInstantiation(LoggerMixin):
                     periodic_tasks["TxMsg1"] = tasks
                 if message_name_or_id is None:
                     message_name_or_id = id_tx1
+                self.log.debug(
+                    f"Registered tx1_set and tx1_start ops, MsgId:{id_tx1},MsgData:{signal_data}"
+                )
                 return tx1.modify_periodic_task(
                     tasks,
                     message_name_or_id=message_name_or_id,
@@ -283,6 +286,9 @@ class ComponentsInstantiation(LoggerMixin):
                     periodic_tasks["TxMsg2"] = tasks
                 if message_name_or_id is None:
                     message_name_or_id = id_tx2
+                self.log.debug(
+                    f"Registered tx2_set and tx2_start ops, MsgId:{id_tx2},MsgData:{signal_data}"
+                )
                 return tx2.modify_periodic_task(
                     tasks,
                     message_name_or_id=message_name_or_id,

@@ -402,8 +402,3 @@ def set_powersupply_output(status: bool) -> bool:
     finally:
         for ps in ps_list:
             del ps
-
-
-if __name__ == "__main__":
-    a = "2026-02-03 13:47:50 INFO Tools: Setting Cards Id, "
-    print(len(a))

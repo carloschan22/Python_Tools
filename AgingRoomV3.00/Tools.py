@@ -364,7 +364,7 @@ def get_active_slots(app) -> list[int]:
 
 def set_card_output(
     bus: can.BusABC, status: bool, logger: Optional[logging.Logger] = None
-) -> bool:
+):
     if logger is None:
         logger = _log
     msg_mapping = {True: b"\xff" * 8, False: b"\x00" * 8}
@@ -376,12 +376,12 @@ def set_card_output(
             is_fd=True,
         )
         for _ in range(3):
-            result = bus.send(msg)
-            if logger:
-                logger.info("Set Output:%s", status)
-            if not result:
-                return False
-    return True
+            try:
+                bus.send(msg)
+            except:
+                logger.exception("Set Card Output Failed")
+            time.sleep(0.06)
+    logger.info("Set Card Output:%s", status)
 
 
 def ass_raw_data(config_list: list) -> bytes:
@@ -430,12 +430,15 @@ def set_card_addr(
             is_extended_id=False,
             is_fd=True,
         )
-        if logger:
-            logger.info(f"Setting Cards Id, Msg1:{msg_1}\n{' ' * 50}Msg2:{msg_2}")
         for _ in range(3):
-            bus.send(msg_1)
-            bus.send(msg_2)
-            time.sleep(0.1)
+            try:
+                bus.send(msg_1)
+                bus.send(msg_2)
+                time.sleep(0.06)
+            except:
+                logger.exception("Setting Cards Id Failed")
+                return False
+        logger.info(f"Setting Cards Id, Msg1:{msg_1}\n{' ' * 50}Msg2:{msg_2}")
 
 
 def set_cards(

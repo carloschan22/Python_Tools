@@ -1,4 +1,5 @@
 import can
+import time
 
 from typing import Any, Optional
 from Protocol import split_by_can_id, get_slot_id_by_can_id
@@ -81,6 +82,23 @@ class AgingStatus(LoggerMixin):
             FUNCTION_CONFIG["UI"]["IndexPerGroup"],
             default_factory=self._blank_status,
         )
+        self._timestamp_offset: Optional[float] = None
+
+    def _normalize_timestamp(self, ts: Any) -> Optional[float]:
+        try:
+            value = float(ts)
+        except Exception:
+            return None
+
+        if value <= 0:
+            return None
+
+        if value < 1_000_000_000:
+            if self._timestamp_offset is None:
+                self._timestamp_offset = time.time() - value
+            return value + self._timestamp_offset
+
+        return value
 
     @staticmethod
     def _blank_status():
@@ -203,9 +221,12 @@ class AgingStatus(LoggerMixin):
         current = self.decode_current(msg)
         voltage = self.decode_voltage(msg)
         status = self.mapping_status(current, voltage)
+        normalized_ts = self._normalize_timestamp(msg.timestamp)
+        if normalized_ts is None:
+            normalized_ts = time.time()
 
         self.status[index] = {
-            "Timestamp": msg.timestamp,
+            "Timestamp": normalized_ts,
             "Status": status,
             "Voltage": voltage,
             "Current": current,

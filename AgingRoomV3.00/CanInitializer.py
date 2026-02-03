@@ -53,13 +53,16 @@ class CanBusManager(LoggerMixin):
 
         if self._started:
             return self
-        dev_index, ch = get_dev_index_ch(index)
+
+        _is_zlg = self.config["Interface"] == "zlg"
+        if _is_zlg:
+            dev_index, ch = get_dev_index_ch(index)
         # 创建CAN总线
         self.bus = can.Bus(
-            device_index=dev_index if self.config["Interface"] == "zlg" else None,
+            device_index=dev_index if _is_zlg else None,
             interface=self.config["Interface"],
-            channel=ch if self.config["Interface"] == "zlg" else 0,
-            dev_type=self.config["DevType"] if self.config["DevType"] else None,
+            channel=ch if _is_zlg else 0,
+            dev_type=(self.config["DevType"] if _is_zlg else None),
             bitrate=self.config["Bitrate"],
             data_bitrate=self.config["DataBitrate"],
             receive_own_messages=self.config["ReceiveOwnMessages"],

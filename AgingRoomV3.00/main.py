@@ -355,6 +355,8 @@ class Connector(QWidget):
         fail_rate: float,
         max_temp: Optional[float],
     ) -> None:
+        total, good, bad, pass_rate, fail_rate = self._calc_group_summary(group_index)
+
         qty_label = getattr(self.ui, f"edit_qty_{group_index}", None)
         good_label = getattr(self.ui, f"edit_good_{group_index}", None)
         bad_label = getattr(self.ui, f"edit_bad_{group_index}", None)
@@ -374,6 +376,28 @@ class Connector(QWidget):
             fail_label.setText(f"{fail_rate:.2f}%")
         if temp_label is not None:
             temp_label.setText("--" if max_temp is None else f"{max_temp:.1f}")
+
+    def _calc_group_summary(
+        self, group_index: int
+    ) -> tuple[int, int, int, float, float]:
+        slot_count = int(FUNCTION_CONFIG.get("UI", {}).get("IndexPerGroup", 0))
+        status_map = self._slot_status.get(group_index, {})
+        total = 0
+        good = 0
+        bad = 0
+        for slot in range(1, slot_count + 1):
+            status = int(status_map.get(slot, 0) or 0)
+            if status in (0, -4):
+                continue
+            total += 1
+            if status == 1:
+                good += 1
+            elif status in FUNCTION_CONFIG["UI"]["NonRecoverableStatus"]:
+                bad += 1
+
+        pass_rate = (good / total * 100.0) if total > 0 else 0.0
+        fail_rate = (bad / total * 100.0) if total > 0 else 0.0
+        return total, good, bad, pass_rate, fail_rate
 
     def _is_alarm_delay_active(self, group_index: int) -> bool:
         delay = FUNCTION_CONFIG.get("UI", {}).get("AlarmDelaySeconds", 0)
@@ -990,7 +1014,7 @@ class SlotDetailDialog(QDialog):
             ts = row[2]
             if ts is None:
                 continue
-            x_ms = int(float(ts) * 1000)
+            x_ms = int(float(ts) * 1000)  # Directly convert timestamp to milliseconds
             status = row[3]
             if row[4] is not None:
                 self._append_point("voltage", x_ms, float(row[4]), status)
@@ -1041,7 +1065,7 @@ class SlotDetailDialog(QDialog):
             ts = row[2]
             if ts is None:
                 continue
-            x_ms = int(float(ts) * 1000)
+            x_ms = int(float(ts) * 1000)  # Directly convert timestamp to milliseconds
             status = row[3]
             if row[4] is not None:
                 voltage_points.append((x_ms, float(row[4]), status))

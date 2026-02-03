@@ -37,7 +37,7 @@
         "RetentionPeriod": 3
     },
     "CanBus": {
-        "Interface": "kvaser",
+        "Interface": "zlg",
         "DevType": 76,
         "Bitrate": 500000,
         "DataBitrate": 2000000,
