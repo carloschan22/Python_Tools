@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from bisect import bisect_left
 import sys
 import time
 import Tools
@@ -14,8 +15,18 @@ from ui.main_widget_ui import Ui_MainWidget
 from CompManager import ComponentsInstantiation
 from DataBaseWorker import DataBaseWorker
 from Tools import COLOR_MAPPING, FUNCTION_CONFIG, PROJECT_CONFIG
-from PySide6.QtCore import Qt, Signal, QThread, Slot, QTimer
-from PySide6.QtGui import QColor, QBrush
+from PySide6.QtCore import (
+    Qt,
+    Signal,
+    QThread,
+    Slot,
+    QTimer,
+    QDateTime,
+    QMargins,
+    QPointF,
+    QLineF,
+)
+from PySide6.QtGui import QColor, QBrush, QPainter, QCursor, QPen
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QApplication,
@@ -29,6 +40,18 @@ from PySide6.QtWidgets import (
     QTableWidget,
     QTableWidgetItem,
     QWidget,
+    QGraphicsView,
+    QToolTip,
+    QGraphicsLineItem,
+    QGraphicsEllipseItem,
+)
+from PySide6.QtCharts import (
+    QChart,
+    QChartView,
+    QLineSeries,
+    QDateTimeAxis,
+    QValueAxis,
+    QScatterSeries,
 )
 
 
@@ -730,18 +753,346 @@ class SlotDetailDialog(QDialog):
         self.setWindowTitle(f"第{group_index}组 - 槽位{slot_no}详情")
         self.resize(900, 600)
         layout = QVBoxLayout(self)
+        layout.setContentsMargins(8, 8, 8, 8)
+        layout.setSpacing(8)
+        self._group_index = group_index
+        self._slot_no = slot_no
+        self._charts: dict[str, dict] = {}
 
         charts = QVBoxLayout()
-        for i in range(1, 4):
-            box = QGroupBox(info_mapping[i])
+        charts.setSpacing(8)
+        chart_cfg = [
+            ("voltage", info_mapping[1], "电压(V)"),
+            ("current", info_mapping[2], "电流(mA)"),
+            ("temperature", info_mapping[3], "温度(°C)"),
+        ]
+        for key, title, y_label in chart_cfg:
+            box = QGroupBox(title)
             box_layout = QVBoxLayout(box)
-            placeholder = QFrame()
-            placeholder.setFrameShape(QFrame.Shape.StyledPanel)
-            placeholder.setObjectName(f"chart_placeholder_{i}")
-            box_layout.addWidget(placeholder)
+            box_layout.setContentsMargins(6, 6, 6, 6)
+            box_layout.setSpacing(4)
+            chart, view, series, alert_series, x_axis, y_axis = self._create_chart(
+                title, y_label
+            )
+            box_layout.addWidget(view)
             charts.addWidget(box)
+            self._charts[key] = {
+                "chart": chart,
+                "view": view,
+                "series": series,
+                "alert_series": alert_series,
+                "x_axis": x_axis,
+                "y_axis": y_axis,
+                "title": title,
+                "value_label": y_label,
+            }
 
         layout.addLayout(charts)
+
+        self._refresh_timer = QTimer(self)
+        self._refresh_timer.setInterval(1000)
+        self._refresh_timer.timeout.connect(self._load_and_draw)
+        self._refresh_timer.start()
+
+        self._load_and_draw()
+
+    def _create_chart(self, title: str, y_label: str):
+        chart = QChart()
+        chart.setTitle("")
+        chart.legend().hide()
+        chart.setBackgroundRoundness(0)
+        chart.setMargins(QMargins(6, 4, 6, 6))
+
+        series = QLineSeries()
+        series.setName(y_label)
+        chart.addSeries(series)
+
+        alert_series = QScatterSeries()
+        alert_series.setMarkerShape(QScatterSeries.MarkerShapeCircle)
+        alert_series.setMarkerSize(8.0)
+        alert_series.setColor(QColor("#ff4d4f"))
+        alert_series.setBorderColor(QColor("#ff4d4f"))
+        chart.addSeries(alert_series)
+
+        x_axis = QDateTimeAxis()
+        x_axis.setFormat("MM-dd HH:mm:ss")
+        x_axis.setTitleText("")
+        x_axis.setLabelsVisible(False)
+        x_axis.setGridLineVisible(False)
+        x_axis.setMinorGridLineVisible(False)
+        x_axis.setLineVisible(False)
+        chart.addAxis(x_axis, Qt.AlignmentFlag.AlignBottom)
+        series.attachAxis(x_axis)
+        alert_series.attachAxis(x_axis)
+
+        y_axis = QValueAxis()
+        y_axis.setTitleText("")
+        y_axis.setLabelsVisible(False)
+        y_axis.setGridLineVisible(False)
+        y_axis.setMinorGridLineVisible(False)
+        y_axis.setLineVisible(False)
+        chart.addAxis(y_axis, Qt.AlignmentFlag.AlignLeft)
+        series.attachAxis(y_axis)
+        alert_series.attachAxis(y_axis)
+
+        view = _ChartView(chart)
+        view.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        view.setRenderHint(QPainter.RenderHint.Antialiasing)
+        view.setRubberBand(QChartView.RubberBand.NoRubberBand)
+        view.setDragMode(QGraphicsView.DragMode.NoDrag)
+        view.set_series(series, value_label=y_label)
+        return chart, view, series, alert_series, x_axis, y_axis
+
+    def _load_and_draw(self) -> None:
+        parent = self.parent()
+        db_worker = getattr(parent, "_db_worker", None)
+        table_name = getattr(parent, "_group_table", {}).get(self._group_index)
+        if db_worker is None or not table_name:
+            self._set_no_data("暂无数据")
+            return
+
+        try:
+            rows = db_worker.query_data(
+                table_name,
+                conditions=f"Slot={int(self._slot_no)} ORDER BY Timestamp ASC",
+            )
+        except Exception:
+            # 查询失败时保持上一次曲线，避免闪烁与误清空
+            return
+
+        if not rows:
+            self._set_no_data("暂无数据")
+            return
+
+        voltage_points = []
+        current_points = []
+        temperature_points = []
+        for row in rows:
+            ts = row[2]
+            if ts is None:
+                continue
+            x_ms = int(float(ts) * 1000)
+            status = row[3]
+            if row[4] is not None:
+                voltage_points.append((x_ms, float(row[4]), status))
+            if row[5] is not None:
+                current_points.append((x_ms, float(row[5]), status))
+            if row[6] is not None:
+                temperature_points.append((x_ms, float(row[6]), status))
+
+        self._update_series("voltage", voltage_points)
+        self._update_series("current", current_points)
+        self._update_series("temperature", temperature_points)
+
+    def _set_no_data(self, reason: str) -> None:
+        for key, cfg in self._charts.items():
+            chart = cfg["chart"]
+            chart.setTitle(f"{cfg['title']} ({reason})")
+            cfg["series"].clear()
+            cfg["alert_series"].clear()
+            cfg["view"].clear_hover()
+
+    def _update_series(self, key: str, points: list[tuple[int, float, int]]) -> None:
+        cfg = self._charts.get(key)
+        if not cfg:
+            return
+        series = cfg["series"]
+        alert_series = cfg["alert_series"]
+        series.clear()
+        alert_series.clear()
+        if not points:
+            cfg["chart"].setTitle(f"{cfg['title']} (暂无数据)")
+            cfg["view"].clear_hover()
+            return
+
+        cfg["chart"].setTitle("")
+
+        clean_points = []
+        alert_points = []
+        for x_ms, y, status in points:
+            series.append(x_ms, y)
+            clean_points.append((x_ms, y))
+            if status is not None and status not in (1, -4):
+                alert_points.append((x_ms, y))
+
+        for x_ms, y in alert_points:
+            alert_series.append(x_ms, y)
+
+        cfg["view"].set_points(clean_points)
+
+        x_axis = cfg["x_axis"]
+        y_axis = cfg["y_axis"]
+        min_x = clean_points[0][0]
+        max_x = clean_points[-1][0]
+        min_y = min(p[1] for p in clean_points)
+        max_y = max(p[1] for p in clean_points)
+        if min_y == max_y:
+            min_y -= 1
+            max_y += 1
+
+        if not cfg["view"].is_user_locked():
+            x_pad = max(1000, int((max_x - min_x) * 0.03))
+            y_pad = (max_y - min_y) * 0.08
+            if y_pad == 0:
+                y_pad = 1.0
+            x_axis.setRange(
+                QDateTime.fromMSecsSinceEpoch(min_x - x_pad),
+                QDateTime.fromMSecsSinceEpoch(max_x + x_pad),
+            )
+            y_axis.setRange(min_y - y_pad, max_y + y_pad)
+
+
+class _ChartView(QChartView):
+    def __init__(self, chart: QChart, parent: Optional[QWidget] = None):
+        super().__init__(chart, parent)
+        self.setMouseTracking(True)
+        self._panning = False
+        self._last_pos = None
+        self._user_locked = False
+        self._points: list[tuple[int, float]] = []
+        self._points_x: list[int] = []
+        self._series: Optional[QLineSeries] = None
+        self._value_label = ""
+
+        self._crosshair_x = QGraphicsLineItem()
+        self._crosshair_y = QGraphicsLineItem()
+        self._marker = QGraphicsEllipseItem()
+        cross_pen = QPen(QColor(180, 180, 180), 1, Qt.PenStyle.DashLine)
+        self._crosshair_x.setPen(cross_pen)
+        self._crosshair_y.setPen(cross_pen)
+        self._marker.setPen(QPen(QColor("#ff7a45"), 1))
+        self._marker.setBrush(QColor("#ff7a45"))
+        self._crosshair_x.setZValue(10)
+        self._crosshair_y.setZValue(10)
+        self._marker.setZValue(11)
+
+        scene = self.scene()
+        if scene is not None:
+            scene.addItem(self._crosshair_x)
+            scene.addItem(self._crosshair_y)
+            scene.addItem(self._marker)
+        self.clear_hover()
+
+    def set_series(self, series: QLineSeries, value_label: str = "") -> None:
+        self._series = series
+        self._value_label = value_label
+
+    def set_points(self, points: list[tuple[int, float]]) -> None:
+        self._points = points or []
+        self._points_x = [p[0] for p in self._points]
+
+    def clear_hover(self) -> None:
+        self._crosshair_x.hide()
+        self._crosshair_y.hide()
+        self._marker.hide()
+        QToolTip.hideText()
+
+    def is_user_locked(self) -> bool:
+        return self._user_locked
+
+    def reset_user_lock(self) -> None:
+        self._user_locked = False
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.MouseButton.LeftButton:
+            self._panning = True
+            self._last_pos = event.position()
+            self._user_locked = True
+            self.setCursor(Qt.CursorShape.ClosedHandCursor)
+            event.accept()
+            return
+        super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event):
+        if self._panning and self._last_pos is not None:
+            delta = event.position() - self._last_pos
+            self.chart().scroll(-delta.x(), delta.y())
+            self._last_pos = event.position()
+            event.accept()
+            return
+
+        self._update_hover(event.position())
+        super().mouseMoveEvent(event)
+
+    def mouseReleaseEvent(self, event):
+        if event.button() == Qt.MouseButton.LeftButton and self._panning:
+            self._panning = False
+            self._last_pos = None
+            self.unsetCursor()
+            event.accept()
+            return
+        super().mouseReleaseEvent(event)
+
+    def leaveEvent(self, event):
+        self.clear_hover()
+        self.unsetCursor()
+        super().leaveEvent(event)
+
+    def _update_hover(self, pos) -> None:
+        if not self._points or self._series is None:
+            self.clear_hover()
+            return
+
+        scene_pos = self.mapToScene(pos.toPoint())
+        chart_pos = self.chart().mapFromScene(scene_pos)
+        value_pos = self.chart().mapToValue(chart_pos, self._series)
+        x_val = value_pos.x()
+
+        idx = bisect_left(self._points_x, x_val)
+        candidates = []
+        if 0 <= idx < len(self._points):
+            candidates.append(self._points[idx])
+        if idx - 1 >= 0:
+            candidates.append(self._points[idx - 1])
+        if not candidates:
+            self.clear_hover()
+            return
+
+        nearest = min(candidates, key=lambda p: abs(p[0] - x_val))
+        nearest_pt = QPointF(nearest[0], nearest[1])
+        pos_in_chart = self.chart().mapToPosition(nearest_pt, self._series)
+        pos_in_scene = self.chart().mapToScene(pos_in_chart)
+
+        if QLineF(scene_pos, pos_in_scene).length() > 12:
+            self.clear_hover()
+            return
+
+        plot_area = self.chart().plotArea()
+        top_left = self.chart().mapToScene(plot_area.topLeft())
+        bottom_right = self.chart().mapToScene(plot_area.bottomRight())
+
+        self._crosshair_x.setLine(
+            pos_in_scene.x(), top_left.y(), pos_in_scene.x(), bottom_right.y()
+        )
+        self._crosshair_y.setLine(
+            top_left.x(), pos_in_scene.y(), bottom_right.x(), pos_in_scene.y()
+        )
+
+        r = 4.0
+        self._marker.setRect(
+            pos_in_scene.x() - r,
+            pos_in_scene.y() - r,
+            2 * r,
+            2 * r,
+        )
+
+        self._crosshair_x.show()
+        self._crosshair_y.show()
+        self._marker.show()
+
+        ts = QDateTime.fromMSecsSinceEpoch(int(nearest[0]))
+        label = self._value_label or "值"
+        text = f"{label}: {nearest[1]:.2f}\n时间: {ts.toString('yyyy-MM-dd HH:mm:ss')}"
+        QToolTip.showText(QCursor.pos(), text, self)
+
+    def wheelEvent(self, event):
+        delta = event.angleDelta().y()
+        if delta == 0:
+            return super().wheelEvent(event)
+        factor = 1.2 if delta > 0 else 0.8
+        self.chart().zoom(factor)
+        self._user_locked = True
+        event.accept()
 
 
 class AgingThread(QThread):

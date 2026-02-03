@@ -157,7 +157,7 @@
                     "p2_timeout": 1,
                     "p2_star_timeout": 5,
                     "standard_version": 2020,
-                    "use_server_timing": true,
+                    "use_server_timing": false,
                     "extended_data_size": null
                 }
             }
@@ -296,7 +296,7 @@
                     "p2_timeout": 1,
                     "p2_star_timeout": 5,
                     "standard_version": 2020,
-                    "use_server_timing": true,
+                    "use_server_timing": false,
                     "extended_data_size": null
                 }
             }
@@ -431,7 +431,7 @@
                     "p2_timeout": 1,
                     "p2_star_timeout": 5,
                     "standard_version": 2020,
-                    "use_server_timing": true,
+                    "use_server_timing": false,
                     "extended_data_size": null
                 }
             }
