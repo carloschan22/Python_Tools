@@ -81,6 +81,7 @@ class Connector(QWidget):
                 "paused_duration": 0.0,
                 "aging_hours": None,
                 "tx_started": False,
+                "frozen": False,
             }
             for i in range(1, self._group_count + 1)
         }
@@ -329,6 +330,9 @@ class Connector(QWidget):
         self, group_index: int, slot_no: int, status: int
     ) -> None:
         """根据状态变更某个槽位的显示颜色,延时报警功能"""
+        state = self._group_state.get(group_index, {})
+        if not state.get("running") or state.get("frozen"):
+            return
         self._slot_raw_status.setdefault(group_index, {})[slot_no] = status
         if self._is_alarm_delay_active(group_index) and status in (
             -3,
@@ -355,6 +359,9 @@ class Connector(QWidget):
         fail_rate: float,
         max_temp: Optional[float],
     ) -> None:
+        state = self._group_state.get(group_index, {})
+        if not state.get("running") or state.get("frozen"):
+            return
         total, good, bad, pass_rate, fail_rate = self._calc_group_summary(group_index)
 
         qty_label = getattr(self.ui, f"edit_qty_{group_index}", None)
@@ -643,6 +650,27 @@ class Connector(QWidget):
         if end_label is not None:
             end_label.setText("--")
 
+    def _reset_group_summary(self, group_index: int) -> None:
+        qty_label = getattr(self.ui, f"edit_qty_{group_index}", None)
+        good_label = getattr(self.ui, f"edit_good_{group_index}", None)
+        bad_label = getattr(self.ui, f"edit_bad_{group_index}", None)
+        pass_label = getattr(self.ui, f"text_pass_rate_{group_index}", None)
+        fail_label = getattr(self.ui, f"text_fail_rate_{group_index}", None)
+        temp_label = getattr(self.ui, f"text_temp_{group_index}", None)
+
+        if qty_label is not None:
+            qty_label.setText("0")
+        if good_label is not None:
+            good_label.setText("0")
+        if bad_label is not None:
+            bad_label.setText("0")
+        if pass_label is not None:
+            pass_label.setText("0.00%")
+        if fail_label is not None:
+            fail_label.setText("0.00%")
+        if temp_label is not None:
+            temp_label.setText("--")
+
     def _set_group_buttons_running(
         self, group_index: int, running: bool, paused: bool = False
     ) -> None:
@@ -746,10 +774,16 @@ class Connector(QWidget):
         now = time.time()
         app = self._get_group_app(group_index)
 
-        self._slot_latched[group_index] = {}
-        self._slot_raw_status[group_index] = {}
+        if not state["running"]:
+            state["frozen"] = False
+            self._slot_latched[group_index] = {}
+            self._slot_raw_status[group_index] = {}
+            self._slot_status[group_index] = {}
+            self._clear_group_color(group_index)
+            self._reset_group_labels(group_index)
+            self._reset_group_summary(group_index)
 
-        if group_index not in self._group_table:
+        if not state["running"]:
             self._group_table[group_index] = self._db_worker.create_new_table()
 
         if not getattr(app, "_started", False):
@@ -839,16 +873,15 @@ class Connector(QWidget):
     def _stop_group(self, group_index: int) -> None:
         state = self._group_state[group_index]
         app = self._apps.get(group_index)
+        state["frozen"] = True
         state["running"] = False
         state["paused"] = False
         state["start_time"] = None
         state["paused_at"] = None
         state["paused_duration"] = 0.0
         state["tx_started"] = False
-        self._reset_group_labels(group_index)
         self._set_group_buttons_running(group_index, running=False, paused=False)
-        self._clear_group_color(group_index)
-        self._group_table.pop(group_index, None)
+        # 保留最后表名, 以便停止后仍可查看历史曲线
 
         worker = self._workers.pop(group_index, None)
         if worker is not None and worker.isRunning():
