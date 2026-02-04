@@ -838,16 +838,9 @@
 		  </widget>
 		 </item>
 		 <item>
-		  <widget class="QPushButton" name="btn_history_restart">
+		  <widget class="QPushButton" name="btn_history_export">
 		   <property name="text">
-			<string>重新老化</string>
-		   </property>
-		  </widget>
-		 </item>
-		 <item>
-		  <widget class="QPushButton" name="btn_history_force_stop">
-		   <property name="text">
-			<string>强制终止</string>
+			<string>导出汇总表</string>
 		   </property>
 		  </widget>
 		 </item>
@@ -867,17 +860,61 @@
 		</layout>
 	   </item>
 	   <item>
-		<widget class="QTableWidget" name="historyTable"/>
+		<layout class="QHBoxLayout" name="historyFilterLayout">
+		 <item>
+		  <widget class="QLabel" name="lbl_history_year">
+		   <property name="text">
+			<string>年：</string>
+		   </property>
+		  </widget>
+		 </item>
+		 <item>
+		  <widget class="QComboBox" name="combo_history_year"/>
+		 </item>
+		 <item>
+		  <widget class="QLabel" name="lbl_history_month">
+		   <property name="text">
+			<string>月：</string>
+		   </property>
+		  </widget>
+		 </item>
+		 <item>
+		  <widget class="QComboBox" name="combo_history_month"/>
+		 </item>
+		 <item>
+		  <widget class="QLabel" name="lbl_history_day">
+		   <property name="text">
+			<string>日：</string>
+		   </property>
+		  </widget>
+		 </item>
+		 <item>
+		  <widget class="QComboBox" name="combo_history_day"/>
+		 </item>
+		 <item>
+		  <widget class="QPushButton" name="btn_history_query">
+		   <property name="text">
+			<string>查询</string>
+		   </property>
+		  </widget>
+		 </item>
+		 <item>
+		  <spacer name="historyFilterSpacer">
+		   <property name="orientation">
+			<enum>Qt::Horizontal</enum>
+		   </property>
+		   <property name="sizeHint" stdset="0">
+			<size>
+			 <width>40</width>
+			 <height>20</height>
+			</size>
+		   </property>
+		  </spacer>
+		 </item>
+		</layout>
 	   </item>
 	   <item>
-		<widget class="QLabel" name="historyStatus">
-		 <property name="text">
-		  <string>就绪</string>
-		 </property>
-		 <property name="frameShape">
-		  <enum>QFrame::StyledPanel</enum>
-		 </property>
-		</widget>
+		<widget class="QTableWidget" name="historyTable"/>
 	   </item>
 	  </layout>
 	 </widget>

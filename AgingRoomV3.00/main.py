@@ -6,6 +6,7 @@ import time
 import Tools
 import sqlite3
 import logging
+import csv
 
 from math import ceil
 from bisect import bisect_left
@@ -49,6 +50,8 @@ from PySide6.QtWidgets import (
     QGraphicsLineItem,
     QGraphicsEllipseItem,
     QMenu,
+    QFileDialog,
+    QHeaderView,
 )
 from PySide6.QtCharts import (
     QChart,
@@ -103,12 +106,14 @@ class Connector(QWidget):
         self._init_nav()
         self._apply_ui_config()
         self._init_controls()
+        self._init_history()
         self._bind_slot_clicks()
 
         self._runtime_timer = QTimer(self)
         self._runtime_timer.setInterval(1000)
         self._runtime_timer.timeout.connect(self._update_runtime_labels)
         self._runtime_timer.start()
+        self._history_export_worker: Optional[_HistoryExportWorker] = None
 
     def _init_nav(self) -> None:
         self.ui.action_home.triggered.connect(
@@ -189,6 +194,381 @@ class Connector(QWidget):
         self._bind_start_clicks()
         self._bind_pause_clicks()
         self._bind_stop_clicks()
+
+    def _init_history(self) -> None:
+        self._setup_history_table()
+        self._bind_history_controls()
+        self._refresh_history_date_options()
+
+    def _setup_history_table(self) -> None:
+        table = getattr(self.ui, "historyTable", None)
+        if table is None:
+            return
+        headers = ["序号", "型号", "作业员", "设定时长", "老化时长", "总数量", "良品", "良率"]
+        table.clear()
+        table.setColumnCount(len(headers))
+        table.setHorizontalHeaderLabels(headers)
+        table.setRowCount(0)
+        table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        table.verticalHeader().setVisible(False)
+
+    def _bind_history_controls(self) -> None:
+        btn_refresh = getattr(self.ui, "btn_history_refresh", None)
+        if btn_refresh is not None:
+            btn_refresh.clicked.connect(self._on_history_refresh)
+        btn_query = getattr(self.ui, "btn_history_query", None)
+        if btn_query is not None:
+            btn_query.clicked.connect(self._on_history_query)
+        btn_export = getattr(self.ui, "btn_history_export", None)
+        if btn_export is not None:
+            btn_export.clicked.connect(self._on_history_export)
+
+        combo_year = getattr(self.ui, "combo_history_year", None)
+        combo_month = getattr(self.ui, "combo_history_month", None)
+        combo_day = getattr(self.ui, "combo_history_day", None)
+        if combo_year is not None:
+            combo_year.currentIndexChanged.connect(self._on_history_date_changed)
+        if combo_month is not None:
+            combo_month.currentIndexChanged.connect(self._on_history_date_changed)
+        if combo_day is not None:
+            combo_day.currentIndexChanged.connect(self._on_history_date_changed)
+
+    def _refresh_history_date_options(self) -> None:
+        prefixes = self._fetch_summary_date_prefixes()
+        dates = []
+        for prefix in prefixes:
+            parts = prefix.split("_")
+            if len(parts) >= 3:
+                try:
+                    dates.append((int(parts[0]), int(parts[1]), int(parts[2])))
+                except Exception:
+                    continue
+
+        combo_year = getattr(self.ui, "combo_history_year", None)
+        combo_month = getattr(self.ui, "combo_history_month", None)
+        combo_day = getattr(self.ui, "combo_history_day", None)
+        if combo_year is None or combo_month is None or combo_day is None:
+            return
+
+        selected_year = self._get_combo_value(combo_year)
+        selected_month = self._get_combo_value(combo_month)
+        selected_day = self._get_combo_value(combo_day)
+
+        years = sorted({d[0] for d in dates})
+        months = sorted({d[1] for d in dates if selected_year is None or d[0] == selected_year})
+        days = sorted(
+            {
+                d[2]
+                for d in dates
+                if (selected_year is None or d[0] == selected_year)
+                and (selected_month is None or d[1] == selected_month)
+            }
+        )
+
+        self._fill_combo(combo_year, years, selected_year, width=4)
+        self._fill_combo(combo_month, months, selected_month, width=2)
+        self._fill_combo(combo_day, days, selected_day, width=2)
+
+    @staticmethod
+    def _get_combo_value(combo) -> Optional[int]:
+        if combo is None:
+            return None
+        data = combo.currentData()
+        if data in (None, ""):
+            return None
+        try:
+            return int(data)
+        except Exception:
+            return None
+
+    @staticmethod
+    def _fill_combo(combo, values: list[int], current: Optional[int], width: int = 2) -> None:
+        combo.blockSignals(True)
+        combo.clear()
+        combo.addItem("全部", None)
+        for v in values:
+            text = f"{v:0{width}d}"
+            combo.addItem(text, v)
+        if current in values:
+            index = combo.findData(current)
+            if index >= 0:
+                combo.setCurrentIndex(index)
+        combo.blockSignals(False)
+
+    def _on_history_refresh(self) -> None:
+        self._refresh_history_date_options()
+        self._load_history_summary(self._get_history_date_prefix())
+
+    def _on_history_query(self) -> None:
+        self._load_history_summary(self._get_history_date_prefix())
+
+    def _on_history_date_changed(self) -> None:
+        self._refresh_history_date_options()
+        self._load_history_summary(self._get_history_date_prefix())
+
+    def _get_history_date_prefix(self) -> Optional[str]:
+        combo_year = getattr(self.ui, "combo_history_year", None)
+        combo_month = getattr(self.ui, "combo_history_month", None)
+        combo_day = getattr(self.ui, "combo_history_day", None)
+
+        year = self._get_combo_value(combo_year)
+        month = self._get_combo_value(combo_month)
+        day = self._get_combo_value(combo_day)
+
+        if year is None:
+            return None
+        if month is None:
+            return f"{year:04d}"
+        if day is None:
+            return f"{year:04d}_{month:02d}"
+        return f"{year:04d}_{month:02d}_{day:02d}"
+
+    def _load_history_summary(self, date_prefix: Optional[str]) -> None:
+        table = getattr(self.ui, "historyTable", None)
+        if table is None:
+            return
+        table.setRowCount(0)
+
+        db_path = getattr(self._db_worker, "db_path", "./aging_data.db")
+        try:
+            conn = sqlite3.connect(db_path)
+        except Exception:
+            return
+
+        try:
+            self._ensure_summary_table(conn)
+            rows = self._query_summary_rows(conn, date_prefix)
+        finally:
+            conn.close()
+
+        table.setRowCount(len(rows))
+        for r, row in enumerate(rows):
+            values = row["values"]
+            for c, value in enumerate(values):
+                item = QTableWidgetItem(str(value))
+                item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                if c == 0:
+                    item.setData(Qt.ItemDataRole.UserRole, row["table_name"])
+                table.setItem(r, c, item)
+
+    def _fetch_summary_date_prefixes(self) -> list[str]:
+        db_path = getattr(self._db_worker, "db_path", "./aging_data.db")
+        try:
+            conn = sqlite3.connect(db_path)
+        except Exception:
+            return []
+        try:
+            self._ensure_summary_table(conn)
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT DISTINCT DatePrefix FROM Summary WHERE DatePrefix IS NOT NULL ORDER BY DatePrefix DESC"
+            )
+            return [row[0] for row in cursor.fetchall() if row and row[0]]
+        finally:
+            conn.close()
+
+    def _ensure_summary_table(self, conn: sqlite3.Connection) -> None:
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS Summary (
+                TableName TEXT PRIMARY KEY,
+                DatePrefix TEXT,
+                GroupIndex INTEGER,
+                Project TEXT,
+                Operator TEXT,
+                SetHours REAL,
+                StartTime REAL,
+                EndTime REAL,
+                AgingSeconds REAL,
+                Total INTEGER,
+                Good INTEGER,
+                Bad INTEGER,
+                GoodRate REAL
+            )
+            """
+        )
+        conn.commit()
+
+    def _query_summary_rows(
+        self, conn: sqlite3.Connection, date_prefix: Optional[str]
+    ) -> list[dict]:
+        cursor = conn.cursor()
+        if date_prefix:
+            cursor.execute(
+                """
+                SELECT TableName, Project, Operator, SetHours, AgingSeconds, Total, Good, GoodRate
+                FROM Summary WHERE DatePrefix LIKE ? ORDER BY TableName DESC
+                """,
+                (f"{date_prefix}%",),
+            )
+        else:
+            cursor.execute(
+                """
+                SELECT TableName, Project, Operator, SetHours, AgingSeconds, Total, Good, GoodRate
+                FROM Summary ORDER BY TableName DESC
+                """
+            )
+        rows = []
+        for idx, row in enumerate(cursor.fetchall(), start=1):
+            table_name, project, operator, set_hours, aging_seconds, total, good, good_rate = row
+            set_duration = "--"
+            if set_hours is not None:
+                try:
+                    set_duration = self._format_duration(float(set_hours) * 3600)
+                except Exception:
+                    set_duration = "--"
+
+            aging_duration = "--"
+            if aging_seconds is not None:
+                try:
+                    aging_duration = self._format_duration(float(aging_seconds))
+                except Exception:
+                    aging_duration = "--"
+
+            rate_text = (
+                f"{float(good_rate):.2f}%" if good_rate is not None else "0.00%"
+            )
+
+            rows.append(
+                {
+                    "table_name": table_name,
+                    "values": (
+                        idx,
+                        project or "--",
+                        operator or "--",
+                        set_duration,
+                        aging_duration,
+                        int(total or 0),
+                        int(good or 0),
+                        rate_text,
+                    ),
+                }
+            )
+        return rows
+
+    def _on_history_export(self) -> None:
+        table = getattr(self.ui, "historyTable", None)
+        if table is None or table.rowCount() == 0:
+            return
+        file_path, _ = QFileDialog.getSaveFileName(
+            self, "导出汇总表", "summary.csv", "CSV Files (*.csv)"
+        )
+        if not file_path:
+            return
+        selected_rows = table.selectionModel().selectedRows() if table.selectionModel() else []
+        table_names = []
+        if selected_rows:
+            item = table.item(selected_rows[0].row(), 0)
+            if item is not None:
+                table_name = item.data(Qt.ItemDataRole.UserRole)
+                if table_name:
+                    table_names = [table_name]
+        if not table_names:
+            date_prefix = self._get_history_date_prefix()
+            db_path = getattr(self._db_worker, "db_path", "./aging_data.db")
+            try:
+                conn = sqlite3.connect(db_path)
+            except Exception:
+                return
+            try:
+                self._ensure_summary_table(conn)
+                rows = self._query_summary_rows(conn, date_prefix)
+                table_names = [row["table_name"] for row in rows]
+            finally:
+                conn.close()
+
+        if not table_names:
+            return
+
+        if self._history_export_worker is not None and self._history_export_worker.isRunning():
+            return
+        bad_status = set(FUNCTION_CONFIG.get("UI", {}).get("NonRecoverableStatus", []))
+        bad_status.add(-5)
+        self._history_export_worker = _HistoryExportWorker(
+            getattr(self._db_worker, "db_path", "./aging_data.db"),
+            table_names,
+            file_path,
+            bad_status,
+        )
+        self._history_export_worker.start()
+
+    def _write_summary_start(
+        self,
+        table_name: str,
+        group_index: int,
+        project: str,
+        operator: str,
+        set_hours: Optional[float],
+        start_time: float,
+    ) -> None:
+        db_path = getattr(self._db_worker, "db_path", "./aging_data.db")
+        conn = sqlite3.connect(db_path)
+        try:
+            self._ensure_summary_table(conn)
+            date_prefix = table_name[:10]
+            conn.execute(
+                """
+                INSERT OR REPLACE INTO Summary
+                (TableName, DatePrefix, GroupIndex, Project, Operator, SetHours, StartTime,
+                 EndTime, AgingSeconds, Total, Good, Bad, GoodRate)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    table_name,
+                    date_prefix,
+                    int(group_index),
+                    project or "--",
+                    operator or "--",
+                    set_hours,
+                    float(start_time),
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                ),
+            )
+            conn.commit()
+        finally:
+            conn.close()
+
+    def _write_summary_end(
+        self,
+        table_name: str,
+        end_time: float,
+        aging_seconds: Optional[float],
+        total: int,
+        good: int,
+        bad: int,
+        good_rate: float,
+    ) -> None:
+        db_path = getattr(self._db_worker, "db_path", "./aging_data.db")
+        conn = sqlite3.connect(db_path)
+        try:
+            self._ensure_summary_table(conn)
+            conn.execute(
+                """
+                UPDATE Summary
+                SET EndTime=?, AgingSeconds=?, Total=?, Good=?, Bad=?, GoodRate=?
+                WHERE TableName=?
+                """,
+                (
+                    float(end_time),
+                    aging_seconds,
+                    int(total),
+                    int(good),
+                    int(bad),
+                    float(good_rate),
+                    table_name,
+                ),
+            )
+            conn.commit()
+        finally:
+            conn.close()
 
     def _populate_combo_options(self) -> None:
         projects = list(PROJECT_CONFIG.keys())
@@ -785,6 +1165,19 @@ class Connector(QWidget):
 
         if not state["running"]:
             self._group_table[group_index] = self._db_worker.create_new_table()
+            project_name = getattr(self.ui, f"combo_product_{group_index}", None)
+            operator_name = getattr(self.ui, f"combo_worker_{group_index}", None)
+            project_text = project_name.currentText() if project_name else "--"
+            operator_text = operator_name.currentText() if operator_name else "--"
+            set_hours = self._get_group_aging_hours(group_index)
+            self._write_summary_start(
+                self._group_table[group_index],
+                group_index,
+                project_text,
+                operator_text,
+                set_hours,
+                now,
+            )
 
         if not getattr(app, "_started", False):
             app.startup()
@@ -873,6 +1266,8 @@ class Connector(QWidget):
     def _stop_group(self, group_index: int) -> None:
         state = self._group_state[group_index]
         app = self._apps.get(group_index)
+        start_time = state.get("start_time")
+        end_time = time.time()
         state["frozen"] = True
         state["running"] = False
         state["paused"] = False
@@ -882,6 +1277,23 @@ class Connector(QWidget):
         state["tx_started"] = False
         self._set_group_buttons_running(group_index, running=False, paused=False)
         # 保留最后表名, 以便停止后仍可查看历史曲线
+
+        table_name = self._group_table.get(group_index)
+        if table_name:
+            total, good, bad, pass_rate, _ = self._calc_group_summary(group_index)
+            st = float(start_time) if start_time else None
+            aging_seconds = None
+            if st is not None:
+                aging_seconds = max(0.0, end_time - st)
+            self._write_summary_end(
+                table_name,
+                end_time=end_time,
+                aging_seconds=aging_seconds,
+                total=total,
+                good=good,
+                bad=bad,
+                good_rate=pass_rate,
+            )
 
         worker = self._workers.pop(group_index, None)
         if worker is not None and worker.isRunning():
@@ -1450,6 +1862,180 @@ class _ChartDataWorker(QThread):
                 conn.close()
             except Exception:
                 pass
+
+
+class _HistoryExportWorker(QThread):
+    def __init__(
+        self,
+        db_path: str,
+        table_names: list[str],
+        file_path: str,
+        bad_status: set[int],
+    ):
+        super().__init__()
+        self._db_path = db_path
+        self._table_names = table_names
+        self._file_path = file_path
+        self._bad_status = bad_status
+
+    def run(self):
+        try:
+            conn = sqlite3.connect(self._db_path)
+        except Exception:
+            return
+
+        try:
+            with open(self._file_path, "w", newline="", encoding="utf-8-sig") as f:
+                writer = csv.writer(f)
+                writer.writerow(
+                    [
+                        "批次表",
+                        "穴位",
+                        "状态",
+                        "电压最小值",
+                        "电压最小时间",
+                        "电压最大值",
+                        "电压最大时间",
+                        "电压平均值",
+                        "电流最小值",
+                        "电流最小时间",
+                        "电流最大值",
+                        "电流最大时间",
+                        "电流平均值",
+                        "温度最小值",
+                        "温度最小时间",
+                        "温度最大值",
+                        "温度最大时间",
+                        "温度平均值",
+                    ]
+                )
+                for table_name in self._table_names:
+                    self._write_table_summary(conn, writer, table_name)
+        except Exception:
+            return
+        finally:
+            try:
+                conn.close()
+            except Exception:
+                pass
+
+    def _write_table_summary(
+        self, conn: sqlite3.Connection, writer: csv.writer, table_name: str
+    ) -> None:
+        cursor = conn.cursor()
+        try:
+            cursor.execute(
+                f'SELECT DISTINCT Slot FROM "{table_name}" ORDER BY Slot ASC'
+            )
+        except Exception:
+            return
+
+        slots = [row[0] for row in cursor.fetchall()]
+        for slot in slots:
+            last_status = self._get_last_status(cursor, table_name, slot)
+            status_text = "NG"
+            if last_status == 1:
+                status_text = "OK"
+            elif last_status in (0, -4, None):
+                status_text = "--"
+            elif last_status in self._bad_status:
+                status_text = "NG"
+
+            v_stats = self._get_stats(cursor, table_name, slot, "Voltage")
+            c_stats = self._get_stats(cursor, table_name, slot, "Current")
+            t_stats = self._get_stats(cursor, table_name, slot, "Temperature")
+
+            writer.writerow(
+                [
+                    table_name,
+                    slot,
+                    status_text,
+                    *v_stats,
+                    *c_stats,
+                    *t_stats,
+                ]
+            )
+
+    def _get_last_status(
+        self, cursor: sqlite3.Cursor, table_name: str, slot: int
+    ) -> Optional[int]:
+        try:
+            cursor.execute(
+                f'SELECT Status FROM "{table_name}" WHERE Slot=? ORDER BY Id DESC LIMIT 1',
+                (int(slot),),
+            )
+            row = cursor.fetchone()
+        except Exception:
+            return None
+        if not row:
+            return None
+        try:
+            return int(row[0])
+        except Exception:
+            return None
+
+    def _get_stats(
+        self, cursor: sqlite3.Cursor, table_name: str, slot: int, field: str
+    ) -> list[str]:
+        try:
+            cursor.execute(
+                f'SELECT MIN({field}), MAX({field}), AVG({field}) FROM "{table_name}" WHERE Slot=? AND {field} IS NOT NULL',
+                (int(slot),),
+            )
+            row = cursor.fetchone()
+        except Exception:
+            row = None
+
+        if not row:
+            return ["", "", "", "", ""]
+
+        min_val, max_val, avg_val = row
+        min_time = self._get_time_for_value(cursor, table_name, slot, field, min_val, asc=True)
+        max_time = self._get_time_for_value(cursor, table_name, slot, field, max_val, asc=False)
+
+        return [
+            self._fmt_float(min_val),
+            min_time,
+            self._fmt_float(max_val),
+            max_time,
+            self._fmt_float(avg_val),
+        ]
+
+    def _get_time_for_value(
+        self,
+        cursor: sqlite3.Cursor,
+        table_name: str,
+        slot: int,
+        field: str,
+        value: Optional[float],
+        asc: bool = True,
+    ) -> str:
+        if value is None:
+            return ""
+        order = "ASC" if asc else "DESC"
+        try:
+            cursor.execute(
+                f'SELECT Timestamp FROM "{table_name}" WHERE Slot=? AND {field}=? ORDER BY Timestamp {order} LIMIT 1',
+                (int(slot), value),
+            )
+            row = cursor.fetchone()
+        except Exception:
+            row = None
+        if not row or row[0] is None:
+            return ""
+        try:
+            return datetime.fromtimestamp(float(row[0])).strftime("%Y-%m-%d %H:%M:%S")
+        except Exception:
+            return ""
+
+    @staticmethod
+    def _fmt_float(value: Optional[float]) -> str:
+        if value is None:
+            return ""
+        try:
+            return f"{float(value):.2f}"
+        except Exception:
+            return ""
 
 
 class AgingThread(QThread):
