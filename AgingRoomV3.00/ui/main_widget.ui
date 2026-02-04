@@ -933,7 +933,7 @@
 	   <item>
 		<widget class="QLabel" name="aboutVersion">
 		 <property name="text">
-		  <string>Version: 1.0.0 (Build 2025)</string>
+		  <string>Version: 3.0.0 (Build 2026)</string>
 		 </property>
 		 <property name="alignment">
 		  <set>Qt::AlignCenter</set>

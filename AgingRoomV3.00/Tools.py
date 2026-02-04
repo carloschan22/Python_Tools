@@ -42,6 +42,10 @@ _THIRD_PARTY_NOISE_LOGGERS = [
 for _logger_name in _THIRD_PARTY_NOISE_LOGGERS:
     logging.getLogger(_logger_name).setLevel(logging.WARNING)
 
+_UNWANTED_LOGGERS = ["UdsClient"]
+for _logger_name in _UNWANTED_LOGGERS:
+    logging.getLogger(_logger_name).disabled = True
+
 
 def hex_to_int(value: Union[str, int]) -> int:
     """将 '0xF190' / 'F190' / 0xF190 转成 int。"""
