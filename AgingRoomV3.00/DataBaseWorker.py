@@ -3,6 +3,7 @@ import sqlite3
 import threading
 import queue
 import json
+import time
 from datetime import datetime
 from typing import List, Tuple, Any, Optional
 from Logger import LoggerMixin
@@ -23,6 +24,8 @@ class DataBaseWorker(LoggerMixin):
         self._queue: "queue.Queue[tuple[str, Tuple[Any, ...]]]" = queue.Queue()
         self._stop_event = threading.Event()
         self._worker: Optional[threading.Thread] = None
+        self._max_queue_size = 500
+        self._last_queue_warn = 0.0
 
     def check_database_exists(self) -> bool:
         return os.path.isfile(self.db_path)
@@ -120,9 +123,9 @@ class DataBaseWorker(LoggerMixin):
 
         if isinstance(data, dict):
             rows = self.build_rows_from_snapshot(data)
-            for row in rows:
-                self._insert_row(table_name, row)
-            self.connection.commit()
+            if rows:
+                self._insert_rows(table_name, rows)
+                self.connection.commit()
             return
 
         if not isinstance(data, (tuple, list)) or len(data) != 10:
@@ -139,6 +142,17 @@ class DataBaseWorker(LoggerMixin):
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             row,
+        )
+
+    def _insert_rows(self, table_name: str, rows: List[Tuple[Any, ...]]):
+        self.cursor.executemany(
+            f"""
+            INSERT INTO "{table_name}" (
+                Slot, Timestamp, Status, Voltage, Current, Temperature,
+                DtcCodes, AdditionalInfo_1, AdditionalInfo_2, DiagResults
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            rows,
         )
 
     def writing_thread(self):
@@ -170,6 +184,15 @@ class DataBaseWorker(LoggerMixin):
 
     def enqueue(self, table_name: str, data: Any):
         """可选：异步写入队列。"""
+        if self._queue.qsize() >= self._max_queue_size:
+            now = time.time()
+            if now - self._last_queue_warn > 10:
+                self._last_queue_warn = now
+                self.log.warning(
+                    "DB write queue is full (%s), dropping snapshot to avoid UI stall.",
+                    self._max_queue_size,
+                )
+            return
         self._queue.put((table_name, data))
 
     @staticmethod

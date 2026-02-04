@@ -618,6 +618,8 @@ class Connector(QWidget):
             total = float(aging_hours) * 3600
             remaining = max(0.0, total - elapsed)
             remaining_edit.setText(self._format_duration(remaining))
+            if elapsed >= total:
+                self._stop_group(group_index)
 
     @staticmethod
     def _format_duration(seconds: float) -> str:
