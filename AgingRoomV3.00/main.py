@@ -204,7 +204,17 @@ class Connector(QWidget):
         table = getattr(self.ui, "historyTable", None)
         if table is None:
             return
-        headers = ["序号", "型号", "作业员", "设定时长", "老化时长", "总数量", "良品", "良率"]
+        headers = [
+            "序号",
+            "组别",
+            "型号",
+            "作业员",
+            "设定时长",
+            "老化时长",
+            "总数量",
+            "良品",
+            "良率",
+        ]
         table.clear()
         table.setColumnCount(len(headers))
         table.setHorizontalHeaderLabels(headers)
@@ -258,7 +268,9 @@ class Connector(QWidget):
         selected_day = self._get_combo_value(combo_day)
 
         years = sorted({d[0] for d in dates})
-        months = sorted({d[1] for d in dates if selected_year is None or d[0] == selected_year})
+        months = sorted(
+            {d[1] for d in dates if selected_year is None or d[0] == selected_year}
+        )
         days = sorted(
             {
                 d[2]
@@ -285,7 +297,9 @@ class Connector(QWidget):
             return None
 
     @staticmethod
-    def _fill_combo(combo, values: list[int], current: Optional[int], width: int = 2) -> None:
+    def _fill_combo(
+        combo, values: list[int], current: Optional[int], width: int = 2
+    ) -> None:
         combo.blockSignals(True)
         combo.clear()
         combo.addItem("全部", None)
@@ -399,7 +413,7 @@ class Connector(QWidget):
         if date_prefix:
             cursor.execute(
                 """
-                SELECT TableName, Project, Operator, SetHours, AgingSeconds, Total, Good, GoodRate
+                SELECT TableName, GroupIndex, Project, Operator, SetHours, AgingSeconds, Total, Good, GoodRate
                 FROM Summary WHERE DatePrefix LIKE ? ORDER BY TableName DESC
                 """,
                 (f"{date_prefix}%",),
@@ -407,13 +421,23 @@ class Connector(QWidget):
         else:
             cursor.execute(
                 """
-                SELECT TableName, Project, Operator, SetHours, AgingSeconds, Total, Good, GoodRate
+                SELECT TableName, GroupIndex, Project, Operator, SetHours, AgingSeconds, Total, Good, GoodRate
                 FROM Summary ORDER BY TableName DESC
                 """
             )
         rows = []
         for idx, row in enumerate(cursor.fetchall(), start=1):
-            table_name, project, operator, set_hours, aging_seconds, total, good, good_rate = row
+            (
+                table_name,
+                group_index,
+                project,
+                operator,
+                set_hours,
+                aging_seconds,
+                total,
+                good,
+                good_rate,
+            ) = row
             set_duration = "--"
             if set_hours is not None:
                 try:
@@ -428,15 +452,14 @@ class Connector(QWidget):
                 except Exception:
                     aging_duration = "--"
 
-            rate_text = (
-                f"{float(good_rate):.2f}%" if good_rate is not None else "0.00%"
-            )
+            rate_text = f"{float(good_rate):.2f}%" if good_rate is not None else "0.00%"
 
             rows.append(
                 {
                     "table_name": table_name,
                     "values": (
                         idx,
+                        int(group_index or 0),
                         project or "--",
                         operator or "--",
                         set_duration,
@@ -458,7 +481,9 @@ class Connector(QWidget):
         )
         if not file_path:
             return
-        selected_rows = table.selectionModel().selectedRows() if table.selectionModel() else []
+        selected_rows = (
+            table.selectionModel().selectedRows() if table.selectionModel() else []
+        )
         table_names = []
         if selected_rows:
             item = table.item(selected_rows[0].row(), 0)
@@ -483,10 +508,12 @@ class Connector(QWidget):
         if not table_names:
             return
 
-        if self._history_export_worker is not None and self._history_export_worker.isRunning():
+        if (
+            self._history_export_worker is not None
+            and self._history_export_worker.isRunning()
+        ):
             return
         bad_status = set(FUNCTION_CONFIG.get("UI", {}).get("NonRecoverableStatus", []))
-        bad_status.add(-5)
         self._history_export_worker = _HistoryExportWorker(
             getattr(self._db_worker, "db_path", "./aging_data.db"),
             table_names,
@@ -1932,14 +1959,12 @@ class _HistoryExportWorker(QThread):
 
         slots = [row[0] for row in cursor.fetchall()]
         for slot in slots:
-            last_status = self._get_last_status(cursor, table_name, slot)
-            status_text = "NG"
-            if last_status == 1:
-                status_text = "OK"
-            elif last_status in (0, -4, None):
-                status_text = "--"
-            elif last_status in self._bad_status:
+            if self._has_ng_status(cursor, table_name, slot):
                 status_text = "NG"
+            elif self._has_ok_status(cursor, table_name, slot):
+                status_text = "OK"
+            else:
+                status_text = "--"
 
             v_stats = self._get_stats(cursor, table_name, slot, "Voltage")
             c_stats = self._get_stats(cursor, table_name, slot, "Current")
@@ -1956,23 +1981,33 @@ class _HistoryExportWorker(QThread):
                 ]
             )
 
-    def _get_last_status(
+    def _has_ng_status(
         self, cursor: sqlite3.Cursor, table_name: str, slot: int
-    ) -> Optional[int]:
+    ) -> bool:
+        if not self._bad_status:
+            return False
+        placeholders = ",".join(["?"] * len(self._bad_status))
+        params = [int(slot), *self._bad_status]
         try:
             cursor.execute(
-                f'SELECT Status FROM "{table_name}" WHERE Slot=? ORDER BY Id DESC LIMIT 1',
+                f'SELECT 1 FROM "{table_name}" WHERE Slot=? AND Status IN ({placeholders}) LIMIT 1',
+                params,
+            )
+            return cursor.fetchone() is not None
+        except Exception:
+            return False
+
+    def _has_ok_status(
+        self, cursor: sqlite3.Cursor, table_name: str, slot: int
+    ) -> bool:
+        try:
+            cursor.execute(
+                f'SELECT 1 FROM "{table_name}" WHERE Slot=? AND Status=1 LIMIT 1',
                 (int(slot),),
             )
-            row = cursor.fetchone()
+            return cursor.fetchone() is not None
         except Exception:
-            return None
-        if not row:
-            return None
-        try:
-            return int(row[0])
-        except Exception:
-            return None
+            return False
 
     def _get_stats(
         self, cursor: sqlite3.Cursor, table_name: str, slot: int, field: str
@@ -1990,8 +2025,12 @@ class _HistoryExportWorker(QThread):
             return ["", "", "", "", ""]
 
         min_val, max_val, avg_val = row
-        min_time = self._get_time_for_value(cursor, table_name, slot, field, min_val, asc=True)
-        max_time = self._get_time_for_value(cursor, table_name, slot, field, max_val, asc=False)
+        min_time = self._get_time_for_value(
+            cursor, table_name, slot, field, min_val, asc=True
+        )
+        max_time = self._get_time_for_value(
+            cursor, table_name, slot, field, max_val, asc=False
+        )
 
         return [
             self._fmt_float(min_val),
