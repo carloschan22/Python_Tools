@@ -3,7 +3,7 @@ import time
 from typing import Optional
 from Logger import LoggerMixin
 from CanInitializer import CanBusManager
-from Tools import SELECTED_PROJECT, FUNCTION_CONFIG, PROJECT_CONFIG
+from Tools import FUNCTION_CONFIG, PROJECT_CONFIG, get_default_project
 
 
 class OutputCtrl(LoggerMixin):
@@ -38,17 +38,23 @@ class OutputCtrl(LoggerMixin):
 class CustomTxMsg(LoggerMixin):
     """用于控制自定义发送报文的基类"""
 
-    def __init__(self, can_manager: CanBusManager, which_msg: int):
+    def __init__(
+        self,
+        can_manager: CanBusManager,
+        which_msg: int,
+        project_name: str | None = None,
+    ):
         self.can_manager: CanBusManager = can_manager
         self.which_msg = which_msg
         self.bus: can.BusABC = can_manager.get_bus()
+        self.project_name = project_name or get_default_project(1)
 
     def create_periodic_task(self, ch1: bool = True, ch2: bool = True):
         import Protocol
 
         ch1_msg_id = getattr(Protocol, f"CH1_TX{self.which_msg}_ID")
         ch2_msg_id = getattr(Protocol, f"CH2_TX{self.which_msg}_ID")
-        tx_cfg = PROJECT_CONFIG[SELECTED_PROJECT].get("TX", {})
+        tx_cfg = PROJECT_CONFIG[self.project_name].get("TX", {})
         msg_id = tx_cfg.get(f"IdOfTxMsg{self.which_msg}")
         signal_data = tx_cfg.get(f"DataOfTxMsg{self.which_msg}", {})
         is_fd = tx_cfg.get(f"TypeOfTxMsg{self.which_msg}") == "CANFD"
@@ -110,15 +116,15 @@ class CustomTxMsg(LoggerMixin):
 class CustomTxMsg1(CustomTxMsg):
     """用于控制自定义发送报文1的类"""
 
-    def __init__(self, can_manager: CanBusManager):
-        super().__init__(can_manager, 1)
+    def __init__(self, can_manager: CanBusManager, project_name: str | None = None):
+        super().__init__(can_manager, 1, project_name=project_name)
 
 
 class CustomTxMsg2(CustomTxMsg):
     """用于控制自定义发送报文2的类"""
 
-    def __init__(self, can_manager: CanBusManager):
-        super().__init__(can_manager, 2)
+    def __init__(self, can_manager: CanBusManager, project_name: str | None = None):
+        super().__init__(can_manager, 2, project_name=project_name)
 
 
 if __name__ == "__main__":

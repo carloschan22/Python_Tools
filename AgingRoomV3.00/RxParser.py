@@ -5,21 +5,22 @@ from typing import Any, Optional
 from Protocol import split_by_can_id, get_slot_id_by_can_id
 from Logger import LoggerMixin
 from Tools import (
-    SELECTED_PROJECT,
     FUNCTION_CONFIG,
     PROJECT_CONFIG,
     create_slot_table,
+    get_default_project,
 )
 
 
 class CustomRxMsg(LoggerMixin):
     """自定义采集卡报文解析基类"""
 
-    def __init__(self, dbc: Any):
+    def __init__(self, dbc: Any, project_name: str | None = None):
         self.status = create_slot_table(
             FUNCTION_CONFIG["UI"]["IndexPerGroup"], default_factory=dict
         )
         self.decoder = DbcDecoder(dbc=dbc, data_list=self.status)
+        self.project_name = project_name or get_default_project(1)
 
 
 class DbcDecoder(LoggerMixin):
@@ -47,12 +48,12 @@ class DbcDecoder(LoggerMixin):
 class CustomRxMsg1(CustomRxMsg, LoggerMixin):
     """自定义采集卡报文1解析"""
 
-    def __init__(self, dbc: Any):
-        super().__init__(dbc)
+    def __init__(self, dbc: Any, project_name: str | None = None):
+        super().__init__(dbc, project_name=project_name)
 
     def decoding(self, msg: can.Message):
         """启动DBC解码器"""
-        rx_cfg = PROJECT_CONFIG.get(SELECTED_PROJECT, {}).get("RX", {})
+        rx_cfg = PROJECT_CONFIG.get(self.project_name, {}).get("RX", {})
         origin_id = rx_cfg.get("IdOfRxMsg1")
         if origin_id is None:
             return
@@ -62,12 +63,12 @@ class CustomRxMsg1(CustomRxMsg, LoggerMixin):
 class CustomRxMsg2(CustomRxMsg, LoggerMixin):
     """自定义采集卡报文2解析"""
 
-    def __init__(self, dbc: Any):
-        super().__init__(dbc)
+    def __init__(self, dbc: Any, project_name: str | None = None):
+        super().__init__(dbc, project_name=project_name)
 
     def decoding(self, msg: can.Message):
         """启动DBC解码器"""
-        rx_cfg = PROJECT_CONFIG.get(SELECTED_PROJECT, {}).get("RX", {})
+        rx_cfg = PROJECT_CONFIG.get(self.project_name, {}).get("RX", {})
         origin_id = rx_cfg.get("IdOfRxMsg2")
         if origin_id is None:
             return
@@ -77,12 +78,13 @@ class CustomRxMsg2(CustomRxMsg, LoggerMixin):
 class AgingStatus(LoggerMixin):
     """解析采集卡老化状态"""
 
-    def __init__(self):
+    def __init__(self, project_name: str | None = None):
         self.status = create_slot_table(
             FUNCTION_CONFIG["UI"]["IndexPerGroup"],
             default_factory=self._blank_status,
         )
         self._timestamp_offset: Optional[float] = None
+        self.project_name = project_name or get_default_project(1)
 
     def _normalize_timestamp(self, ts: Any) -> Optional[float]:
         try:
@@ -188,8 +190,8 @@ class AgingStatus(LoggerMixin):
 
         status = 0
         dark_current: float = FUNCTION_CONFIG["PowerSupply"]["DarkCurrent"]
-        voltage_range: list[int] = PROJECT_CONFIG[SELECTED_PROJECT]["工作电压范围"]
-        current_range: list[int] = PROJECT_CONFIG[SELECTED_PROJECT]["工作电流范围"]
+        voltage_range: list[int] = PROJECT_CONFIG[self.project_name]["工作电压范围"]
+        current_range: list[int] = PROJECT_CONFIG[self.project_name]["工作电流范围"]
         if voltage <= 0 and current <= 0:
             return -5
 
@@ -239,7 +241,12 @@ class AgingStatus(LoggerMixin):
 class RxSplitter(can.Listener, LoggerMixin):
     """来自采集卡Can报文分流器,三个节点报文解析"""
 
-    def __init__(self, dbc: Any, switcher: Optional[list[bool]] = None):
+    def __init__(
+        self,
+        dbc: Any,
+        switcher: Optional[list[bool]] = None,
+        project_name: str | None = None,
+    ):
         if switcher is None:
             switcher = [True, True, True]
         if len(switcher) != 3:
@@ -250,9 +257,9 @@ class RxSplitter(can.Listener, LoggerMixin):
         self.rx_msg_managers: list[
             Optional[AgingStatus | CustomRxMsg1 | CustomRxMsg2]
         ] = [
-            AgingStatus() if switcher[0] else None,
-            CustomRxMsg1(dbc) if switcher[1] else None,
-            CustomRxMsg2(dbc) if switcher[2] else None,
+            AgingStatus(project_name=project_name) if switcher[0] else None,
+            CustomRxMsg1(dbc, project_name=project_name) if switcher[1] else None,
+            CustomRxMsg2(dbc, project_name=project_name) if switcher[2] else None,
         ]
 
         self._dispatch = {}

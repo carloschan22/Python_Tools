@@ -11,13 +11,13 @@ from Logger import LoggerMixin
 from typing import List, Optional
 
 
-from Tools import SELECTED_PROJECT, FUNCTION_CONFIG, PROJECT_CONFIG
+from Tools import FUNCTION_CONFIG, PROJECT_CONFIG, get_default_project
 
 
 class CanBusManager(LoggerMixin):
     """CAN总线管理器：统一管理Bus和Notifier"""
 
-    def __init__(self, business_parser=None):
+    def __init__(self, business_parser=None, project_name: Optional[str] = None):
         """
         初始化CAN总线管理器
 
@@ -31,9 +31,12 @@ class CanBusManager(LoggerMixin):
         self._listeners: List[can.Listener] = []
         self._started = False
         self._business_parser = business_parser
-        self.dbc = cantools.db.load_file(
-            PROJECT_CONFIG[SELECTED_PROJECT]["DBC路径"], encoding="utf-8"
-        )
+        self.project_name = project_name or get_default_project(1)
+        self.project_cfg = PROJECT_CONFIG.get(self.project_name, {})
+        dbc_path = self.project_cfg.get("DBC路径")
+        if not dbc_path:
+            raise ValueError(f"DBC路径 未配置: {self.project_name}")
+        self.dbc = cantools.db.load_file(dbc_path, encoding="utf-8")
         self.log.info(
             f"CanBusManager initialized with business_parser: {business_parser}"
         )
@@ -201,7 +204,7 @@ class CanBusManager(LoggerMixin):
                 return value
             for key in ("IdOfTxMsg1", "IdOfTxMsg2"):
                 try:
-                    tx_cfg = PROJECT_CONFIG[SELECTED_PROJECT].get("TX", {})
+                    tx_cfg = self.project_cfg.get("TX", {})
                     if value == tx_cfg.get(key):
                         return key
                 except Exception:

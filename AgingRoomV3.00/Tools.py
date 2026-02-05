@@ -23,7 +23,105 @@ PROJECT_CONFIG = load_config("ProjectConfig.json")
 COLOR_MAPPING = FUNCTION_CONFIG.get("UI", {}).get(
     "ColorMapping", FUNCTION_CONFIG.get("ColorMapping", {})
 )
-SELECTED_PROJECT = FUNCTION_CONFIG["UI"]["DefaultProject"]
+
+
+def _normalize_grouped_ui_value(
+    value, group_count: int, fallback_value: Optional[str] = None
+) -> list:
+    """将 UI 配置的按组字段统一归一为长度=group_count 的列表。"""
+    group_count = max(1, int(group_count))
+    items: list = []
+
+    if isinstance(value, list):
+        items = list(value)
+    elif isinstance(value, dict):
+        items = [None] * group_count
+        for i in range(1, group_count + 1):
+            items[i - 1] = value.get(str(i), value.get(i))
+    else:
+        items = [value] * group_count
+
+    # 选择可用的默认填充值
+    fallback = None
+    for v in items:
+        if v not in (None, ""):
+            fallback = v
+            break
+    if fallback is None:
+        fallback = fallback_value
+
+    # 补齐长度
+    if len(items) < group_count:
+        items.extend([fallback] * (group_count - len(items)))
+
+    # 填空
+    return [fallback if (v is None or v == "") else v for v in items]
+
+
+def get_default_project(
+    group_index: Optional[int] = None, projects: Optional[list[str]] = None
+) -> str:
+    ui_cfg = FUNCTION_CONFIG.get("UI", {})
+    group_count = int(ui_cfg.get("GroupCount", 1))
+    projects = projects or list(PROJECT_CONFIG.keys())
+    fallback = projects[0] if projects else ""
+    items = _normalize_grouped_ui_value(
+        ui_cfg.get("DefaultProject"), group_count, fallback
+    )
+    index = int(group_index or 1)
+    if index < 1:
+        index = 1
+    if index > len(items):
+        return fallback
+    value = items[index - 1]
+    return value if value in projects else fallback
+
+
+def get_default_operator(
+    group_index: Optional[int] = None, operators: Optional[list[str]] = None
+) -> str:
+    ui_cfg = FUNCTION_CONFIG.get("UI", {})
+    group_count = int(ui_cfg.get("GroupCount", 1))
+    operators = operators or list(ui_cfg.get("OperatorList", []))
+    fallback = operators[0] if operators else ""
+    items = _normalize_grouped_ui_value(
+        ui_cfg.get("DefaultOperator"), group_count, fallback
+    )
+    index = int(group_index or 1)
+    if index < 1:
+        index = 1
+    if index > len(items):
+        return fallback
+    value = items[index - 1]
+    return value if (not operators or value in operators) else fallback
+
+
+def _update_grouped_ui_value(key: str, group_index: int, value) -> None:
+    """更新 UI 下的按组字段，并写回 FuncConfig.json。"""
+    config_folder = Path(__file__).parent / "config"
+    file_path = config_folder / "FuncConfig.json"
+    with open(file_path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    ui_cfg = data.setdefault("UI", {})
+    group_count = int(ui_cfg.get("GroupCount", 1))
+    current = ui_cfg.get(key)
+    items = _normalize_grouped_ui_value(current, max(group_count, group_index), value)
+
+    index = int(group_index)
+    if index < 1:
+        index = 1
+    if index > len(items):
+        items.extend([items[-1] if items else value] * (index - len(items)))
+    items[index - 1] = value
+
+    ui_cfg[key] = items
+
+    with open(file_path, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=4, ensure_ascii=False)
+
+
+SELECTED_PROJECT = get_default_project(1)
 logging_level = getattr(logging, FUNCTION_CONFIG["Logging"]["LogLevel"], logging.INFO)
 logging_file = FUNCTION_CONFIG["Logging"]["LogPath"]
 configure_default_logging(level=logging_level, log_file=logging_file)
@@ -204,10 +302,12 @@ def change_json_value(file_name, key, new_value):
         json.dump(data, f, indent=4, ensure_ascii=False)
 
 
-def refresh_ui_config(selected_project, selected_duration, selected_operator):
-    """刷新UI相关的全局配置变量"""
-    change_json_value("FuncConfig", "UI.DefaultProject", selected_project)
-    change_json_value("FuncConfig", "UI.DefaultOperator", selected_operator)
+def refresh_ui_config(
+    selected_project, selected_duration, selected_operator, group_index: int = 1
+):
+    """刷新UI相关的全局配置变量（按组保存默认值）"""
+    _update_grouped_ui_value("DefaultProject", int(group_index), selected_project)
+    _update_grouped_ui_value("DefaultOperator", int(group_index), selected_operator)
     change_json_value(
         "ProjectConfig", f"{selected_project}.默认老化时长", selected_duration
     )
@@ -219,7 +319,7 @@ def refresh_configs():
     global FUNCTION_CONFIG, PROJECT_CONFIG, SELECTED_PROJECT, COLOR_MAPPING
     FUNCTION_CONFIG = load_config("FuncConfig.json")
     PROJECT_CONFIG = load_config("ProjectConfig.json")
-    SELECTED_PROJECT = FUNCTION_CONFIG["UI"]["DefaultProject"]
+    SELECTED_PROJECT = get_default_project(1)
     COLOR_MAPPING = FUNCTION_CONFIG.get("UI", {}).get(
         "ColorMapping", FUNCTION_CONFIG.get("ColorMapping", {})
     )

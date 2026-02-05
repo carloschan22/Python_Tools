@@ -5,7 +5,7 @@ from Logger import LoggerMixin
 from RxParser import RxSplitter
 from CanInitializer import CanBusManager
 from typing import Any, Callable, Optional
-from Tools import PROJECT_CONFIG, SELECTED_PROJECT, set_cards
+from Tools import PROJECT_CONFIG, set_cards, get_default_project
 
 
 class _PeriodicWorker(LoggerMixin):
@@ -67,13 +67,15 @@ class ComponentsInstantiation(LoggerMixin):
         group_index: int = 0,
         injectors: Optional[list[Callable[["ComponentsInstantiation"], None]]] = None,
         autostart: bool = True,
+        project_name: Optional[str] = None,
     ):
         self._group_index = group_index
         self._injectors = list(injectors or [])
         self._started = False
         self.can_manager: Optional[CanBusManager] = None
 
-        self.project_cfg = PROJECT_CONFIG.get(SELECTED_PROJECT, {})
+        self.project_name = project_name or get_default_project(self._group_index or 1)
+        self.project_cfg = PROJECT_CONFIG.get(self.project_name, {})
         self.supported = set(self.project_cfg.get("SupportedComponents", []))
 
         if "AgingStatus" not in self.supported:
@@ -112,12 +114,29 @@ class ComponentsInstantiation(LoggerMixin):
         if autostart:
             self.startup()
 
+    def set_project(self, project_name: str) -> None:
+        """在未启动时切换项目配置。"""
+        if not project_name:
+            return
+        if project_name == self.project_name:
+            return
+        if self._started:
+            self.log.warning(
+                f"组件已启动，无法切换项目: {self.project_name} -> {project_name}"
+            )
+            return
+        self.project_name = project_name
+        self.project_cfg = PROJECT_CONFIG.get(self.project_name, {})
+        self.supported = set(self.project_cfg.get("SupportedComponents", []))
+
     def startup(self) -> None:
         if self._started:
             return
         self._started = True
 
-        self.can_manager = CanBusManager().initialize(index=self._group_index)
+        self.can_manager = CanBusManager(project_name=self.project_name).initialize(
+            index=self._group_index
+        )
 
         rx_cfg = self.project_cfg.get("RX", {})
         rx_id1 = rx_cfg.get("IdOfRxMsg1")
@@ -128,7 +147,11 @@ class ComponentsInstantiation(LoggerMixin):
             ("CustomRxMsg1" in self.supported) and (rx_id1 is not None),
             ("CustomRxMsg2" in self.supported) and (rx_id2 is not None),
         ]
-        rx_splitter = RxSplitter(self.can_manager.get_dbc(), switcher=rx_switcher)
+        rx_splitter = RxSplitter(
+            self.can_manager.get_dbc(),
+            switcher=rx_switcher,
+            project_name=self.project_name,
+        )
         if any(rx_switcher):
             self.can_manager.register_listener(rx_splitter)
 
@@ -147,14 +170,18 @@ class ComponentsInstantiation(LoggerMixin):
             try:
                 from Sending import CustomTxMsg1
 
-                self._instant_manager["CustomTxMsg1"] = CustomTxMsg1(self.can_manager)
+                self._instant_manager["CustomTxMsg1"] = CustomTxMsg1(
+                    self.can_manager, project_name=self.project_name
+                )
             except Exception as exc:
                 self.log.error(f"CustomTxMsg1 实例化失败: {exc}")
         if "CustomTxMsg2" in self.supported:
             try:
                 from Sending import CustomTxMsg2
 
-                self._instant_manager["CustomTxMsg2"] = CustomTxMsg2(self.can_manager)
+                self._instant_manager["CustomTxMsg2"] = CustomTxMsg2(
+                    self.can_manager, project_name=self.project_name
+                )
             except Exception as exc:
                 self.log.error(f"CustomTxMsg2 实例化失败: {exc}")
 
@@ -168,6 +195,7 @@ class ComponentsInstantiation(LoggerMixin):
                     self.can_manager.get_bus(),
                     self.can_manager.get_notifier(),
                     slot_count=80,
+                    project_name=self.project_name,
                 )
             except Exception as exc:
                 # Diagnostic.py 依赖的 Tools/第三方库可能未就绪, 避免影响其它功能

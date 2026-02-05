@@ -1,7 +1,7 @@
 from struct import pack, unpack
 from pymodbus.client import ModbusSerialClient
 from Logger import LoggerMixin
-from Tools import SELECTED_PROJECT, FUNCTION_CONFIG, PROJECT_CONFIG
+from Tools import FUNCTION_CONFIG, PROJECT_CONFIG, get_default_project
 
 
 def float_to_ieee754_be_words(value: float) -> tuple[int, int]:
@@ -105,12 +105,13 @@ class DY4010(LoggerMixin):
         )
         return not result.isError()
 
-    def set_param_and_start_output(self) -> bool:
+    def set_param_and_start_output(self, project_name: str | None = None) -> bool:
+        project_name = project_name or get_default_project(1)
         return all(
             [
                 self.start_output(),
                 self.set_voltage(
-                    output_voltage=PROJECT_CONFIG[SELECTED_PROJECT]["默认工作电压"]
+                    output_voltage=PROJECT_CONFIG[project_name]["默认工作电压"]
                     + FUNCTION_CONFIG["PowerSupply"]["VoltageOffset"][self.subscript]
                 ),
                 self.set_current(
@@ -357,15 +358,17 @@ class DCPS1216(LoggerMixin):
         )
         return not result.isError()
 
-    def set_param_and_start_output(self) -> bool:
+    def set_param_and_start_output(self, project_name: str | None = None) -> bool:
         """
         设置程控电源的输出电压和电流, 并启动输出。
         """
 
+        project_name = project_name or get_default_project(1)
+
         if not self.set_output_mode(mode="remote"):
             return False
         if not self.set_voltage(
-            output_voltage=PROJECT_CONFIG[SELECTED_PROJECT]["默认工作电压"]
+            output_voltage=PROJECT_CONFIG[project_name]["默认工作电压"]
             + FUNCTION_CONFIG["PowerSupply"]["VoltageOffset"][self.subscript]
         ):
             return False
@@ -378,7 +381,7 @@ class DCPS1216(LoggerMixin):
         return self.start_output()
 
 
-def set_powersupply_output(status: bool) -> bool:
+def set_powersupply_output(status: bool, project_name: str | None = None) -> bool:
     """启动或停止输出, 成功返回 True, 失败返回 False。"""
     ps_type = FUNCTION_CONFIG["PowerSupply"]["Type"]
     counts = len(FUNCTION_CONFIG["PowerSupply"]["ComPort"])
@@ -397,7 +400,10 @@ def set_powersupply_output(status: bool) -> bool:
 
     try:
         if status:
-            return all(ps.set_param_and_start_output() for ps in ps_list)
+            return all(
+                ps.set_param_and_start_output(project_name=project_name)
+                for ps in ps_list
+            )
         return all(ps.stop_output() for ps in ps_list)
     finally:
         for ps in ps_list:

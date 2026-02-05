@@ -10,8 +10,14 @@
             "朱燕波",
             "李新成"
         ],
-        "DefaultOperator": "魁小立",
-        "DefaultProject": "Q5010A",
+        "DefaultOperator": [
+            "朱燕波",
+            "李新成"
+        ],
+        "DefaultProject": [
+            "Q5010A",
+            "Q5010A"
+        ],
         "Remap": true,
         "ColorMapping": {
             "Idle": "#D3D3D3",

@@ -600,13 +600,11 @@ class Connector(QWidget):
     def _populate_combo_options(self) -> None:
         projects = list(PROJECT_CONFIG.keys())
         ui_cfg = FUNCTION_CONFIG.get("UI", {})
-        default_project = ui_cfg.get("DefaultProject", projects[0] if projects else "")
         operators = list(ui_cfg.get("OperatorList", []))
-        default_operator = ui_cfg.get(
-            "DefaultOperator", operators[0] if operators else ""
-        )
 
         for group_index in range(1, self._group_count + 1):
+            default_project = Tools.get_default_project(group_index, projects)
+            default_operator = Tools.get_default_operator(group_index, operators)
             combo_product = getattr(self.ui, f"combo_product_{group_index}", None)
             combo_aging_time = getattr(self.ui, f"combo_aging_time_{group_index}", None)
             combo_worker = getattr(self.ui, f"combo_worker_{group_index}", None)
@@ -908,12 +906,22 @@ class Connector(QWidget):
             project = sender.currentText()
             self._refresh_aging_time_combo(group_index, project)
             self._update_end_time(group_index)
-            set_powersupply_output(True)
+            set_powersupply_output(True, project_name=project)
         elif name.startswith("combo_aging_time_"):
             self._group_state[group_index]["aging_hours"] = self._get_group_aging_hours(
                 group_index
             )
             self._update_end_time(group_index)
+
+        selected_project = getattr(self.ui, f"combo_product_{group_index}", None)
+        selected_duration = getattr(self.ui, f"combo_aging_time_{group_index}", None)
+        selected_operator = getattr(self.ui, f"combo_worker_{group_index}", None)
+        Tools.refresh_ui_config(
+            selected_project.currentText() if selected_project else "",
+            selected_duration.currentText() if selected_duration else "",
+            selected_operator.currentText() if selected_operator else "",
+            group_index=group_index,
+        )
 
     def _bind_start_clicks(self) -> None:
         for group_index in range(1, self._group_count + 1):
@@ -1096,6 +1104,7 @@ class Connector(QWidget):
             selected_project.currentText() if selected_project else "",
             selected_duration.currentText() if selected_duration else "",
             selected_operator.currentText() if selected_operator else "",
+            group_index=group_index,
         )
         btn_start = getattr(self.ui, f"btn_start_{group_index}", None)
         btn_pause = getattr(self.ui, f"btn_pause_{group_index}", None)
@@ -1338,11 +1347,22 @@ class Connector(QWidget):
                     pass
 
     def _get_group_app(self, group_index: int) -> ComponentsInstantiation:
+        combo = getattr(self.ui, f"combo_product_{group_index}", None)
+        project_name = (
+            combo.currentText()
+            if combo is not None
+            else Tools.get_default_project(group_index)
+        )
         app = self._apps.get(group_index)
-        if app is not None:
-            return app
-        app = ComponentsInstantiation(group_index=group_index, autostart=False)
-        self._apps[group_index] = app
+        if app is None:
+            app = ComponentsInstantiation(
+                group_index=group_index,
+                project_name=project_name,
+                autostart=False,
+            )
+            self._apps[group_index] = app
+        else:
+            app.set_project(project_name)
         return app
 
     @staticmethod

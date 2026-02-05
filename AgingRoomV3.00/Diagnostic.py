@@ -13,7 +13,6 @@ from udsoncan.typing import ClientConfig
 
 
 from Tools import (
-    SELECTED_PROJECT,
     PROJECT_CONFIG,
     FUNCTION_CONFIG,
     create_slot_table,
@@ -21,6 +20,7 @@ from Tools import (
     set_slot_value,
     validate_slot,
     remap_slot,
+    get_default_project,
 )
 
 
@@ -43,10 +43,12 @@ class DefineDidCodec(udsoncan.DidCodec):
 class SecurityAlgorithm(LoggerMixin):
     """安全算法实现"""
 
-    @staticmethod
-    def security_algo(level, seed):
+    def __init__(self, project_cfg: dict):
+        self.project_cfg = project_cfg or {}
+
+    def security_algo(self, level, seed):
         """计算安全密钥"""
-        dll_file_name = PROJECT_CONFIG[SELECTED_PROJECT]["DLL路径"]
+        dll_file_name = self.project_cfg["DLL路径"]
         dll_func_name = Tools.get_dll_func_names(dll_file_name)[0]
         ZeekrSeedKey = ctypes.CDLL(str(dll_file_name))
         GenerateKeyEx = ZeekrSeedKey.__getattr__(dll_func_name)
@@ -65,9 +67,7 @@ class SecurityAlgorithm(LoggerMixin):
         iSecurityLevel = ctypes.c_uint(level)
         iVariant = ctypes.c_ubyte()
         iKeyArray = (ctypes.c_ubyte * len(seed))()
-        iKeyLen = ctypes.c_ushort(
-            PROJECT_CONFIG[SELECTED_PROJECT]["Diag"]["SecurityFeedbackBytes"]
-        )
+        iKeyLen = ctypes.c_ushort(self.project_cfg["Diag"]["SecurityFeedbackBytes"])
 
         GenerateKeyEx(
             iSeedArray,
@@ -113,6 +113,8 @@ class UDSClient(LoggerMixin):
         notifier: can.Notifier,
         physical_tx: Optional[int] = None,
         physical_rx: Optional[int] = None,
+        project_name: Optional[str] = None,
+        project_cfg: Optional[dict] = None,
     ):
         """
         初始化UDS客户端
@@ -124,7 +126,10 @@ class UDSClient(LoggerMixin):
         """
         self.bus = bus
         self.notifier = notifier
-        self.project_cfg = PROJECT_CONFIG[SELECTED_PROJECT]
+        if project_cfg is None:
+            project_name = project_name or get_default_project(1)
+            project_cfg = PROJECT_CONFIG.get(project_name, {})
+        self.project_cfg = project_cfg
         self.diag_cfg = self.project_cfg.get("Diag", self.project_cfg)
 
         # ISO-TP配置（兼容新旧结构）
@@ -218,7 +223,7 @@ class UDSClient(LoggerMixin):
             for did_hex, info in did_config.items()
         }
         # 配置安全算法
-        config_dict["security_algo"] = SecurityAlgorithm.security_algo
+        config_dict["security_algo"] = SecurityAlgorithm(self.project_cfg).security_algo
 
         return ClientConfig(**config_dict)
 
@@ -326,7 +331,14 @@ class MultiSlotDiagnostic(LoggerMixin):
     - PeriodicDiag：对 periodic_slots 周期诊断；失败按 ReDiagInterval 更快重试
     """
 
-    def __init__(self, bus: can.BusABC, notifier: can.Notifier, slot_count: int = 80):
+    def __init__(
+        self,
+        bus: can.BusABC,
+        notifier: can.Notifier,
+        slot_count: int = 80,
+        project_name: Optional[str] = None,
+        project_cfg: Optional[dict] = None,
+    ):
         from Protocol import get_phy_addr_by_slot
 
         import threading
@@ -334,7 +346,10 @@ class MultiSlotDiagnostic(LoggerMixin):
         self.bus = bus
         self.notifier = notifier
         self.slot_count = int(slot_count)
-        self.project_cfg = PROJECT_CONFIG[SELECTED_PROJECT]
+        if project_cfg is None:
+            project_name = project_name or get_default_project(1)
+            project_cfg = PROJECT_CONFIG.get(project_name, {})
+        self.project_cfg = project_cfg
         self.diag_cfg = self.project_cfg.get("Diag", self.project_cfg)
         self.remap = FUNCTION_CONFIG.get("UI", {}).get("Remap", False)
         # 周期线程与外部调用可能并发：这里用一把锁保护状态与 isotp/uds 交互
@@ -352,7 +367,11 @@ class MultiSlotDiagnostic(LoggerMixin):
         for slot_id in range(1, self.slot_count + 1):
             tx, rx = self._slot_addrs[slot_id]
             self.clients[slot_id] = UDSClient(
-                bus, notifier, physical_tx=tx, physical_rx=rx
+                bus,
+                notifier,
+                physical_tx=tx,
+                physical_rx=rx,
+                project_cfg=self.project_cfg,
             )
 
         # Diagnostic: 待诊断 slot 列表（1-based）
