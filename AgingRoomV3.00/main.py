@@ -908,6 +908,7 @@ class Connector(QWidget):
             project = sender.currentText()
             self._refresh_aging_time_combo(group_index, project)
             self._update_end_time(group_index)
+            set_powersupply_output(True)
         elif name.startswith("combo_aging_time_"):
             self._group_state[group_index]["aging_hours"] = self._get_group_aging_hours(
                 group_index

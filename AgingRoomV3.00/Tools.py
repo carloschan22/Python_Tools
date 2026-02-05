@@ -32,9 +32,11 @@ _THIRD_PARTY_NOISE_LOGGERS = [
     "isotp",
     "can.kvaser",
     "can.zlg",
+    "pymodbus",
     "udsoncan",
     "UdsClient",
     "MultiSlotDiagnostic",
+    "PowerSupply.DCPS1216",
     "Diagnostic.MultiSlotDiagnostic",
     "Connection[NotifierBasedIsoTpConnection]",
 ]
