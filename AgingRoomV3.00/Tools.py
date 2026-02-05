@@ -25,6 +25,12 @@ COLOR_MAPPING = FUNCTION_CONFIG.get("UI", {}).get(
 )
 
 
+def get_ui_version() -> str:
+    ui_cfg = FUNCTION_CONFIG.get("UI", {})
+    version = ui_cfg.get("Version", "")
+    return str(version).strip()
+
+
 def _normalize_grouped_ui_value(
     value, group_count: int, fallback_value: Optional[str] = None
 ) -> list:

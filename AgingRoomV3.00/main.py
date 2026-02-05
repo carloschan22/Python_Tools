@@ -104,7 +104,10 @@ class Connector(QWidget):
         self._db_worker.start_writing()
         self._group_table: dict[int, str] = {}
         self.ui.setupUi(self)
-        self.setWindowTitle("Aging Room V3.0.1")
+        ui_version = Tools.get_ui_version()
+        if ui_version:
+            self.setWindowTitle(f"Aging Room {ui_version}")
+            self.ui.aboutVersion.setText(f"Version: {ui_version}")
         self._init_nav()
         self._apply_ui_config()
         self._init_controls()
