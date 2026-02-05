@@ -1,7 +1,10 @@
 from struct import pack, unpack
+import logging
 from pymodbus.client import ModbusSerialClient
 from Logger import LoggerMixin
 from Tools import FUNCTION_CONFIG, PROJECT_CONFIG, get_default_project
+
+_log = logging.getLogger(__name__)
 
 
 def float_to_ieee754_be_words(value: float) -> tuple[int, int]:
@@ -36,7 +39,7 @@ class DY4010(LoggerMixin):
                 bytesize=8,
             )
         except Exception as e:
-            print(f"初始化 ModbusSerialClient 时出错: {str(e)}")
+            _log.error("初始化 ModbusSerialClient 时出错: %s", str(e))
         self.modbus_client.connect()
         DY4010.modbus_ins_counter += 1
         self.log.info(f"初始化 Modbus_Pro_power, 端口: {self.comport}, 从站: 1")
@@ -61,7 +64,7 @@ class DY4010(LoggerMixin):
             values=[low_word, high_word],
             slave=1,
         )
-        return result_1.isError()
+        return not result_1.isError()
 
     def set_current(self, output_current: float) -> bool:
         """设置输出电流, 单位 A, 范围 0~5A。
@@ -81,7 +84,7 @@ class DY4010(LoggerMixin):
             slave=1,
         )
 
-        return result_1.isError()
+        return not result_1.isError()
 
     def start_output(self) -> bool:
         """启动输出。
@@ -92,7 +95,7 @@ class DY4010(LoggerMixin):
         result = self.modbus_client.write_registers(
             address=self.register_map["Output_Ctrl"], values=[0x0003], slave=1
         )
-        return result.isError()
+        return not result.isError()
 
     def stop_output(self) -> bool:
         """停止输出。
@@ -391,8 +394,8 @@ def set_powersupply_output(status: bool, project_name: str | None = None) -> boo
     elif ps_type == "DCPS1216":
         cls = DCPS1216
     else:
-        print(f"不支持的电源类型: {ps_type}")
-        return
+        _log.error("不支持的电源类型: %s", ps_type)
+        return False
 
     ps_list = [cls(subscript=0)]
     if counts == 2:

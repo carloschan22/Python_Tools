@@ -795,6 +795,7 @@ class Connector(QWidget):
     ) -> tuple[int, int, int, float, float]:
         slot_count = int(FUNCTION_CONFIG.get("UI", {}).get("IndexPerGroup", 0))
         status_map = self._slot_status.get(group_index, {})
+        bad_status = set(self._non_recoverable_status)
         total = 0
         good = 0
         bad = 0
@@ -805,7 +806,7 @@ class Connector(QWidget):
             total += 1
             if status == 1:
                 good += 1
-            elif status in FUNCTION_CONFIG["UI"]["NonRecoverableStatus"]:
+            elif status in bad_status:
                 bad += 1
 
         pass_rate = (good / total * 100.0) if total > 0 else 0.0

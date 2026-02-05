@@ -481,6 +481,7 @@ def set_card_output(
     if logger is None:
         logger = _log
     msg_mapping = {True: b"\xff" * 8, False: b"\x00" * 8}
+    ok = True
     for id in [1, 2]:
         msg = can.Message(
             arbitration_id=id,
@@ -491,10 +492,12 @@ def set_card_output(
         for _ in range(3):
             try:
                 bus.send(msg)
-            except:
+            except Exception:
+                ok = False
                 logger.exception("Set Card Output Failed")
             time.sleep(0.06)
     logger.info("Set Card Output:%s", status)
+    return ok
 
 
 def ass_raw_data(config_list: list) -> bytes:
@@ -548,10 +551,11 @@ def set_card_addr(
                 bus.send(msg_1)
                 bus.send(msg_2)
                 time.sleep(0.06)
-            except:
+            except Exception:
                 logger.exception("Setting Cards Id Failed")
                 return False
         logger.info(f"Setting Cards Id, Msg1:{msg_1}\n{' ' * 50}Msg2:{msg_2}")
+    return True
 
 
 def set_cards(

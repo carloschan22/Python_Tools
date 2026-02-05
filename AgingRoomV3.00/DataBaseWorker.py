@@ -43,6 +43,15 @@ class DataBaseWorker(LoggerMixin):
             self.makesure_file_exist()
         self.log.info("Database initialized.")
 
+    def _open_connection(self) -> sqlite3.Connection:
+        conn = sqlite3.connect(self.db_path, check_same_thread=False)
+        try:
+            conn.execute("PRAGMA journal_mode=WAL")
+            conn.execute("PRAGMA synchronous=NORMAL")
+        except Exception:
+            pass
+        return conn
+
     def create_new_table(self):
         """生成以日期和序号命名的新表,表名结构:yyyy_mm_dd_nn
         表数据结构:
@@ -133,8 +142,14 @@ class DataBaseWorker(LoggerMixin):
         self._insert_row(table_name, tuple(data))
         self.connection.commit()
 
-    def _insert_row(self, table_name: str, row: Tuple[Any, ...]):
-        self.cursor.execute(
+    def _insert_row(
+        self,
+        table_name: str,
+        row: Tuple[Any, ...],
+        cursor: Optional[sqlite3.Cursor] = None,
+    ):
+        cur = cursor or self.cursor
+        cur.execute(
             f"""
             INSERT INTO "{table_name}" (
                 Slot, Timestamp, Status, Voltage, Current, Temperature,
@@ -144,8 +159,14 @@ class DataBaseWorker(LoggerMixin):
             row,
         )
 
-    def _insert_rows(self, table_name: str, rows: List[Tuple[Any, ...]]):
-        self.cursor.executemany(
+    def _insert_rows(
+        self,
+        table_name: str,
+        rows: List[Tuple[Any, ...]],
+        cursor: Optional[sqlite3.Cursor] = None,
+    ):
+        cur = cursor or self.cursor
+        cur.executemany(
             f"""
             INSERT INTO "{table_name}" (
                 Slot, Timestamp, Status, Voltage, Current, Temperature,
@@ -155,19 +176,61 @@ class DataBaseWorker(LoggerMixin):
             rows,
         )
 
+    def _insert_data_with_cursor(
+        self, table_name: str, data: Any, cursor: sqlite3.Cursor
+    ) -> None:
+        if not table_name:
+            raise ValueError("table_name is required")
+
+        if isinstance(data, dict):
+            rows = self.build_rows_from_snapshot(data)
+            if rows:
+                self._insert_rows(table_name, rows, cursor=cursor)
+            return
+
+        if not isinstance(data, (tuple, list)) or len(data) != 10:
+            raise ValueError("data must be a 10-field tuple or a snapshot dict")
+        self._insert_row(table_name, tuple(data), cursor=cursor)
+
     def writing_thread(self):
         """后台写入线程：从队列取数据并写入数据库。"""
-        while not self._stop_event.is_set():
+        conn = self._open_connection()
+        cursor = conn.cursor()
+        try:
+            while not self._stop_event.is_set():
+                batch: list[tuple[str, Any]] = []
+                try:
+                    batch.append(self._queue.get(timeout=0.2))
+                except queue.Empty:
+                    continue
+
+                for _ in range(49):
+                    try:
+                        batch.append(self._queue.get_nowait())
+                    except queue.Empty:
+                        break
+
+                for table_name, data in batch:
+                    try:
+                        self._insert_data_with_cursor(table_name, data, cursor)
+                    except Exception as exc:
+                        self.log.error(f"DB insert failed: {exc}")
+                    finally:
+                        self._queue.task_done()
+
+                try:
+                    conn.commit()
+                except Exception as exc:
+                    self.log.error(f"DB commit failed: {exc}")
+                    try:
+                        conn.rollback()
+                    except Exception:
+                        pass
+        finally:
             try:
-                table_name, data = self._queue.get(timeout=0.2)
-            except queue.Empty:
-                continue
-            try:
-                self.insert_data(table_name, data)
-            except Exception as exc:
-                self.log.error(f"DB insert failed: {exc}")
-            finally:
-                self._queue.task_done()
+                conn.close()
+            except Exception:
+                pass
 
     def start_writing(self):
         if self._worker is not None and self._worker.is_alive():
