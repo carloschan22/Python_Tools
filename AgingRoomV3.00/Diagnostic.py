@@ -398,6 +398,17 @@ class MultiSlotDiagnostic(LoggerMixin):
             self.slot_count
         )
 
+        # PeriodicReadDtc
+        self.dtc_periodic_slots: list[int] = []
+        self.dtc_interval_s: float = 10.0
+        self.dtc_subfunction: int = 2
+        self.dtc_status_mask: int = 0xFF
+        self.dtc_last: list[Optional[list[dict[str, Any]]]] = create_slot_table(
+            self.slot_count
+        )
+        self.dtc_last_error: list[Optional[str]] = create_slot_table(self.slot_count)
+        self._dtc_next_due: dict[int, float] = {}
+
     def _validate_slot(self, slot: int) -> int:
         return validate_slot(int(slot), self.slot_count)
 
@@ -589,6 +600,68 @@ class MultiSlotDiagnostic(LoggerMixin):
                         )
             return out
 
+    def format_dtc_list(self, dtc_bytes):
+        byte_string = "".join("{:02X}".format(byte) for byte in dtc_bytes[2:])
+        format_byte_string = [
+            byte_string[i : i + 8] for i in range(0, len(byte_string), 8)
+        ]
+        dtc_list = [
+            item
+            for item in format_byte_string
+            if item[-1].isdigit() and int(item[-1]) != 0
+        ]
+        return dtc_list
+
+    def _read_dtc_by_slot(
+        self, slot: int, subfunction: int, status_mask: int
+    ) -> list[dict[str, Any]]:
+        with self._lock:
+            uds, client, tx, rx = self._ensure_client(slot)
+            # 采集卡转发：每次诊断前必须更新物理地址
+            uds.update_address(tx, rx)
+            self.log.debug(f"Slot {slot} 开始读取DTCs with TX {tx}, RX {rx}")
+            dtc_list: list[dict[str, Any]] = []
+            with client:
+                rsp = client.read_dtc_information(
+                    subfunction=int(subfunction),
+                    status_mask=int(status_mask),
+                )
+                self.log.debug(f"Read Dtc Result:{(rsp.data).hex()}")
+                if rsp.positive:
+                    dtc_list = self.format_dtc_list(rsp.data)
+                self.log.debug(f"Slot {slot} 读取到DTCs: {dtc_list}")
+            return dtc_list
+
+    def get_dtc(self, slot: int) -> list[dict[str, Any]]:
+        return self._read_dtc_by_slot(slot, subfunction=2, status_mask=9)
+
+    def read_dtcs(
+        self,
+        slots: int | list[int] | None = None,
+        subfunction: Optional[int] = None,
+        status_mask: Optional[int] = None,
+    ) -> dict[int, list[dict[str, Any]]]:
+        if slots is None:
+            slots = list(self.dtc_periodic_slots)
+        if isinstance(slots, int):
+            slots = [slots]
+        slots = normalize_slots(slots, self.slot_count)
+
+        if subfunction is None:
+            subfunction = int(self.dtc_subfunction)
+        if status_mask is None:
+            status_mask = int(self.dtc_status_mask)
+
+        results: dict[int, list[dict[str, Any]]] = {}
+        for slot in slots:
+            try:
+                results[slot] = self._read_dtc_by_slot(
+                    slot, subfunction=subfunction, status_mask=status_mask
+                )
+            except Exception:
+                results[slot] = []
+        return results
+
     # -------- Diagnostic (one-shot success) --------
 
     def set_pending_slots(self, slots: list[int]) -> None:
@@ -697,6 +770,64 @@ class MultiSlotDiagnostic(LoggerMixin):
             else:
                 self.periodic_read_dids = list(dids or [])
                 self.periodic_dids = list(self.periodic_read_dids)
+
+    def configure_periodic_dtc(
+        self, interval_s: float, subfunction: int, status_mask: int
+    ) -> None:
+        with self._lock:
+            self.dtc_interval_s = float(interval_s)
+            self.dtc_subfunction = int(subfunction)
+            self.dtc_status_mask = int(status_mask)
+
+    def set_dtc_slots(self, slots: list[int]) -> None:
+        with self._lock:
+            self.dtc_periodic_slots = normalize_slots(slots, self.slot_count)
+            now = time.time()
+            for s in self.dtc_periodic_slots:
+                self._dtc_next_due.setdefault(s, now)
+
+    def periodic_dtc_tick(self) -> dict[str, Any]:
+        now = time.time()
+        ran: list[int] = []
+
+        with self._lock:
+            slots = list(self.dtc_periodic_slots)
+            interval_s = float(self.dtc_interval_s)
+            subfunction = int(self.dtc_subfunction)
+            status_mask = int(self.dtc_status_mask)
+
+        for slot in slots:
+            with self._lock:
+                due = self._dtc_next_due.get(slot, now)
+            if now < due:
+                continue
+            ran.append(slot)
+            try:
+                data = self._read_dtc_by_slot(slot, subfunction, status_mask)
+                with self._lock:
+                    set_slot_value(self.dtc_last, slot, data, self.slot_count)
+                    set_slot_value(self.dtc_last_error, slot, None, self.slot_count)
+                    self._dtc_next_due[slot] = now + interval_s
+            except Exception as exc:
+                with self._lock:
+                    set_slot_value(self.dtc_last, slot, None, self.slot_count)
+                    set_slot_value(self.dtc_last_error, slot, str(exc), self.slot_count)
+                    self._dtc_next_due[slot] = now + interval_s
+
+        return {
+            "__ts__": now,
+            "slots": slots,
+            "ran": ran,
+        }
+
+    def periodic_dtc_snapshot(self) -> dict[str, Any]:
+        with self._lock:
+            return {
+                "__ts__": time.time(),
+                "slots": list(self.dtc_periodic_slots),
+                "data": list(self.dtc_last),
+                "error": list(self.dtc_last_error),
+            }
 
     def set_periodic_slots(self, slots: list[int]) -> None:
         with self._lock:

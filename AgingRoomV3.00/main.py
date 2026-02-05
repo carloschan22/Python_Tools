@@ -7,6 +7,7 @@ import Tools
 import sqlite3
 import logging
 import csv
+import json
 
 from math import ceil
 from bisect import bisect_left
@@ -1400,8 +1401,10 @@ class SlotDetailDialog(QDialog):
             "voltage": [],
             "current": [],
             "temperature": [],
+            "dtc_count": [],
         }
         self._max_points = 2000
+        self._dtc_whitelist = self._load_dtc_whitelist()
 
         charts = QVBoxLayout()
         charts.setSpacing(8)
@@ -1409,6 +1412,7 @@ class SlotDetailDialog(QDialog):
             ("voltage", info_mapping[1], "电压(V)"),
             ("current", info_mapping[2], "电流(mA)"),
             ("temperature", info_mapping[3], "温度(°C)"),
+            ("dtc_count", "DTC数量", "DTC数量"),
         ]
         for key, title, y_label in chart_cfg:
             box = QGroupBox(title)
@@ -1517,10 +1521,14 @@ class SlotDetailDialog(QDialog):
                 self._append_point("current", x_ms, float(row[5]), status)
             if row[6] is not None:
                 self._append_point("temperature", x_ms, float(row[6]), status)
+            dtc_count = self._calc_dtc_count(row[7] if len(row) > 7 else None)
+            if dtc_count is not None:
+                self._append_point("dtc_count", x_ms, float(dtc_count), status)
 
         self._update_series("voltage", self._buffers["voltage"])
         self._update_series("current", self._buffers["current"])
         self._update_series("temperature", self._buffers["temperature"])
+        self._update_series("dtc_count", self._buffers["dtc_count"])
 
     def _append_point(
         self, key: str, x_ms: int, y: float, status: Optional[int]
@@ -1556,6 +1564,7 @@ class SlotDetailDialog(QDialog):
         voltage_points = []
         current_points = []
         temperature_points = []
+        dtc_points = []
         for row in rows:
             ts = row[2]
             if ts is None:
@@ -1568,10 +1577,71 @@ class SlotDetailDialog(QDialog):
                 current_points.append((x_ms, float(row[5]), status))
             if row[6] is not None:
                 temperature_points.append((x_ms, float(row[6]), status))
+            dtc_count = self._calc_dtc_count(row[7] if len(row) > 7 else None)
+            if dtc_count is not None:
+                dtc_points.append((x_ms, float(dtc_count), status))
 
         self._update_series("voltage", voltage_points)
         self._update_series("current", current_points)
         self._update_series("temperature", temperature_points)
+        self._update_series("dtc_count", dtc_points)
+
+    def _load_dtc_whitelist(self) -> set[str]:
+        parent = self.parent()
+        combo = None
+        if parent is not None:
+            combo = getattr(parent.ui, f"combo_product_{self._group_index}", None)
+        project_name = combo.currentText() if combo is not None else None
+        if not project_name:
+            project_name = Tools.get_default_project(self._group_index)
+        cfg = PROJECT_CONFIG.get(project_name, {})
+        wl = cfg.get("Diag", {}).get("PeriodicReadDtc", {}).get("WhiteList", [])
+        if not wl:
+            return set()
+
+        def _norm(v: str) -> str:
+            s = str(v).strip().lower()
+            if s.startswith("0x"):
+                s = s[2:]
+            return s.upper()
+
+        return {_norm(x) for x in wl if x is not None and str(x).strip()}
+
+    def _calc_dtc_count(self, dtc_payload) -> Optional[int]:
+        if dtc_payload is None:
+            return None
+
+        # dtc_payload 可能是 JSON 字符串 / list
+        dtc_list = None
+        if isinstance(dtc_payload, str):
+            try:
+                dtc_list = json.loads(dtc_payload)
+            except Exception:
+                dtc_list = None
+        elif isinstance(dtc_payload, list):
+            dtc_list = dtc_payload
+
+        if not isinstance(dtc_list, list):
+            return None
+
+        def _norm(v: str) -> str:
+            s = str(v).strip().lower()
+            if s.startswith("0x"):
+                s = s[2:]
+            return s.upper()
+
+        count = 0
+        for item in dtc_list:
+            if isinstance(item, dict):
+                code = item.get("DTC")
+            else:
+                code = item
+            if code is None:
+                continue
+            if _norm(code) in self._dtc_whitelist:
+                continue
+            count += 1
+        return count
 
     def closeEvent(self, event) -> None:
         if self._data_worker is not None:
@@ -2146,13 +2216,17 @@ class AgingThread(QThread):
             active_slots = Tools.get_active_slots(self.app)
             diag_set_fn = None
             diag_once_set = None
+            dtc_set_fn = None
             if hasattr(self.app, "ops") and isinstance(getattr(self.app, "ops"), dict):
                 diag_set_fn = getattr(self.app, "ops").get("diag_set_periodic_slots")
                 diag_once_set = getattr(self.app, "ops").get("diag_set_pending_slots")
+                dtc_set_fn = getattr(self.app, "ops").get("dtc_set_periodic_slots")
             if not diag_set_fn and hasattr(self.app, "diag_set_periodic_slots"):
                 diag_set_fn = getattr(self.app, "diag_set_periodic_slots")
             if not diag_once_set and hasattr(self.app, "diag_set_pending_slots"):
                 diag_once_set = getattr(self.app, "diag_set_pending_slots")
+            if not dtc_set_fn and hasattr(self.app, "dtc_set_periodic_slots"):
+                dtc_set_fn = getattr(self.app, "dtc_set_periodic_slots")
             if callable(diag_set_fn):
                 diag_set_fn(active_slots)
             if callable(diag_once_set):
@@ -2161,6 +2235,8 @@ class AgingThread(QThread):
                 if current_slots != last_slots:
                     diag_once_set(active_slots)
                     self._last_active_slots = current_slots
+            if callable(dtc_set_fn):
+                dtc_set_fn(active_slots)
 
             results = Tools.get_slots_results(self.app, active_slots)  # 状态更新
             if results:

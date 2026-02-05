@@ -593,7 +593,64 @@ class ComponentsInstantiation(LoggerMixin):
                         self._periodic_worker.add_job(
                             "PeriodicDiag", tick_interval, _job_diag
                         )
+            if "PeriodicReadDtc" in self.supported:
+                if diag is None:
+                    self.log.warning(
+                        "PeriodicReadDtc 已启用, 但 Diagnostic 未启用/实例化失败；将跳过DTC相关操作"
+                    )
+                else:
+                    dtc_cfg = diag_cfg.get("PeriodicReadDtc", {})
+                    interval = dtc_cfg.get("Interval", 10)
+                    self.log.debug(f"PeriodicReadDtc 已启用, config:{dtc_cfg}")
+                    try:
+                        interval = float(interval)
+                    except Exception:
+                        interval = 10.0
 
+                    subfunc = dtc_cfg.get("SubFunction", 2)
+                    try:
+                        subfunc = int(subfunc)
+                    except Exception:
+                        subfunc = 2
+
+                    status_mask = dtc_cfg.get("DtcStatusMask", 255)
+                    try:
+                        status_mask = int(status_mask)
+                    except Exception:
+                        status_mask = 255
+
+                    diag.configure_periodic_dtc(
+                        interval_s=interval,
+                        subfunction=subfunc,
+                        status_mask=status_mask,
+                    )
+
+                    self.register_op("dtc_set_periodic_slots", diag.set_dtc_slots)
+                    self.register_op(
+                        "dtc_get_periodic_slots",
+                        lambda: list(diag.dtc_periodic_slots),
+                    )
+                    self.register_op(
+                        "dtc_periodic_snapshot", diag.periodic_dtc_snapshot
+                    )
+                    self.register_op("dtc_read", diag.read_dtcs)
+
+                    def _job_dtc():
+                        diag.periodic_dtc_tick()
+                        self._periodic_diag_cache = diag.periodic_dtc_snapshot()
+
+                    self._instant_manager["PeriodicReadDtc"] = {
+                        "interval": interval,
+                        "subfunction": subfunc,
+                        "status_mask": status_mask,
+                    }
+                    self._periodic_job_registry["PeriodicReadDtc"] = (
+                        max(1.0, interval),
+                        _job_dtc,
+                    )
+                    self._periodic_worker.add_job(
+                        "PeriodicReadDtc", max(1.0, interval), _job_dtc
+                    )
         # Lifecycle
         self.register_op("shutdown", self.shutdown)
 

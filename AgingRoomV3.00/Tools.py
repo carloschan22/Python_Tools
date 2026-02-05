@@ -133,7 +133,6 @@ _THIRD_PARTY_NOISE_LOGGERS = [
     "pymodbus",
     "udsoncan",
     "UdsClient",
-    "MultiSlotDiagnostic",
     "PowerSupply.DCPS1216",
     "Diagnostic.MultiSlotDiagnostic",
     "Connection[NotifierBasedIsoTpConnection]",
@@ -404,6 +403,7 @@ def get_slot_results(app, slot):
     status_fn = _get_op("get_status")
     diag_results_fn = _get_op("diag_results")
     diag_snapshot_fn = _get_op("diag_periodic_snapshot")
+    dtc_snapshot_fn = _get_op("dtc_periodic_snapshot")
 
     card_status = status_fn("card_status", slot) if status_fn else None
     custom_rx1 = status_fn("custom_rx1", slot) if status_fn else None
@@ -416,12 +416,19 @@ def get_slot_results(app, slot):
     data_list = snapshot.get("data", []) if isinstance(snapshot, dict) else []
     diag_periodic_slot = data_list[slot] if len(data_list) > slot else None
 
+    dtc_snapshot = dtc_snapshot_fn() if dtc_snapshot_fn else {}
+    dtc_data_list = (
+        dtc_snapshot.get("data", []) if isinstance(dtc_snapshot, dict) else []
+    )
+    dtc_codes = dtc_data_list[slot] if len(dtc_data_list) > slot else None
+
     return {
         "card_status": card_status,
         "custom_rx1": custom_rx1,
         "custom_rx2": custom_rx2,
         "diag_results": diag_result_slot,
         "diag_periodic_snapshot": diag_periodic_slot,
+        "dtc_codes": dtc_codes,
     }
 
 

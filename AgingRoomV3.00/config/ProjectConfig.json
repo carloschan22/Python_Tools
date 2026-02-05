@@ -120,6 +120,12 @@
                     "offset": null
                 }
             },
+            "PeriodicReadDtc": {
+                "Interval": 10,
+                "SubFunction": 2,
+                "DtcStatusMask": 9,
+                "WhiteList": []
+            },
             "PeriodicDiag": {
                 "Interval": 2,
                 "ReDiagInterval": 1,
@@ -258,6 +264,12 @@
                     "offset": null
                 }
             },
+            "PeriodicReadDtc": {
+                "Interval": 10,
+                "SubFunction": 2,
+                "DtcStatusMask": 9,
+                "WhiteList": []
+            },
             "PeriodicDiag": {
                 "Interval": 2,
                 "ReDiagInterval": 1,
@@ -341,7 +353,8 @@
             "CustomRxMsg1",
             "Diagnostic",
             "PowerCycle",
-            "PeriodicDiag"
+            "PeriodicDiag",
+            "PeriodicReadDtc"
         ],
         "RX": {
             "IdOfRxMsg1": 1125,
@@ -394,6 +407,16 @@
                     "Padding": "0x20",
                     "offset": null
                 }
+            },
+            "PeriodicReadDtc": {
+                "Interval": 10,
+                "SubFunction": 2,
+                "DtcStatusMask": 9,
+                "WhiteList": [
+                    "C1408709",
+                    "C1298709",
+                    "A2000209"
+                ]
             },
             "PeriodicDiag": {
                 "Interval": 5,
