@@ -67,7 +67,6 @@ class Ui_MainWidget(object):
     def setupUi(self, MainWidget):
         if not MainWidget.objectName():
             MainWidget.setObjectName("MainWidget")
-            MainWidget.setWindowTitle("Aging Room V3.0.0")
         MainWidget.setMinimumSize(QSize(1400, 800))
         self.action_home = QAction(MainWidget)
         self.action_home.setObjectName("action_home")
@@ -1074,7 +1073,7 @@ class Ui_MainWidget(object):
         )
         self.aboutVersion.setText(
             QCoreApplication.translate(
-                "MainWidget", "Version: 3.0.0 (Build 2026)", None
+                "MainWidget", "Version: 3.0.1 (Build 2026)", None
             )
         )
         self.aboutCopyright.setText(
