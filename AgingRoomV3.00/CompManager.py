@@ -142,15 +142,17 @@ class ComponentsInstantiation(LoggerMixin):
         rx_id1 = rx_cfg.get("IdOfRxMsg1")
         rx_id2 = rx_cfg.get("IdOfRxMsg2")
 
+        # AgingStatus 解析采集卡硬件协议报文（直接字节解码），不依赖 DBC 和项目 RX ID
         rx_switcher = [
-            ("AgingStatus" in self.supported)
-            and (rx_id1 is not None or rx_id2 is not None),
+            "AgingStatus" in self.supported,
             ("CustomRxMsg1" in self.supported) and (rx_id1 is not None),
             ("CustomRxMsg2" in self.supported) and (rx_id2 is not None),
         ]
 
         dbc = self.can_manager.get_dbc()
-        if any(rx_switcher) and dbc is not None:
+        # CustomRxMsg 需要 DBC，AgingStatus 不需要
+        need_dbc = rx_switcher[1] or rx_switcher[2]
+        if any(rx_switcher) and (not need_dbc or dbc is not None):
             rx_splitter = RxSplitter(
                 dbc,
                 switcher=rx_switcher,
@@ -166,10 +168,8 @@ class ComponentsInstantiation(LoggerMixin):
             self._instant_manager["CustomRxMsg2"] = (
                 rx_splitter if rx_switcher[2] else None
             )
-        elif any(rx_switcher):
-            self.log.warning(
-                "RX组件已启用但DBC未加载, AgingStatus/CustomRxMsg 将不可用"
-            )
+        elif any(rx_switcher) and need_dbc:
+            self.log.warning("CustomRxMsg已启用但DBC未加载, CustomRxMsg 将不可用")
         else:
             self.log.info("无RX组件需要启用, 跳过RxSplitter初始化")
 

@@ -1,6 +1,6 @@
 {
     "UI": {
-        "Version": "V3.0.1",
+        "Version": "V3.0.3",
         "GroupCount": 2,
         "IndexPerGroup": 80,
         "SlotRefreshInterval": 0.5,
