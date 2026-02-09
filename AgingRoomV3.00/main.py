@@ -135,6 +135,8 @@ class Connector(QWidget):
         self.ui.menuBar.addMenu(settings_menu)
         action_alarm = settings_menu.addAction("报警状态配置")
         action_alarm.triggered.connect(self._open_alarm_status_config)
+        action_project = settings_menu.addAction("新增项目配置")
+        action_project.triggered.connect(self._open_project_config)
 
     def _apply_ui_config(self) -> None:
         ui_cfg = Tools.FUNCTION_CONFIG.get("UI", {})
@@ -890,6 +892,27 @@ class Connector(QWidget):
         self._non_recoverable_status = self._load_non_recoverable_status()
         for group_index in range(1, self._group_count + 1):
             self._reapply_group_status(group_index)
+
+    def _open_project_config(self) -> None:
+        from ConfigTool import ProjectConfigDialog
+
+        dialog = ProjectConfigDialog(self)
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+        Tools.refresh_configs()
+        # 刷新各组的项目下拉框
+        projects = list(Tools.PROJECT_CONFIG.keys())
+        for group_index in range(1, self._group_count + 1):
+            combo = getattr(self.ui, f"combo_product_{group_index}", None)
+            if combo is not None:
+                current = combo.currentText()
+                combo.blockSignals(True)
+                combo.clear()
+                for p in projects:
+                    combo.addItem(p)
+                if current in projects:
+                    combo.setCurrentText(current)
+                combo.blockSignals(False)
 
     def _reapply_group_status(self, group_index: int) -> None:
         self._slot_latched[group_index] = {}

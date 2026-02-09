@@ -462,5 +462,121 @@
                 }
             }
         }
+    },
+    "Q10D0": {
+        "老化时长": [
+            2,
+            4,
+            6
+        ],
+        "默认老化时长": "2",
+        "默认工作电压": 12.0,
+        "工作电压范围": [
+            11.0,
+            13.0
+        ],
+        "工作电流范围": [
+            200,
+            1000
+        ],
+        "老化温度范围": [
+            70,
+            80
+        ],
+        "DBC路径": "dbc/Q10D0.dbc",
+        "DLL路径": "dll/Q10D0.dll",
+        "是否电压偏移老化": true,
+        "老化电压偏移范围": [
+            -2.0,
+            2.0
+        ],
+        "是否周期上电老化": true,
+        "带电老化/休眠老化时长": [
+            10,
+            1
+        ],
+        "SupportedComponents": [
+            "AgingStatus",
+            "PowerCycle"
+        ],
+        "RX": {
+            "IdOfRxMsg1": null,
+            "IdOfRxMsg2": null,
+            "GetTempById": null,
+            "GetTempBySigName": null
+        },
+        "TX": {
+            "IdOfTxMsg1": null,
+            "TypeOfTxMsg1": "CANFD",
+            "IntervalOfTxMsg1": 0.2,
+            "DataOfTxMsg1": {},
+            "IdOfTxMsg2": null,
+            "TypeOfTxMsg2": "CANFD",
+            "IntervalOfTxMsg2": 0.2,
+            "DataOfTxMsg2": {},
+            "PeriodicSwitching": {
+                "SwitchMsg1": {
+                    "SwitchInterval": null,
+                    "Data": []
+                },
+                "SwitchMsg2": {
+                    "SwitchInterval": null,
+                    "Data": []
+                }
+            }
+        },
+        "Diag": {
+            "SecurityFeedbackBytes": 16,
+            "DiagPhyAddr": [
+                1874,
+                2002
+            ],
+            "DidConfig": {},
+            "PeriodicReadDtc": {
+                "Interval": 10,
+                "SubFunction": 2,
+                "DtcStatusMask": 9,
+                "WhiteList": []
+            },
+            "PeriodicDiag": {
+                "Interval": 5,
+                "ReDiagInterval": 1,
+                "Dids": {}
+            },
+            "Params": {
+                "isotp_params": {
+                    "stmin": 24,
+                    "blocksize": 8,
+                    "wftmax": 0,
+                    "tx_data_length": 64,
+                    "tx_data_min_length": 8,
+                    "can_fd": true,
+                    "tx_padding": 204,
+                    "rx_flowcontrol_timeout": 1000,
+                    "rx_consecutive_frame_timeout": 1000,
+                    "max_frame_size": 4095
+                },
+                "default_client_config": {
+                    "exception_on_negative_response": true,
+                    "exception_on_invalid_response": true,
+                    "exception_on_unexpected_response": true,
+                    "security_algo": null,
+                    "security_algo_params": null,
+                    "tolerate_zero_padding": true,
+                    "ignore_all_zero_dtc": true,
+                    "dtc_snapshot_did_size": 2,
+                    "server_address_format": null,
+                    "server_memorysize_format": null,
+                    "data_identifiers": {},
+                    "input_output": {},
+                    "request_timeout": 5,
+                    "p2_timeout": 1,
+                    "p2_star_timeout": 5,
+                    "standard_version": 2020,
+                    "use_server_timing": false,
+                    "extended_data_size": null
+                }
+            }
+        }
     }
 }
