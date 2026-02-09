@@ -51,7 +51,7 @@
         "FD": true
     },
     "PowerSupply": {
-        "Type": null,
+        "Type": "DCPS1216",
         "ComPort": [
             "COM3",
             "COM4"
