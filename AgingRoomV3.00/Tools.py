@@ -3,6 +3,7 @@ import can
 import time
 import json
 import logging
+import threading
 from pathlib import Path
 from Logger import configure_default_logging
 from typing import Callable, Iterable, List, Optional, Union
@@ -504,6 +505,132 @@ def set_card_output(
             time.sleep(0.06)
     logger.info("Set Card Output:%s", status)
     return ok
+
+
+class PowerCycleController:
+    """根据 ProjectConfig 中的周期上电配置，在后台线程中循环控制采集卡上电/下电。
+
+    配置项:
+        是否周期上电老化  (bool)  — 总开关
+        带电老化/休眠老化时长 [power_on_min, sleep_min]  — 单位：分钟
+    """
+
+    def __init__(
+        self,
+        bus: can.BusABC,
+        config: dict,
+        logger: Optional[logging.Logger] = None,
+    ):
+        self._bus = bus
+        self._config = config
+        self._log = logger or _log
+        self._stop_event = threading.Event()
+        self._paused = False
+        self._thread: Optional[threading.Thread] = None
+        self._powered_on = True  # 初始状态为已上电
+
+        self.enabled = bool(config.get("是否周期上电老化", False))
+        durations = config.get("带电老化/休眠老化时长", [10, 1])
+        self.power_on_seconds = float(durations[0]) * 60 if len(durations) > 0 else 600
+        self.sleep_seconds = float(durations[1]) * 60 if len(durations) > 1 else 60
+
+    def start(self) -> None:
+        """启动周期上电控制线程（仅在配置启用时生效）。"""
+        if not self.enabled:
+            self._log.info("周期上电老化未启用，跳过")
+            return
+        if self._thread is not None and self._thread.is_alive():
+            return
+        self._stop_event.clear()
+        self._paused = False
+        self._thread = threading.Thread(
+            target=self._run, daemon=True, name="PowerCycle"
+        )
+        self._thread.start()
+        self._log.info(
+            "周期上电控制已启动: 带电%.1f分钟 / 休眠%.1f分钟",
+            self.power_on_seconds / 60,
+            self.sleep_seconds / 60,
+        )
+
+    def stop(self, timeout: float = 5.0) -> None:
+        """停止周期上电控制，并确保采集卡回到上电状态。"""
+        self._stop_event.set()
+        if self._thread is not None and self._thread.is_alive():
+            self._thread.join(timeout=timeout)
+        self._thread = None
+        # 确保停止后恢复上电
+        if not self._powered_on:
+            self._power_on()
+        self._log.info("周期上电控制已停止")
+
+    def pause(self) -> None:
+        """暂停周期控制（保持当前电源状态不变）。"""
+        self._paused = True
+
+    def resume(self) -> None:
+        """恢复周期控制。"""
+        self._paused = False
+
+    @property
+    def is_running(self) -> bool:
+        return self._thread is not None and self._thread.is_alive()
+
+    @property
+    def is_powered_on(self) -> bool:
+        return self._powered_on
+
+    def _power_on(self) -> None:
+        """上电：调用 set_cards 同时配置采集卡地址。"""
+        try:
+            set_cards(self._bus, True, self._config, self._log)
+            self._powered_on = True
+            self._log.info("周期上电: 采集卡 ON")
+        except Exception:
+            self._log.exception("周期上电失败")
+
+    def _power_off(self) -> None:
+        """下电：仅关闭采集卡输出。"""
+        try:
+            set_card_output(self._bus, False, self._log)
+            self._powered_on = False
+            self._log.info("周期上电: 采集卡 OFF")
+        except Exception:
+            self._log.exception("周期下电失败")
+
+    def _wait(self, seconds: float) -> bool:
+        """等待指定秒数，期间可被停止事件打断。返回 True 表示正常结束，False 表示被打断。"""
+        return not self._stop_event.wait(timeout=seconds)
+
+    def _run(self) -> None:
+        """后台线程主循环：带电 → 休眠 → 带电 → 休眠 ..."""
+        while not self._stop_event.is_set():
+            if self._paused:
+                if not self._wait(0.5):
+                    break
+                continue
+
+            # ---- 带电阶段 ----
+            if not self._powered_on:
+                self._power_on()
+            if not self._wait(self.power_on_seconds):
+                break
+
+            if self._stop_event.is_set():
+                break
+
+            # ---- 休眠阶段 ----
+            if not self._paused:
+                self._power_off()
+                if not self._wait(self.sleep_seconds):
+                    break
+
+
+def periodic_power_ctrl(bus: can.BusABC, config: dict) -> PowerCycleController:
+    """创建并启动周期上电控制器。"""
+    ctrl = PowerCycleController(bus, config)
+    ctrl.start()
+    return ctrl
 
 
 def ass_raw_data(config_list: list) -> bytes:

@@ -223,6 +223,16 @@ class ComponentsInstantiation(LoggerMixin):
             self._periodic_worker = _PeriodicWorker()
             self._periodic_worker.start()
 
+        if "PowerCycle" in self.supported:
+            from Tools import periodic_power_ctrl
+
+            power_ctrl = periodic_power_ctrl(
+                self.can_manager.get_bus(), self.project_cfg
+            )
+            self._instant_manager["PowerCycle"] = power_ctrl
+            self.register_op("power_cycle_pause", power_ctrl.pause)
+            self.register_op("power_cycle_resume", power_ctrl.resume)
+            self.register_op("power_cycle_stop", power_ctrl.stop)
         # 注册默认 ops（按已启用组件动态提供）
         self._register_default_ops()
 
@@ -659,6 +669,14 @@ class ComponentsInstantiation(LoggerMixin):
         if self._periodic_worker is not None:
             self._periodic_worker.stop()
             self._periodic_worker = None
+
+        # stop power cycle controller
+        power_ctrl = self._instant_manager.get("PowerCycle")
+        if power_ctrl is not None and hasattr(power_ctrl, "stop"):
+            try:
+                power_ctrl.stop()
+            except Exception:
+                pass
 
         diag = self._instant_manager.get("Diagnostic")
         if diag is not None:

@@ -1294,6 +1294,8 @@ class Connector(QWidget):
 
         if "periodic_worker_stop" in app.ops:
             app.ops["periodic_worker_stop"]()
+        if "power_cycle_pause" in app.ops:
+            app.ops["power_cycle_pause"]()
         if hasattr(app, "can_manager") and app.can_manager is not None:
             try:
                 app.can_manager.stop_all_periodic_tasks()
@@ -1320,6 +1322,8 @@ class Connector(QWidget):
 
         if "periodic_worker_start" in app.ops:
             app.ops["periodic_worker_start"]()
+        if "power_cycle_resume" in app.ops:
+            app.ops["power_cycle_resume"]()
         if not state.get("tx_started"):
             if "tx1_start" in app.ops:
                 app.ops["tx1_start"](ch1=True, ch2=True)
@@ -1369,6 +1373,8 @@ class Connector(QWidget):
         if app is not None:
             if "periodic_worker_stop" in app.ops:
                 app.ops["periodic_worker_stop"]()
+            if "power_cycle_stop" in app.ops:
+                app.ops["power_cycle_stop"]()
             if hasattr(app, "can_manager") and app.can_manager is not None:
                 try:
                     app.can_manager.stop_all_periodic_tasks()
