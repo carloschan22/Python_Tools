@@ -143,21 +143,35 @@ class ComponentsInstantiation(LoggerMixin):
         rx_id2 = rx_cfg.get("IdOfRxMsg2")
 
         rx_switcher = [
-            True,  # AgingStatus 基础能力
+            ("AgingStatus" in self.supported)
+            and (rx_id1 is not None or rx_id2 is not None),
             ("CustomRxMsg1" in self.supported) and (rx_id1 is not None),
             ("CustomRxMsg2" in self.supported) and (rx_id2 is not None),
         ]
-        rx_splitter = RxSplitter(
-            self.can_manager.get_dbc(),
-            switcher=rx_switcher,
-            project_name=self.project_name,
-        )
-        if any(rx_switcher):
-            self.can_manager.register_listener(rx_splitter)
 
-        self._instant_manager["AgingStatus"] = rx_splitter if rx_switcher[0] else None
-        self._instant_manager["CustomRxMsg1"] = rx_splitter if rx_switcher[1] else None
-        self._instant_manager["CustomRxMsg2"] = rx_splitter if rx_switcher[2] else None
+        dbc = self.can_manager.get_dbc()
+        if any(rx_switcher) and dbc is not None:
+            rx_splitter = RxSplitter(
+                dbc,
+                switcher=rx_switcher,
+                project_name=self.project_name,
+            )
+            self.can_manager.register_listener(rx_splitter)
+            self._instant_manager["AgingStatus"] = (
+                rx_splitter if rx_switcher[0] else None
+            )
+            self._instant_manager["CustomRxMsg1"] = (
+                rx_splitter if rx_switcher[1] else None
+            )
+            self._instant_manager["CustomRxMsg2"] = (
+                rx_splitter if rx_switcher[2] else None
+            )
+        elif any(rx_switcher):
+            self.log.warning(
+                "RX组件已启用但DBC未加载, AgingStatus/CustomRxMsg 将不可用"
+            )
+        else:
+            self.log.info("无RX组件需要启用, 跳过RxSplitter初始化")
 
         set_cards(
             self.can_manager.get_bus(),

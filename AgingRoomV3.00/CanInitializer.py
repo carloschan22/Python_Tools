@@ -34,9 +34,18 @@ class CanBusManager(LoggerMixin):
         self.project_name = project_name or get_default_project(1)
         self.project_cfg = PROJECT_CONFIG.get(self.project_name, {})
         dbc_path = self.project_cfg.get("DBC路径")
-        if not dbc_path:
-            raise ValueError(f"DBC路径 未配置: {self.project_name}")
-        self.dbc = cantools.db.load_file(dbc_path, encoding="utf-8")
+        self.dbc = None
+        if dbc_path:
+            try:
+                self.dbc = cantools.db.load_file(dbc_path, encoding="utf-8")
+            except FileNotFoundError:
+                self.log.warning(f"DBC文件未找到: {dbc_path}, DBC解析功能将不可用")
+            except Exception as exc:
+                self.log.warning(f"DBC文件加载失败: {dbc_path}, {exc}")
+        else:
+            self.log.info(
+                f"项目 {self.project_name} 未配置DBC路径, DBC解析功能将不可用"
+            )
         self.log.info(
             f"CanBusManager initialized with business_parser: {business_parser}"
         )
@@ -106,8 +115,8 @@ class CanBusManager(LoggerMixin):
             raise RuntimeError("CanBusManager未初始化")
         return self.notifier
 
-    def get_dbc(self) -> cantools.db.Database:
-        """获取DBC数据库实例"""
+    def get_dbc(self) -> Optional[cantools.db.Database]:
+        """获取DBC数据库实例, 若DBC未加载则返回None"""
         if not self._started:
             raise RuntimeError("CanBusManager未初始化")
         return self.dbc

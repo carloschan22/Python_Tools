@@ -581,9 +581,9 @@ class PowerCycleController:
         return self._powered_on
 
     def _power_on(self) -> None:
-        """上电：调用 set_cards 同时配置采集卡地址。"""
+        """上电：调用 set_card_output 开启采集卡输出。"""
         try:
-            set_cards(self._bus, True, self._config, self._log)
+            set_card_output(self._bus, True, self._log)
             self._powered_on = True
             self._log.info("周期上电: 采集卡 ON")
         except Exception:
