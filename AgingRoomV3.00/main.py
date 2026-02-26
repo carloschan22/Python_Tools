@@ -127,18 +127,19 @@ class Connector(QWidget):
         self.ui.action_history.triggered.connect(
             lambda: self.ui.stackedPages.setCurrentWidget(self.ui.page_history)
         )
-        self.ui.action_about.triggered.connect(
-            lambda: self.ui.stackedPages.setCurrentWidget(self.ui.page_about)
-        )
 
         settings_menu = QMenu("设置", self)
-        self.ui.menuBar.addMenu(settings_menu)
+        self.ui.menuBar.insertMenu(self.ui.action_about, settings_menu)
         action_alarm = settings_menu.addAction("报警状态配置")
         action_alarm.triggered.connect(self._open_alarm_status_config)
         action_project = settings_menu.addAction("新增项目配置")
         action_project.triggered.connect(self._open_project_config)
         action_manage = settings_menu.addAction("管理项目配置")
         action_manage.triggered.connect(self._manage_project_config)
+
+        self.ui.action_about.triggered.connect(
+            lambda: self.ui.stackedPages.setCurrentWidget(self.ui.page_about)
+        )
 
     def _apply_ui_config(self) -> None:
         ui_cfg = Tools.FUNCTION_CONFIG.get("UI", {})
@@ -2357,7 +2358,9 @@ class AgingThread(QThread):
 
 
 def main():
-    _log.info("----应用启动----")
+    Version = "V3.0.5"
+    _log.info("----应用启动----/----Version: %s----", Version)
+    Tools.change_json_value("FuncConfig", "UI.Version", Version)
     qt_app = QApplication(sys.argv)
     ui = Ui_MainWidget()
     connector = Connector(ui)
