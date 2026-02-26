@@ -111,7 +111,7 @@
                     "offset": null
                 },
                 "0xFD00": {
-                    "operation": "Read",
+                    "Operation": "Read",
                     "name": "Ecu Software Version",
                     "size": 16,
                     "type": "string",
