@@ -974,3 +974,176 @@ class ProjectConfigDialog(QDialog):
             self, "保存成功", f"项目 '{project_name}' 已保存到配置文件。"
         )
         self.accept()
+
+
+# ---------------------------------------------------------------------------
+# 管理（编辑 / 删除）已有项目配置
+# ---------------------------------------------------------------------------
+class ManageProjectConfigDialog(ProjectConfigDialog):
+    """图形化管理（更新 / 删除）ProjectConfig.json 中已有项目配置。
+
+    复用 ProjectConfigDialog 的所有 Tab 构建、表单填充及配置构建方法。
+    """
+
+    def __init__(self, parent: Optional[QWidget] = None):
+        # 跳过 ProjectConfigDialog.__init__，直接调用 QDialog
+        QDialog.__init__(self, parent)
+        self.setWindowTitle("管理项目配置")
+        self.resize(800, 720)
+        self._config_path = Path(__file__).parent / "config" / "ProjectConfig.json"
+        self._original_name: str = ""  # 记录原始名称，用于检测重命名
+
+        main_layout = QVBoxLayout(self)
+
+        # ---- 顶部: 项目选择 + 删除 ----
+        sel_layout = QHBoxLayout()
+        sel_layout.addWidget(QLabel("选择项目:"))
+        self._combo_project = QComboBox()
+        for name in self._load_existing_projects():
+            self._combo_project.addItem(name)
+        sel_layout.addWidget(self._combo_project, 1)
+        btn_delete = QPushButton("删除项目")
+        btn_delete.setStyleSheet("color: red;")
+        btn_delete.clicked.connect(self._on_delete)
+        sel_layout.addWidget(btn_delete)
+        main_layout.addLayout(sel_layout)
+
+        # ---- 项目名称（可编辑 → 支持重命名） ----
+        name_layout = QHBoxLayout()
+        name_layout.addWidget(QLabel("项目名称:"))
+        self._edit_name = QLineEdit()
+        self._edit_name.setPlaceholderText("项目名称 (修改即重命名)")
+        name_layout.addWidget(self._edit_name, 1)
+        main_layout.addLayout(name_layout)
+
+        # ---- Tabs（复用父类方法） ----
+        self._tabs = QTabWidget()
+        self._tabs.addTab(self._build_basic_tab(), "基本参数")
+        self._tabs.addTab(self._build_comm_tab(), "通信配置")
+        self._tabs.addTab(self._build_diag_tab(), "诊断配置")
+        main_layout.addWidget(self._tabs, 1)
+
+        # ---- 底部按钮 ----
+        btn_layout = QHBoxLayout()
+        btn_layout.addStretch(1)
+        btn_cancel = QPushButton("取消")
+        btn_cancel.clicked.connect(self.reject)
+        btn_save = QPushButton("保存修改")
+        btn_save.clicked.connect(self._on_save)
+        btn_layout.addWidget(btn_cancel)
+        btn_layout.addWidget(btn_save)
+        main_layout.addLayout(btn_layout)
+
+        # ---- 选中项目时自动加载 ----
+        self._combo_project.currentTextChanged.connect(self._on_project_selected)
+        if self._combo_project.count() > 0:
+            self._on_project_selected(self._combo_project.currentText())
+
+    # ------------------------------------------------------------------
+    # 选择项目 → 自动加载
+    # ------------------------------------------------------------------
+    def _on_project_selected(self, name: str) -> None:
+        if not name:
+            return
+        try:
+            with open(self._config_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            if name in data:
+                self._fill_from_config(name, data[name])
+                self._original_name = name
+        except Exception:
+            pass
+
+    # ------------------------------------------------------------------
+    # 删除项目
+    # ------------------------------------------------------------------
+    def _on_delete(self) -> None:
+        name = self._combo_project.currentText()
+        if not name:
+            QMessageBox.information(self, "提示", "没有可删除的项目。")
+            return
+
+        ret = QMessageBox.question(
+            self,
+            "确认删除",
+            f"确定要删除项目 '{name}' 吗？\n此操作不可撤销。",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        )
+        if ret != QMessageBox.StandardButton.Yes:
+            return
+
+        try:
+            with open(self._config_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            data.pop(name, None)
+            with open(self._config_path, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=4, ensure_ascii=False)
+        except Exception as e:
+            QMessageBox.critical(self, "删除失败", str(e))
+            return
+
+        # 刷新下拉框
+        self._combo_project.blockSignals(True)
+        self._combo_project.removeItem(self._combo_project.currentIndex())
+        self._combo_project.blockSignals(False)
+
+        if self._combo_project.count() > 0:
+            self._on_project_selected(self._combo_project.currentText())
+        else:
+            self._edit_name.clear()
+            self._original_name = ""
+
+        QMessageBox.information(self, "删除成功", f"项目 '{name}' 已删除。")
+
+    # ------------------------------------------------------------------
+    # 保存（覆盖父类方法，支持重命名）
+    # ------------------------------------------------------------------
+    def _on_save(self) -> None:  # type: ignore[override]
+        try:
+            project_name, config = self._build_config()
+        except ValueError as e:
+            QMessageBox.warning(self, "输入错误", str(e))
+            return
+
+        try:
+            with open(self._config_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        except Exception:
+            data = {}
+
+        renamed = self._original_name and self._original_name != project_name
+
+        # 重命名时，若目标名已存在则询问覆盖
+        if renamed and project_name in data:
+            ret = QMessageBox.question(
+                self,
+                "确认覆盖",
+                f"项目 '{project_name}' 已存在，是否覆盖？",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            )
+            if ret != QMessageBox.StandardButton.Yes:
+                return
+
+        # 重命名：删除旧键
+        if renamed:
+            data.pop(self._original_name, None)
+
+        data[project_name] = config
+
+        try:
+            with open(self._config_path, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=4, ensure_ascii=False)
+        except Exception as e:
+            QMessageBox.critical(self, "保存失败", str(e))
+            return
+
+        # 刷新下拉框 & 内部状态
+        self._original_name = project_name
+        self._combo_project.blockSignals(True)
+        self._combo_project.clear()
+        for n in self._load_existing_projects():
+            self._combo_project.addItem(n)
+        self._combo_project.setCurrentText(project_name)
+        self._combo_project.blockSignals(False)
+
+        QMessageBox.information(self, "保存成功", f"项目 '{project_name}' 配置已更新。")

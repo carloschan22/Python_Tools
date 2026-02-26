@@ -137,6 +137,8 @@ class Connector(QWidget):
         action_alarm.triggered.connect(self._open_alarm_status_config)
         action_project = settings_menu.addAction("新增项目配置")
         action_project.triggered.connect(self._open_project_config)
+        action_manage = settings_menu.addAction("管理项目配置")
+        action_manage.triggered.connect(self._manage_project_config)
 
     def _apply_ui_config(self) -> None:
         ui_cfg = Tools.FUNCTION_CONFIG.get("UI", {})
@@ -899,6 +901,26 @@ class Connector(QWidget):
         dialog = ProjectConfigDialog(self)
         if dialog.exec() != QDialog.DialogCode.Accepted:
             return
+        Tools.refresh_configs()
+        # 刷新各组的项目下拉框
+        projects = list(Tools.PROJECT_CONFIG.keys())
+        for group_index in range(1, self._group_count + 1):
+            combo = getattr(self.ui, f"combo_product_{group_index}", None)
+            if combo is not None:
+                current = combo.currentText()
+                combo.blockSignals(True)
+                combo.clear()
+                for p in projects:
+                    combo.addItem(p)
+                if current in projects:
+                    combo.setCurrentText(current)
+                combo.blockSignals(False)
+
+    def _manage_project_config(self) -> None:
+        from ConfigTool import ManageProjectConfigDialog
+
+        dialog = ManageProjectConfigDialog(self)
+        dialog.exec()
         Tools.refresh_configs()
         # 刷新各组的项目下拉框
         projects = list(Tools.PROJECT_CONFIG.keys())
