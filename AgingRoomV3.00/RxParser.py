@@ -176,12 +176,12 @@ class AgingStatus(LoggerMixin):
     def mapping_status(self, current, voltage):
         """
         根据电流、电压判断状态码：
-        - status = 0: 状态为初始值, UI不更新底色
         - status = -5: 采集卡丢失（电压/电流为0或异常）, UI报警
         - status = -4: 低于暗电流范围, 未接产品, UI不判断
         - status = -3: 超出暗电流范围, 低于工作电压范围, 低于工作电流范围, UI报警
         - status = -2: 超出暗电流范围, 处于正常工作电流范围, 低于工作电压范围, UI报警
         - status = -1: 超出暗电流范围, 处于正常工作电压范围, 低于工作电流范围, UI报警
+        - status = 0: 状态为初始值, UI不更新底色
         - status = 1: 正常工作电压、电流, UI正常
         - status = 2: 超出暗电流范围, 处于正常工作电压范围, 超出工作电流范围, UI报警
         - status = 3: 超出暗电流范围, 低于工作电流范围, 高于工作电压范围, UI报警
