@@ -1781,6 +1781,7 @@ class ManualUpdateDialog(QDialog):
             "  • .ui   → ui/\n"
             "  • .py   → 根目录\n"
             "  • main_widget_ui.py / main_widget.ui → ui/\n"
+            "  • FuncConfig.json 更新时自动保留本地电源配置\n"
             "  • 同名文件将被覆盖，不同名文件则新增\n"
             "  • 更新完成后软件将自动重启"
         )
@@ -1836,7 +1837,10 @@ class ManualUpdateDialog(QDialog):
                         dest = Path(target_dir) / fname if target_dir else Path(fname)
                         target_full = self._root / dest
                         action = "覆盖" if target_full.exists() else "新增"
-                        lines.append(f"  [{action}] {fname}  → {dest}")
+                        extra = ""
+                        if fname == "FuncConfig.json":
+                            extra = "  (保留本地 PowerSupply)"
+                        lines.append(f"  [{action}] {fname}  → {dest}{extra}")
         except Exception as e:
             lines.append(f"  [错误] 无法读取压缩包: {e}")
 
@@ -1884,6 +1888,9 @@ class ManualUpdateDialog(QDialog):
                     dest_file = dest_dir / fname
                     try:
                         data = zf.read(info.filename)
+                        # FuncConfig.json 特殊处理: 保留 PowerSupply
+                        if fname == "FuncConfig.json":
+                            data = self._merge_func_config(data, dest_file)
                         with open(dest_file, "wb") as out:
                             out.write(data)
                         deployed.append(str(dest_file.relative_to(self._root)))
@@ -1909,6 +1916,25 @@ class ManualUpdateDialog(QDialog):
             + "\n\n点击确定后将自动重启软件。",
         )
         self._restart_app()
+
+    @staticmethod
+    def _merge_func_config(new_data: bytes, dest_file: Path) -> bytes:
+        """合并 FuncConfig.json: 用新配置覆盖，但保留本地 PowerSupply 段。"""
+        try:
+            new_cfg = json.loads(new_data.decode("utf-8"))
+        except Exception:
+            return new_data  # 解析失败则原样写入
+        if not dest_file.exists():
+            return new_data  # 本地无旧文件，直接使用新配置
+        try:
+            with open(dest_file, "r", encoding="utf-8") as f:
+                old_cfg = json.load(f)
+        except Exception:
+            return new_data
+        # 用旧的 PowerSupply 覆盖新配置中的 PowerSupply
+        if "PowerSupply" in old_cfg:
+            new_cfg["PowerSupply"] = old_cfg["PowerSupply"]
+        return json.dumps(new_cfg, indent=4, ensure_ascii=False).encode("utf-8")
 
     @staticmethod
     def _restart_app() -> None:
