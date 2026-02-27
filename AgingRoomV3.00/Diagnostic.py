@@ -714,7 +714,7 @@ class MultiSlotDiagnostic(LoggerMixin):
                     }
                     data.update(
                         self.write_dids(
-                            remap_slot(slot) if self.remap else slot, write_dids, values
+                            slot if self.remap else remap_slot(slot), write_dids, values
                         )
                     )  # 诊断穴位重映射.
                 with self._lock:

@@ -2567,7 +2567,7 @@ class AgingThread(QThread):
 
 
 def main():
-    Version = "V3.0.5"
+    Version = "V3.0.8"
     _log.info("----应用启动----/----Version: %s----", Version)
     Tools.change_json_value("FuncConfig", "UI.Version", Version)
     qt_app = QApplication(sys.argv)
