@@ -1,8 +1,11 @@
-"""ProjectConfig.json 项目配置图形化工具
+"""ProjectConfig.json / FuncConfig.json 配置图形化工具
 
 提供 ProjectConfigDialog 对话框，让用户无需手动编辑 JSON 即可新增 / 编辑项目配置。
 Diag.Params.isotp_params 根据 CAN FD 开关自动填充预设模板；
 default_client_config 始终使用统一默认值。
+
+FuncConfigDialog  — FuncConfig.json 图形化编辑。
+ManualUpdateDialog — 选择更新压缩包，按文件类型分发到对应目录后自动重启。
 """
 
 from __future__ import annotations
@@ -10,11 +13,16 @@ from __future__ import annotations
 import copy
 import json
 import os
+import shutil
+import subprocess
+import sys
+import zipfile
 from pathlib import Path
 from typing import Optional
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
+    QApplication,
     QCheckBox,
     QComboBox,
     QDialog,
@@ -1253,3 +1261,645 @@ class ManageProjectConfigDialog(ProjectConfigDialog):
         self._combo_project.blockSignals(False)
 
         QMessageBox.information(self, "保存成功", f"项目 '{project_name}' 配置已更新。")
+
+
+# ---------------------------------------------------------------------------
+# FuncConfig.json 图形化编辑对话框
+# ---------------------------------------------------------------------------
+class FuncConfigDialog(QDialog):
+    """图形化编辑 FuncConfig.json 所有配置项。"""
+
+    def __init__(self, parent: Optional[QWidget] = None):
+        super().__init__(parent)
+        self.setWindowTitle("功能配置 (FuncConfig)")
+        self.resize(720, 640)
+        self._config_path = Path(__file__).parent / "config" / "FuncConfig.json"
+
+        try:
+            with open(self._config_path, "r", encoding="utf-8") as f:
+                self._data: dict = json.load(f)
+        except Exception:
+            self._data = {}
+
+        main_layout = QVBoxLayout(self)
+        self._tabs = QTabWidget()
+        self._tabs.addTab(self._build_ui_tab(), "UI 界面")
+        self._tabs.addTab(self._build_logging_tab(), "日志")
+        self._tabs.addTab(self._build_canbus_tab(), "CAN总线")
+        self._tabs.addTab(self._build_power_tab(), "电源")
+        self._tabs.addTab(self._build_txrx_tab(), "收发 / 线程")
+        main_layout.addWidget(self._tabs, 1)
+
+        btn_layout = QHBoxLayout()
+        btn_layout.addStretch(1)
+        btn_cancel = QPushButton("取消")
+        btn_cancel.clicked.connect(self.reject)
+        btn_save = QPushButton("保存")
+        btn_save.clicked.connect(self._on_save)
+        btn_layout.addWidget(btn_cancel)
+        btn_layout.addWidget(btn_save)
+        main_layout.addLayout(btn_layout)
+
+    # ================================================================
+    # Tab — UI 界面
+    # ================================================================
+    def _build_ui_tab(self) -> QWidget:
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        container = QWidget()
+        form = QFormLayout(container)
+        form.setLabelAlignment(Qt.AlignmentFlag.AlignRight)
+
+        ui = self._data.get("UI", {})
+
+        self._edit_version = QLineEdit(str(ui.get("Version", "")))
+        form.addRow("版本号 (Version):", self._edit_version)
+
+        self._spin_group_count = QSpinBox()
+        self._spin_group_count.setRange(1, 10)
+        self._spin_group_count.setValue(int(ui.get("GroupCount", 2)))
+        form.addRow("分组数量 (GroupCount):", self._spin_group_count)
+
+        self._spin_index_per_group = QSpinBox()
+        self._spin_index_per_group.setRange(1, 999)
+        self._spin_index_per_group.setValue(int(ui.get("IndexPerGroup", 80)))
+        form.addRow("每组穴位数 (IndexPerGroup):", self._spin_index_per_group)
+
+        self._spin_slot_refresh = QDoubleSpinBox()
+        self._spin_slot_refresh.setRange(0.1, 60)
+        self._spin_slot_refresh.setDecimals(1)
+        self._spin_slot_refresh.setSuffix(" s")
+        self._spin_slot_refresh.setValue(float(ui.get("SlotRefreshInterval", 0.5)))
+        form.addRow("穴位刷新间隔 (SlotRefreshInterval):", self._spin_slot_refresh)
+
+        self._spin_alarm_delay = QSpinBox()
+        self._spin_alarm_delay.setRange(0, 9999)
+        self._spin_alarm_delay.setSuffix(" s")
+        self._spin_alarm_delay.setValue(int(ui.get("AlarmDelaySeconds", 5)))
+        form.addRow("报警延迟 (AlarmDelaySeconds):", self._spin_alarm_delay)
+
+        self._edit_operator_list = QLineEdit(",".join(ui.get("OperatorList", [])))
+        self._edit_operator_list.setPlaceholderText("逗号分隔, 如: 张三,李四")
+        form.addRow("操作员列表 (OperatorList):", self._edit_operator_list)
+
+        self._edit_default_operator = QLineEdit(",".join(ui.get("DefaultOperator", [])))
+        self._edit_default_operator.setPlaceholderText("按组逗号分隔, 如: 张三,李四")
+        form.addRow("默认操作员 (DefaultOperator):", self._edit_default_operator)
+
+        self._edit_default_project = QLineEdit(",".join(ui.get("DefaultProject", [])))
+        self._edit_default_project.setPlaceholderText("按组逗号分隔, 如: Q5012,Q5010A")
+        form.addRow("默认项目 (DefaultProject):", self._edit_default_project)
+
+        self._chk_remap = QCheckBox("启用")
+        self._chk_remap.setChecked(ui.get("Remap", True))
+        form.addRow("穴位重映射 (Remap):", self._chk_remap)
+
+        # ColorMapping
+        cm = ui.get("ColorMapping", {})
+        grp_color = QGroupBox("颜色映射 (ColorMapping)")
+        color_form = QFormLayout(grp_color)
+        self._color_edits: dict[str, QLineEdit] = {}
+        default_colors = {
+            "Idle": "#D3D3D3",
+            "good": "#90EE90",
+            "Paused": "#FFFF00C5",
+            "Warning": "#FF961E",
+            "Error": "#FF4500",
+        }
+        for key, default in default_colors.items():
+            edit = QLineEdit(cm.get(key, default))
+            edit.setMaximumWidth(150)
+            color_form.addRow(f"{key}:", edit)
+            self._color_edits[key] = edit
+        form.addRow(grp_color)
+
+        # NonRecoverableStatus
+        self._edit_non_recoverable = QLineEdit(
+            ",".join(str(s) for s in ui.get("NonRecoverableStatus", []))
+        )
+        self._edit_non_recoverable.setPlaceholderText(
+            "逗号分隔整数, 如: -3,-2,-1,2,3,4"
+        )
+        form.addRow(
+            "不可恢复状态码 (NonRecoverableStatus):", self._edit_non_recoverable
+        )
+
+        scroll.setWidget(container)
+        return scroll
+
+    # ================================================================
+    # Tab — 日志
+    # ================================================================
+    def _build_logging_tab(self) -> QWidget:
+        container = QWidget()
+        form = QFormLayout(container)
+        form.setLabelAlignment(Qt.AlignmentFlag.AlignRight)
+
+        log_cfg = self._data.get("Logging", {})
+
+        self._chk_enable_log = QCheckBox("启用日志")
+        self._chk_enable_log.setChecked(log_cfg.get("EnableLogging", True))
+        form.addRow("EnableLogging:", self._chk_enable_log)
+
+        self._edit_log_path = QLineEdit(log_cfg.get("LogPath", "logs/app.log"))
+        form.addRow("LogPath:", self._edit_log_path)
+
+        self._combo_log_level = QComboBox()
+        self._combo_log_level.addItems(
+            ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
+        )
+        self._combo_log_level.setCurrentText(log_cfg.get("LogLevel", "DEBUG"))
+        form.addRow("LogLevel:", self._combo_log_level)
+
+        self._spin_max_log_size = QSpinBox()
+        self._spin_max_log_size.setRange(1, 9999)
+        self._spin_max_log_size.setSuffix(" MB")
+        self._spin_max_log_size.setValue(int(log_cfg.get("MaxLogFileSizeMB", 100)))
+        form.addRow("MaxLogFileSizeMB:", self._spin_max_log_size)
+
+        self._spin_retention = QSpinBox()
+        self._spin_retention.setRange(1, 365)
+        self._spin_retention.setSuffix(" 天")
+        self._spin_retention.setValue(int(log_cfg.get("RetentionPeriod", 3)))
+        form.addRow("RetentionPeriod:", self._spin_retention)
+
+        return container
+
+    # ================================================================
+    # Tab — CAN总线
+    # ================================================================
+    def _build_canbus_tab(self) -> QWidget:
+        container = QWidget()
+        form = QFormLayout(container)
+        form.setLabelAlignment(Qt.AlignmentFlag.AlignRight)
+
+        can = self._data.get("CanBus", {})
+
+        self._combo_interface = QComboBox()
+        self._combo_interface.addItems(["zlg", "pcan", "vector", "socketcan"])
+        self._combo_interface.setEditable(True)
+        self._combo_interface.setCurrentText(can.get("Interface", "zlg"))
+        form.addRow("Interface:", self._combo_interface)
+
+        self._spin_dev_type = QSpinBox()
+        self._spin_dev_type.setRange(0, 9999)
+        self._spin_dev_type.setValue(int(can.get("DevType", 76)))
+        form.addRow("DevType:", self._spin_dev_type)
+
+        self._spin_bitrate = QSpinBox()
+        self._spin_bitrate.setRange(1000, 10_000_000)
+        self._spin_bitrate.setValue(int(can.get("Bitrate", 500000)))
+        self._spin_bitrate.setSuffix(" bps")
+        form.addRow("Bitrate:", self._spin_bitrate)
+
+        self._spin_data_bitrate = QSpinBox()
+        self._spin_data_bitrate.setRange(1000, 10_000_000)
+        self._spin_data_bitrate.setValue(int(can.get("DataBitrate", 2000000)))
+        self._spin_data_bitrate.setSuffix(" bps")
+        form.addRow("DataBitrate:", self._spin_data_bitrate)
+
+        self._chk_recv_own = QCheckBox("启用")
+        self._chk_recv_own.setChecked(can.get("ReceiveOwnMessages", True))
+        form.addRow("ReceiveOwnMessages:", self._chk_recv_own)
+
+        self._chk_fd = QCheckBox("CANFD 模式")
+        self._chk_fd.setChecked(can.get("FD", True))
+        form.addRow("FD:", self._chk_fd)
+
+        return container
+
+    # ================================================================
+    # Tab — 电源
+    # ================================================================
+    def _build_power_tab(self) -> QWidget:
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        container = QWidget()
+        form = QFormLayout(container)
+        form.setLabelAlignment(Qt.AlignmentFlag.AlignRight)
+
+        ps = self._data.get("PowerSupply", {})
+
+        self._combo_ps_type = QComboBox()
+        self._combo_ps_type.addItems(["DCPS1216", "DY4010", ""])
+        self._combo_ps_type.setEditable(True)
+        self._combo_ps_type.setCurrentText(ps.get("Type", "DCPS1216"))
+        form.addRow("Type:", self._combo_ps_type)
+
+        self._edit_com_port = QLineEdit(",".join(ps.get("ComPort", [])))
+        self._edit_com_port.setPlaceholderText("逗号分隔, 如: COM3,COM4")
+        form.addRow("ComPort:", self._edit_com_port)
+
+        self._edit_output_current_limit = QLineEdit(
+            ",".join(str(x) for x in ps.get("OutputCurrentLimit", []))
+        )
+        self._edit_output_current_limit.setPlaceholderText("逗号分隔, 如: 100,100")
+        form.addRow("OutputCurrentLimit:", self._edit_output_current_limit)
+
+        self._edit_voltage_offset = QLineEdit(
+            ",".join(str(x) for x in ps.get("VoltageOffset", []))
+        )
+        self._edit_voltage_offset.setPlaceholderText("逗号分隔, 如: 0.5,0.5")
+        form.addRow("VoltageOffset:", self._edit_voltage_offset)
+
+        self._spin_baud_rate = QSpinBox()
+        self._spin_baud_rate.setRange(300, 1_000_000)
+        self._spin_baud_rate.setValue(int(ps.get("BaudRate", 9600)))
+        form.addRow("BaudRate:", self._spin_baud_rate)
+
+        self._spin_group_per_ps = QSpinBox()
+        self._spin_group_per_ps.setRange(1, 100)
+        self._spin_group_per_ps.setValue(int(ps.get("GroupPerPowerSupply", 1)))
+        form.addRow("GroupPerPowerSupply:", self._spin_group_per_ps)
+
+        self._spin_dark_current = QDoubleSpinBox()
+        self._spin_dark_current.setRange(0, 99999)
+        self._spin_dark_current.setDecimals(1)
+        self._spin_dark_current.setSuffix(" mA")
+        self._spin_dark_current.setValue(float(ps.get("DarkCurrent", 5.0)))
+        form.addRow("DarkCurrent:", self._spin_dark_current)
+
+        scroll.setWidget(container)
+        return scroll
+
+    # ================================================================
+    # Tab — 收发 / 线程
+    # ================================================================
+    def _build_txrx_tab(self) -> QWidget:
+        container = QWidget()
+        layout = QVBoxLayout(container)
+
+        # ---- Tx ----
+        grp_tx = QGroupBox("发送 (Tx)")
+        tx_form = QFormLayout(grp_tx)
+        tx = self._data.get("Tx", {})
+
+        self._chk_retrans = QCheckBox("启用")
+        self._chk_retrans.setChecked(tx.get("RetransmissionMechanism", True))
+        tx_form.addRow("RetransmissionMechanism:", self._chk_retrans)
+
+        self._spin_retrans_times = QSpinBox()
+        self._spin_retrans_times.setRange(0, 100)
+        self._spin_retrans_times.setValue(int(tx.get("RetransmissionTimes", 3)))
+        tx_form.addRow("RetransmissionTimes:", self._spin_retrans_times)
+
+        self._spin_retrans_interval = QDoubleSpinBox()
+        self._spin_retrans_interval.setRange(0.01, 60)
+        self._spin_retrans_interval.setDecimals(2)
+        self._spin_retrans_interval.setSuffix(" s")
+        self._spin_retrans_interval.setValue(
+            float(tx.get("RetransmissionInterval", 0.1))
+        )
+        tx_form.addRow("RetransmissionInterval:", self._spin_retrans_interval)
+
+        layout.addWidget(grp_tx)
+
+        # ---- Rx ----
+        grp_rx = QGroupBox("接收 (Rx)")
+        rx_form = QFormLayout(grp_rx)
+        rx = self._data.get("Rx", {})
+
+        self._spin_times_change = QSpinBox()
+        self._spin_times_change.setRange(1, 100)
+        self._spin_times_change.setValue(int(rx.get("TimesToChangeStatus", 3)))
+        rx_form.addRow("TimesToChangeStatus:", self._spin_times_change)
+
+        self._chk_status_reset = QCheckBox("启用")
+        self._chk_status_reset.setChecked(rx.get("StatusReset", True))
+        rx_form.addRow("StatusReset:", self._chk_status_reset)
+
+        self._spin_times_reset = QSpinBox()
+        self._spin_times_reset.setRange(1, 100)
+        self._spin_times_reset.setValue(int(rx.get("TimesToResetStatus", 5)))
+        rx_form.addRow("TimesToResetStatus:", self._spin_times_reset)
+
+        layout.addWidget(grp_rx)
+
+        # ---- Threading ----
+        grp_thread = QGroupBox("线程 (Threading)")
+        th_form = QFormLayout(grp_thread)
+        th = self._data.get("Threading", {})
+
+        self._spin_sched_gran = QDoubleSpinBox()
+        self._spin_sched_gran.setRange(0.01, 10)
+        self._spin_sched_gran.setDecimals(2)
+        self._spin_sched_gran.setSuffix(" s")
+        self._spin_sched_gran.setValue(float(th.get("SchedulingGranularity", 0.1)))
+        th_form.addRow("SchedulingGranularity:", self._spin_sched_gran)
+
+        layout.addWidget(grp_thread)
+        layout.addStretch(1)
+
+        return container
+
+    # ================================================================
+    # 构建配置 & 保存
+    # ================================================================
+    def _build_func_config(self) -> dict:
+        """从所有表单字段收集并返回完整的 FuncConfig 字典。"""
+        cfg: dict = {}
+
+        # --- UI ---
+        operator_list = [
+            s.strip() for s in self._edit_operator_list.text().split(",") if s.strip()
+        ]
+        default_operator = [
+            s.strip()
+            for s in self._edit_default_operator.text().split(",")
+            if s.strip()
+        ]
+        default_project = [
+            s.strip() for s in self._edit_default_project.text().split(",") if s.strip()
+        ]
+        nrs_text = self._edit_non_recoverable.text().strip()
+        non_recoverable = []
+        if nrs_text:
+            try:
+                non_recoverable = [
+                    int(x.strip()) for x in nrs_text.split(",") if x.strip()
+                ]
+            except ValueError:
+                raise ValueError("不可恢复状态码格式错误，请使用逗号分隔的整数")
+
+        color_mapping = {
+            k: edit.text().strip() for k, edit in self._color_edits.items()
+        }
+
+        cfg["UI"] = {
+            "Version": self._edit_version.text().strip(),
+            "GroupCount": self._spin_group_count.value(),
+            "IndexPerGroup": self._spin_index_per_group.value(),
+            "SlotRefreshInterval": self._spin_slot_refresh.value(),
+            "AlarmDelaySeconds": self._spin_alarm_delay.value(),
+            "OperatorList": operator_list,
+            "DefaultOperator": default_operator,
+            "DefaultProject": default_project,
+            "Remap": self._chk_remap.isChecked(),
+            "ColorMapping": color_mapping,
+            "NonRecoverableStatus": non_recoverable,
+        }
+
+        # --- Logging ---
+        cfg["Logging"] = {
+            "EnableLogging": self._chk_enable_log.isChecked(),
+            "LogPath": self._edit_log_path.text().strip(),
+            "LogLevel": self._combo_log_level.currentText(),
+            "MaxLogFileSizeMB": self._spin_max_log_size.value(),
+            "RetentionPeriod": self._spin_retention.value(),
+        }
+
+        # --- CanBus ---
+        cfg["CanBus"] = {
+            "Interface": self._combo_interface.currentText().strip(),
+            "DevType": self._spin_dev_type.value(),
+            "Bitrate": self._spin_bitrate.value(),
+            "DataBitrate": self._spin_data_bitrate.value(),
+            "ReceiveOwnMessages": self._chk_recv_own.isChecked(),
+            "FD": self._chk_fd.isChecked(),
+        }
+
+        # --- PowerSupply ---
+        com_ports = [
+            s.strip() for s in self._edit_com_port.text().split(",") if s.strip()
+        ]
+        try:
+            ocl = [
+                int(x.strip())
+                for x in self._edit_output_current_limit.text().split(",")
+                if x.strip()
+            ]
+        except ValueError:
+            raise ValueError("OutputCurrentLimit 格式错误，请使用逗号分隔的整数")
+        try:
+            vo = [
+                float(x.strip())
+                for x in self._edit_voltage_offset.text().split(",")
+                if x.strip()
+            ]
+        except ValueError:
+            raise ValueError("VoltageOffset 格式错误，请使用逗号分隔的数字")
+
+        cfg["PowerSupply"] = {
+            "Type": self._combo_ps_type.currentText().strip(),
+            "ComPort": com_ports,
+            "OutputCurrentLimit": ocl,
+            "VoltageOffset": vo,
+            "BaudRate": self._spin_baud_rate.value(),
+            "GroupPerPowerSupply": self._spin_group_per_ps.value(),
+            "DarkCurrent": self._spin_dark_current.value(),
+        }
+
+        # --- Tx ---
+        cfg["Tx"] = {
+            "RetransmissionMechanism": self._chk_retrans.isChecked(),
+            "RetransmissionTimes": self._spin_retrans_times.value(),
+            "RetransmissionInterval": self._spin_retrans_interval.value(),
+        }
+
+        # --- Rx ---
+        cfg["Rx"] = {
+            "TimesToChangeStatus": self._spin_times_change.value(),
+            "StatusReset": self._chk_status_reset.isChecked(),
+            "TimesToResetStatus": self._spin_times_reset.value(),
+        }
+
+        # --- Threading ---
+        cfg["Threading"] = {
+            "SchedulingGranularity": self._spin_sched_gran.value(),
+        }
+
+        return cfg
+
+    def _on_save(self) -> None:
+        try:
+            config = self._build_func_config()
+        except ValueError as e:
+            QMessageBox.warning(self, "输入错误", str(e))
+            return
+
+        try:
+            with open(self._config_path, "w", encoding="utf-8") as f:
+                json.dump(config, f, indent=4, ensure_ascii=False)
+        except Exception as e:
+            QMessageBox.critical(self, "保存失败", str(e))
+            return
+
+        QMessageBox.information(self, "保存成功", "功能配置已保存到 FuncConfig.json。")
+        self.accept()
+
+
+# ---------------------------------------------------------------------------
+# 手动更新对话框 — 解压更新包并自动重启
+# ---------------------------------------------------------------------------
+
+# 文件扩展名 → 目标子目录（相对于项目根目录）
+_EXT_DIR_MAP: dict[str, str] = {
+    ".json": "config",
+    ".dbc": "dbc",
+    ".dll": "dll",
+    ".hex": "ota",
+    ".py": "",  # 根目录
+}
+
+
+class ManualUpdateDialog(QDialog):
+    """选择更新压缩包 (.zip)，按文件类型分发到对应目录后自动重启。"""
+
+    def __init__(self, parent: Optional[QWidget] = None):
+        super().__init__(parent)
+        self.setWindowTitle("手动更新")
+        self.resize(560, 400)
+        self._root = Path(__file__).parent
+
+        layout = QVBoxLayout(self)
+
+        # ---- 选择文件 ----
+        h_file = QHBoxLayout()
+        h_file.addWidget(QLabel("更新包路径:"))
+        self._edit_zip = QLineEdit()
+        self._edit_zip.setPlaceholderText("选择 .zip 更新包")
+        btn_browse = QPushButton("浏览")
+        btn_browse.clicked.connect(self._browse_zip)
+        h_file.addWidget(self._edit_zip, 1)
+        h_file.addWidget(btn_browse)
+        layout.addLayout(h_file)
+
+        # ---- 说明 ----
+        lbl_info = QLabel(
+            "说明:\n"
+            "  • .json → config/\n"
+            "  • .dbc  → dbc/\n"
+            "  • .dll  → dll/\n"
+            "  • .hex  → ota/\n"
+            "  • .py   → 根目录\n"
+            "  • 同名文件将被覆盖，不同名文件则新增\n"
+            "  • 更新完成后软件将自动重启"
+        )
+        lbl_info.setStyleSheet("color: #555; padding: 8px;")
+        layout.addWidget(lbl_info)
+
+        # ---- 预览 ----
+        self._preview = QPlainTextEdit()
+        self._preview.setReadOnly(True)
+        self._preview.setPlaceholderText("选择更新包后将在此预览文件分发计划……")
+        layout.addWidget(self._preview, 1)
+
+        # ---- 按钮 ----
+        btn_layout = QHBoxLayout()
+        btn_layout.addStretch(1)
+        btn_cancel = QPushButton("取消")
+        btn_cancel.clicked.connect(self.reject)
+        self._btn_update = QPushButton("执行更新")
+        self._btn_update.setEnabled(False)
+        self._btn_update.clicked.connect(self._on_update)
+        btn_layout.addWidget(btn_cancel)
+        btn_layout.addWidget(self._btn_update)
+        layout.addLayout(btn_layout)
+
+    # ------------------------------------------------------------------
+    def _browse_zip(self) -> None:
+        path, _ = QFileDialog.getOpenFileName(
+            self, "选择更新包", "", "ZIP Files (*.zip)"
+        )
+        if not path:
+            return
+        self._edit_zip.setText(path)
+        self._preview_zip(path)
+
+    def _preview_zip(self, zip_path: str) -> None:
+        """预览压缩包内文件及其分发目标。"""
+        lines: list[str] = []
+        try:
+            with zipfile.ZipFile(zip_path, "r") as zf:
+                for info in zf.infolist():
+                    if info.is_dir():
+                        continue
+                    fname = Path(info.filename).name
+                    ext = Path(fname).suffix.lower()
+                    target_dir = _EXT_DIR_MAP.get(ext)
+                    if target_dir is None:
+                        lines.append(f"  [跳过] {fname}  (不支持的类型 {ext})")
+                    else:
+                        dest = Path(target_dir) / fname if target_dir else Path(fname)
+                        target_full = self._root / dest
+                        action = "覆盖" if target_full.exists() else "新增"
+                        lines.append(f"  [{action}] {fname}  → {dest}")
+        except Exception as e:
+            lines.append(f"  [错误] 无法读取压缩包: {e}")
+
+        if not lines:
+            lines.append("  压缩包为空或不包含支持的文件类型。")
+
+        self._preview.setPlainText("\n".join(lines))
+        has_files = any("[跳过]" not in l and "[错误]" not in l for l in lines)
+        self._btn_update.setEnabled(has_files)
+
+    # ------------------------------------------------------------------
+    def _on_update(self) -> None:
+        zip_path = self._edit_zip.text().strip()
+        if not zip_path or not Path(zip_path).is_file():
+            QMessageBox.warning(self, "错误", "请选择有效的 .zip 更新包。")
+            return
+
+        ret = QMessageBox.question(
+            self,
+            "确认更新",
+            "执行更新后软件将自动重启，是否继续？",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        )
+        if ret != QMessageBox.StandardButton.Yes:
+            return
+
+        errors: list[str] = []
+        deployed: list[str] = []
+        try:
+            with zipfile.ZipFile(zip_path, "r") as zf:
+                for info in zf.infolist():
+                    if info.is_dir():
+                        continue
+                    fname = Path(info.filename).name
+                    ext = Path(fname).suffix.lower()
+                    target_dir = _EXT_DIR_MAP.get(ext)
+                    if target_dir is None:
+                        continue
+                    dest_dir = self._root / target_dir if target_dir else self._root
+                    dest_dir.mkdir(parents=True, exist_ok=True)
+                    dest_file = dest_dir / fname
+                    try:
+                        data = zf.read(info.filename)
+                        with open(dest_file, "wb") as out:
+                            out.write(data)
+                        deployed.append(str(dest_file.relative_to(self._root)))
+                    except Exception as e:
+                        errors.append(f"{fname}: {e}")
+        except Exception as e:
+            QMessageBox.critical(self, "解压失败", str(e))
+            return
+
+        if errors:
+            QMessageBox.warning(self, "部分文件部署失败", "\n".join(errors))
+
+        if not deployed:
+            QMessageBox.information(self, "提示", "没有文件被部署。")
+            return
+
+        # 重启应用
+        QMessageBox.information(
+            self,
+            "更新完成",
+            f"已部署 {len(deployed)} 个文件:\n"
+            + "\n".join(f"  • {f}" for f in deployed)
+            + "\n\n点击确定后将自动重启软件。",
+        )
+        self._restart_app()
+
+    @staticmethod
+    def _restart_app() -> None:
+        """关闭当前进程并重新启动。"""
+        python = sys.executable
+        script = str(Path(__file__).parent / "main.py")
+        subprocess.Popen([python, script], cwd=str(Path(__file__).parent))
+        # 退出当前应用
+        app = QApplication.instance()
+        if app:
+            app.quit()

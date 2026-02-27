@@ -137,6 +137,11 @@ class Connector(QWidget):
         action_project.triggered.connect(self._open_project_config)
         action_manage = settings_menu.addAction("管理项目配置")
         action_manage.triggered.connect(self._manage_project_config)
+        action_func = settings_menu.addAction("功能配置")
+        action_func.triggered.connect(self._open_func_config)
+        settings_menu.addSeparator()
+        action_update = settings_menu.addAction("手动更新")
+        action_update.triggered.connect(self._open_manual_update)
 
         self.ui.action_about.triggered.connect(
             lambda: self.ui.stackedPages.setCurrentWidget(self.ui.page_about)
@@ -937,6 +942,23 @@ class Connector(QWidget):
                 if current in projects:
                     combo.setCurrentText(current)
                 combo.blockSignals(False)
+
+    def _open_func_config(self) -> None:
+        from ConfigTool import FuncConfigDialog
+
+        dialog = FuncConfigDialog(self)
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+        Tools.refresh_configs()
+        self._non_recoverable_status = self._load_non_recoverable_status()
+        for group_index in range(1, self._group_count + 1):
+            self._reapply_group_status(group_index)
+
+    def _open_manual_update(self) -> None:
+        from ConfigTool import ManualUpdateDialog
+
+        dialog = ManualUpdateDialog(self)
+        dialog.exec()
 
     def _reapply_group_status(self, group_index: int) -> None:
         self._slot_latched[group_index] = {}
@@ -2567,7 +2589,7 @@ class AgingThread(QThread):
 
 
 def main():
-    Version = "V3.0.8"
+    Version = "V3.0.9"
     _log.info("----应用启动----/----Version: %s----", Version)
     Tools.change_json_value("FuncConfig", "UI.Version", Version)
     qt_app = QApplication(sys.argv)
