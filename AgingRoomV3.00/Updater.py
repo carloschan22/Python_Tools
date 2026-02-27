@@ -399,6 +399,10 @@ class OTAType01(OTA):
         self._path_cache: dict[str, str] = {}
         self._crc_cache: dict[str, str] = {}
         self._erase_cache: dict[str, bytes] = {}
+        self.heartbeat_msg = {
+            "msg1": [0x96, b"\x00" * 8, 0.01],
+            "msg2": [0xC2, b"\x00" * 7 + b"\x04", 0.01],
+        }
         self.log.info("OTAType01 initialized")
 
     # ──── 带缓存的参数解析 ──── #

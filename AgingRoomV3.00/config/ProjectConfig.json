@@ -102,6 +102,7 @@
             ],
             "OTA": {
                 "DelayAfterAging": 5,
+                "DelayJudgement": 2,
                 "Type": "OTAType01",
                 "FlashDriver": "Q5030_Driver.hex",
                 "Boot": "Q5030_BOOT_V000F-20251013",
@@ -132,6 +133,24 @@
                     "size": 1,
                     "type": "bytes",
                     "value": "01",
+                    "Padding": "0x20",
+                    "offset": null
+                },
+                "0xF15A": {
+                    "Operation": "Read",
+                    "name": "Supported Diagnostic Functions",
+                    "size": 21,
+                    "type": "bytes",
+                    "value": "06 0A 0B 0C 01 02 03 04 05 06 00 0A 0B 0C 01 02 03 04 05 06 06",
+                    "Padding": "0x20",
+                    "offset": null
+                },
+                "0xF190": {
+                    "Operation": "Read",
+                    "name": "VIN",
+                    "size": 17,
+                    "type": "bytes",
+                    "value": "",
                     "Padding": "0x20",
                     "offset": null
                 }

@@ -653,42 +653,88 @@ def ass_raw_data(config_list: list) -> bytes:
     return bytes(payload)
 
 
-def set_card_addr(
+def _send_card_config_pair(
+    bus: can.BusABC,
+    id1: int,
+    id2: int,
+    addrs: list,
+    logger: logging.Logger,
+    retries: int = 3,
+) -> bool:
+    """向一对采集卡配置 CAN ID（CH1/CH2）发送相同的地址配置数据。"""
+    addrs = [a if isinstance(a, int) and a is not None else 0x0000 for a in addrs]
+    msg_1 = can.Message(
+        arbitration_id=id1,
+        data=ass_raw_data(addrs),
+        is_extended_id=False,
+        is_fd=True,
+    )
+    msg_2 = can.Message(
+        arbitration_id=id2,
+        data=ass_raw_data(addrs),
+        is_extended_id=False,
+        is_fd=True,
+    )
+    for _ in range(retries):
+        try:
+            bus.send(msg_1)
+            bus.send(msg_2)
+            time.sleep(0.06)
+        except Exception:
+            logger.exception("Setting Cards Id Failed")
+            return False
+    logger.info(f"Setting Cards Id, Msg1:{msg_1}\n{' ' * 50}Msg2:{msg_2}")
+    return True
+
+
+def set_card_rx_addr(
     bus: can.BusABC, config: dict, logger: Optional[logging.Logger] = None
 ) -> bool:
+    """设置采集卡 RX 地址配置（诊断物理地址 + RX ID，CAN ID 3/4）。"""
     if logger is None:
         logger = _log
     phy_addrs = config["Diag"].get("DiagPhyAddr", [])
-    tx_ids = [config["TX"]["IdOfTxMsg1"], config["TX"]["IdOfTxMsg2"]]
     rx_ids = [config["RX"]["IdOfRxMsg1"], config["RX"]["IdOfRxMsg2"]]
-    mapping = {
-        (3, 4): [phy_addrs[1] if len(phy_addrs) > 1 else None, rx_ids[0], rx_ids[1]],
-        (5, 6): [phy_addrs[0] if len(phy_addrs) > 0 else None, tx_ids[0], tx_ids[1]],
-    }
-    for ids, addrs in mapping.items():
-        addrs = [a if isinstance(a, int) and a is not None else 0x0000 for a in addrs]
-        msg_1 = can.Message(
-            arbitration_id=ids[0],
-            data=ass_raw_data(addrs),
-            is_extended_id=False,
-            is_fd=True,
-        )
-        msg_2 = can.Message(
-            arbitration_id=ids[1],
-            data=ass_raw_data(addrs),
-            is_extended_id=False,
-            is_fd=True,
-        )
-        for _ in range(3):
-            try:
-                bus.send(msg_1)
-                bus.send(msg_2)
-                time.sleep(0.06)
-            except Exception:
-                logger.exception("Setting Cards Id Failed")
-                return False
-        logger.info(f"Setting Cards Id, Msg1:{msg_1}\n{' ' * 50}Msg2:{msg_2}")
-    return True
+    addrs = [phy_addrs[1] if len(phy_addrs) > 1 else None, rx_ids[0], rx_ids[1]]
+    return _send_card_config_pair(bus, 3, 4, addrs, logger)
+
+
+def set_card_tx_addr(
+    bus: can.BusABC,
+    config: Optional[dict] = None,
+    logger: Optional[logging.Logger] = None,
+    *,
+    tx_ids: Optional[list] = None,
+    diag_phy_addr: Optional[int] = None,
+) -> bool:
+    """设置采集卡 TX 地址配置（诊断物理地址 + TX ID，CAN ID 5/6）。
+
+    支持两种调用方式:
+      - set_card_tx_addr(bus, config=cfg)                              — 从 ProjectConfig 读取
+      - set_card_tx_addr(bus, tx_ids=[id1, id2], diag_phy_addr=addr)   — 显式指定
+    """
+    if logger is None:
+        logger = _log
+    if tx_ids is None:
+        if config is None:
+            raise ValueError("必须提供 config 或 tx_ids")
+        tx_ids = [config["TX"]["IdOfTxMsg1"], config["TX"]["IdOfTxMsg2"]]
+    if diag_phy_addr is None and config is not None:
+        phy_addrs = config["Diag"].get("DiagPhyAddr", [])
+        diag_phy_addr = phy_addrs[0] if len(phy_addrs) > 0 else None
+    addrs = [diag_phy_addr, tx_ids[0], tx_ids[1]]
+    return _send_card_config_pair(bus, 5, 6, addrs, logger)
+
+
+def set_card_addr(
+    bus: can.BusABC, config: dict, logger: Optional[logging.Logger] = None
+) -> bool:
+    """设置采集卡全部地址配置（RX + TX）。"""
+    if logger is None:
+        logger = _log
+    ok = set_card_rx_addr(bus, config, logger)
+    ok = set_card_tx_addr(bus, config=config, logger=logger) and ok
+    return ok
 
 
 def set_cards(

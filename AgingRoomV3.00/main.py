@@ -1454,6 +1454,7 @@ class Connector(QWidget):
         )
         ota_thread.ota_slot_result.connect(self._on_ota_slot_result)
         ota_thread.ota_finished.connect(self._on_ota_finished)
+        ota_thread.ota_judgement_pause.connect(self._on_ota_judgement_pause)
         self._ota_workers[group_index] = ota_thread
         ota_thread.start()
         _log.info(f"[OTA] 组{group_index} OTA 线程已启动")
@@ -1464,6 +1465,14 @@ class Connector(QWidget):
     def _on_ota_finished(self, group_index: int) -> None:
         _log.info(f"[OTA] 组{group_index} OTA 全部完成")
         self._ota_workers.pop(group_index, None)
+
+    def _on_ota_judgement_pause(self, group_index: int, pause: bool) -> None:
+        """OTA 期间暂停/恢复状态判断和 UI 刷新。"""
+        state = self._group_state.get(group_index)
+        if state is None:
+            return
+        state["frozen"] = pause
+        _log.info(f"[OTA] 组{group_index} 状态判断{'已暂停' if pause else '已恢复'}")
 
     @staticmethod
     def _map_status_to_color(status: int) -> Optional[str]:
@@ -2277,6 +2286,7 @@ class OTAThread(QThread):
 
     ota_slot_result = Signal(int, int, str)  # group_index, slot, 刷写状态
     ota_finished = Signal(int)  # group_index
+    ota_judgement_pause = Signal(int, bool)  # group_index, pause
 
     def __init__(
         self,
@@ -2333,6 +2343,18 @@ class OTAThread(QThread):
             f"[OTA] 组{self.group_index} 开始对 {len(qualifying_slots)} 个穴位执行 OTA: {qualifying_slots}"
         )
 
+        # ── OTA 前暂停状态判断（DelayJudgement）──
+        delay_judge = int(ota_cfg.get("DelayJudgement", 0))
+        if delay_judge > 0:
+            _log.info(f"[OTA] 组{self.group_index} 暂停状态判断, 等待 {delay_judge} 秒")
+            self.ota_judgement_pause.emit(self.group_index, True)
+            for _ in range(delay_judge):
+                if not self._running:
+                    self.ota_judgement_pause.emit(self.group_index, False)
+                    self.ota_finished.emit(self.group_index)
+                    return
+                self.msleep(1000)
+
         # ── 暂停周期诊断任务，避免与 OTA 冲突 ──
         periodic_disable = self.app.ops.get("periodic_disable")
         periodic_enable = self.app.ops.get("periodic_enable")
@@ -2344,6 +2366,18 @@ class OTAThread(QThread):
                     paused_jobs.append(job_name)
                 except Exception:
                     pass
+
+        # ── 切换到 OTA 心跳模式 ──
+        ota_enter_heartbeat = self.app.ops.get("ota_enter_heartbeat")
+        ota_exit_heartbeat = self.app.ops.get("ota_exit_heartbeat")
+        heartbeat_active = False
+        if callable(ota_enter_heartbeat):
+            try:
+                ota_enter_heartbeat()
+                heartbeat_active = True
+                _log.info(f"[OTA] 组{self.group_index} 已切换到 OTA 心跳模式")
+            except Exception as exc:
+                _log.error(f"[OTA] 组{self.group_index} 切换 OTA 心跳模式失败: {exc}")
 
         try:
             for slot in qualifying_slots:
@@ -2364,6 +2398,16 @@ class OTAThread(QThread):
                     _log.error(f"[OTA] 组{self.group_index} 穴位{slot} OTA 异常: {exc}")
                     self.ota_slot_result.emit(self.group_index, slot, f"失败: {exc}")
         finally:
+            # ── 退出 OTA 心跳模式，恢复正常发送 ──
+            if heartbeat_active and callable(ota_exit_heartbeat):
+                try:
+                    ota_exit_heartbeat()
+                    _log.info(f"[OTA] 组{self.group_index} 已退出 OTA 心跳模式")
+                except Exception as exc:
+                    _log.error(
+                        f"[OTA] 组{self.group_index} 退出 OTA 心跳模式失败: {exc}"
+                    )
+
             # ── 恢复周期诊断任务 ──
             for job_name in paused_jobs:
                 if callable(periodic_enable):
@@ -2371,6 +2415,18 @@ class OTAThread(QThread):
                         periodic_enable(job_name)
                     except Exception:
                         pass
+
+            # ── OTA 后延时恢复状态判断（DelayJudgement）──
+            if delay_judge > 0:
+                _log.info(
+                    f"[OTA] 组{self.group_index} OTA 完成, 等待 {delay_judge} 秒后恢复状态判断"
+                )
+                for _ in range(delay_judge):
+                    if not self._running:
+                        break
+                    self.msleep(1000)
+                self.ota_judgement_pause.emit(self.group_index, False)
+                _log.info(f"[OTA] 组{self.group_index} 状态判断已恢复")
 
         self.ota_finished.emit(self.group_index)
 

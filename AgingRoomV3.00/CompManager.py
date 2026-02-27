@@ -5,7 +5,7 @@ from Logger import LoggerMixin
 from RxParser import RxSplitter
 from CanInitializer import CanBusManager
 from typing import Any, Callable, Optional
-from Tools import PROJECT_CONFIG, set_cards, get_default_project
+from Tools import PROJECT_CONFIG, set_cards, set_card_tx_addr, get_default_project
 
 
 class _PeriodicWorker(LoggerMixin):
@@ -697,6 +697,133 @@ class ComponentsInstantiation(LoggerMixin):
                     self._periodic_worker.add_job(
                         "PeriodicReadDtc", max(1.0, interval), _job_dtc
                     )
+        # OTA 心跳切换
+        ota_inst = self._instant_manager.get("OTA")
+        if (
+            ota_inst is not None
+            and hasattr(ota_inst, "heartbeat_msg")
+            and ota_inst.heartbeat_msg
+        ):
+
+            def _ota_enter_heartbeat():
+                """进入 OTA 心跳模式：暂停 PeriodicSwitch，重配采集卡 TX ID，
+                以心跳数据和间隔替换周期发送。"""
+                import can
+                import Protocol
+
+                bus = self.can_manager.get_bus()
+                hb = ota_inst.heartbeat_msg
+
+                # 1) 暂停 PeriodicSwitch 周期任务
+                if self._periodic_worker is not None:
+                    for name in ("PeriodicSwitchMsg1", "PeriodicSwitchMsg2"):
+                        if self._periodic_worker.has_job(name):
+                            self._periodic_worker.remove_job(name)
+
+                # 2) 停止当前周期发送任务
+                for key in ("TxMsg1", "TxMsg2"):
+                    tasks = periodic_tasks.get(key)
+                    if tasks:
+                        for t in tasks:
+                            if t is not None:
+                                try:
+                                    t.stop()
+                                except Exception:
+                                    pass
+                        periodic_tasks[key] = None
+
+                # 3) 重配采集卡 TX 地址为心跳 ID
+                hb_msg1 = hb.get("msg1")
+                hb_msg2 = hb.get("msg2")
+                hb_tx1_id = hb_msg1[0] if hb_msg1 else (id_tx1 or 0)
+                hb_tx2_id = hb_msg2[0] if hb_msg2 else (id_tx2 or 0)
+                phy_addrs = self.project_cfg.get("Diag", {}).get("DiagPhyAddr", [])
+                diag_phy = phy_addrs[0] if phy_addrs else None
+                set_card_tx_addr(
+                    bus, tx_ids=[hb_tx1_id, hb_tx2_id], diag_phy_addr=diag_phy
+                )
+
+                # 4) 以心跳数据和间隔创建新的周期发送任务
+                ch_map = {
+                    "msg1": (
+                        "TxMsg1",
+                        Protocol.CH1_TX1_ID,
+                        Protocol.CH2_TX1_ID,
+                    ),
+                    "msg2": (
+                        "TxMsg2",
+                        Protocol.CH1_TX2_ID,
+                        Protocol.CH2_TX2_ID,
+                    ),
+                }
+                for msg_key, (task_key, ch1_id, ch2_id) in ch_map.items():
+                    cfg = hb.get(msg_key)
+                    if cfg is None:
+                        continue
+                    _, data, interval = cfg
+                    if not isinstance(data, (bytes, bytearray)):
+                        data = b"\x00" * 8
+                    ch1_msg = can.Message(
+                        arbitration_id=ch1_id,
+                        data=data,
+                        is_fd=True,
+                        is_extended_id=False,
+                    )
+                    ch2_msg = can.Message(
+                        arbitration_id=ch2_id,
+                        data=data,
+                        is_fd=True,
+                        is_extended_id=False,
+                    )
+                    periodic_tasks[task_key] = [
+                        bus.send_periodic(ch1_msg, interval),
+                        bus.send_periodic(ch2_msg, interval),
+                    ]
+
+                self.log.info(
+                    f"OTA 心跳模式已启用: TX ID 重配为"
+                    f" [{hex(hb_tx1_id)}, {hex(hb_tx2_id)}]"
+                )
+
+            def _ota_exit_heartbeat():
+                """退出 OTA 心跳模式：恢复采集卡 TX ID，重建正常周期发送，
+                恢复 PeriodicSwitch。"""
+                bus = self.can_manager.get_bus()
+
+                # 1) 停止心跳周期发送任务
+                for key in ("TxMsg1", "TxMsg2"):
+                    tasks = periodic_tasks.get(key)
+                    if tasks:
+                        for t in tasks:
+                            if t is not None:
+                                try:
+                                    t.stop()
+                                except Exception:
+                                    pass
+                        periodic_tasks[key] = None
+
+                # 2) 恢复采集卡 TX 地址为项目正常配置
+                set_card_tx_addr(bus, config=self.project_cfg)
+
+                # 3) 重建正常周期发送任务
+                if "tx1_start" in self.ops:
+                    self.ops["tx1_start"](ch1=True, ch2=True)
+                if "tx2_start" in self.ops:
+                    self.ops["tx2_start"](ch1=True, ch2=True)
+
+                # 4) 恢复 PeriodicSwitch 周期任务
+                if self._periodic_worker is not None:
+                    for name in ("PeriodicSwitchMsg1", "PeriodicSwitchMsg2"):
+                        cfg = self._periodic_job_registry.get(name)
+                        if cfg and not self._periodic_worker.has_job(name):
+                            interval_s, func = cfg
+                            self._periodic_worker.add_job(name, interval_s, func)
+
+                self.log.info("OTA 心跳模式已退出, 已恢复正常 TX 发送和 PeriodicSwitch")
+
+            self.register_op("ota_enter_heartbeat", _ota_enter_heartbeat)
+            self.register_op("ota_exit_heartbeat", _ota_exit_heartbeat)
+
         # Lifecycle
         self.register_op("shutdown", self.shutdown)
 
