@@ -215,16 +215,19 @@ class ComponentsInstantiation(LoggerMixin):
                 # Diagnostic.py 依赖的 Tools/第三方库可能未就绪, 避免影响其它功能
                 self.log.error(f"Diagnostic 实例化失败: {exc}")
 
-        # OTA / Updater
-        if "OTA" in self.supported or "Updater" in self.supported:
+        # OTA  — 根据配置中的 Type 字段动态选择升级类
+        if "OTA" in self.supported:
             try:
-                from Updater import OTAType01
+                import importlib
 
-                ota = OTAType01()
+                ota_cfg = self.project_cfg.get("Diag", {}).get("OTA", {})
+                ota_type = ota_cfg.get("Type", "OTAType01")
+                updater_module = importlib.import_module("Updater")
+                OTAClass = getattr(updater_module, ota_type)
+                ota = OTAClass()
                 if "OTA" in self.supported:
                     self._instant_manager["OTA"] = ota
-                if "Updater" in self.supported:
-                    self._instant_manager["Updater"] = ota
+                self.log.info(f"OTA 组件初始化成功: {ota_type}")
             except Exception as exc:
                 self.log.error(f"OTA/Updater 实例化失败: {exc}")
 

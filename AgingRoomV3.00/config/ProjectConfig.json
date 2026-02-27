@@ -100,6 +100,13 @@
                 1940,
                 1948
             ],
+            "OTA": {
+                "DelayAfterAging": 30,
+                "Type": "OTAType01",
+                "FlashDriver": "Q5030_Driver.hex",
+                "Boot": "Q5030_BOOT_V000F-20251013",
+                "APP": "Q5030_APP_V0020-20251013"
+            },
             "DidConfig": {
                 "0xF193": {
                     "Operation": "Read",

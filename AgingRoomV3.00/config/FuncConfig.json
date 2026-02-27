@@ -15,7 +15,7 @@
             "魁小立"
         ],
         "DefaultProject": [
-            "Q5010A",
+            "Q5030",
             "Q5010A"
         ],
         "Remap": true,
@@ -51,7 +51,7 @@
         "FD": true
     },
     "PowerSupply": {
-        "Type": "DCPS1216",
+        "Type": "",
         "ComPort": [
             "COM3",
             "COM4"

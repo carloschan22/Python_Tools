@@ -74,6 +74,7 @@ class Connector(QWidget):
         self.ui = ui
         self.app = app
         self._workers: dict[int, AgingThread] = {}
+        self._ota_workers: dict[int, OTAThread] = {}
         self._apps: dict[int, ComponentsInstantiation] = {}
         self._group_count = int(FUNCTION_CONFIG.get("UI", {}).get("GroupCount", 1))
         self._group_state: dict[int, dict] = {
@@ -1301,6 +1302,9 @@ class Connector(QWidget):
                 app.ops["tx2_start"](ch1=True, ch2=True)
             state["tx_started"] = True
 
+        # ── OTA 延时自动执行（仅首次启动时触发） ──
+        self._start_ota_if_configured(group_index, app)
+
         self._refresh_group_colors(group_index)
 
     def _pause_group(self, group_index: int) -> None:
@@ -1393,6 +1397,12 @@ class Connector(QWidget):
             worker.stop()
             worker.wait(2000)
 
+        # 停止 OTA 线程
+        ota_worker = self._ota_workers.pop(group_index, None)
+        if ota_worker is not None and ota_worker.isRunning():
+            ota_worker.stop()
+            ota_worker.wait(3000)
+
         if app is not None:
             if "periodic_worker_stop" in app.ops:
                 app.ops["periodic_worker_stop"]()
@@ -1422,6 +1432,38 @@ class Connector(QWidget):
         else:
             app.set_project(project_name)
         return app
+
+    # ──────────── OTA 延时自动执行 ──────────── #
+
+    def _start_ota_if_configured(
+        self, group_index: int, app: ComponentsInstantiation
+    ) -> None:
+        """若项目配置了 OTA，则启动 OTAThread 在延时后自动执行升级。"""
+        ota_cfg = app.project_cfg.get("Diag", {}).get("OTA", {})
+        if not ota_cfg or "OTA" not in app.supported:
+            return
+        # 已有正在运行的 OTA 线程则不重复启动
+        existing = self._ota_workers.get(group_index)
+        if existing is not None and existing.isRunning():
+            return
+
+        ota_thread = OTAThread(
+            app=app,
+            group_index=group_index,
+            get_slot_status=lambda gi=group_index: dict(self._slot_status.get(gi, {})),
+        )
+        ota_thread.ota_slot_result.connect(self._on_ota_slot_result)
+        ota_thread.ota_finished.connect(self._on_ota_finished)
+        self._ota_workers[group_index] = ota_thread
+        ota_thread.start()
+        _log.info(f"[OTA] 组{group_index} OTA 线程已启动")
+
+    def _on_ota_slot_result(self, group_index: int, slot: int, status: str) -> None:
+        _log.info(f"[OTA] 组{group_index} 穴位{slot} 刷写结果: {status}")
+
+    def _on_ota_finished(self, group_index: int) -> None:
+        _log.info(f"[OTA] 组{group_index} OTA 全部完成")
+        self._ota_workers.pop(group_index, None)
 
     @staticmethod
     def _map_status_to_color(status: int) -> Optional[str]:
@@ -2223,6 +2265,117 @@ class _HistoryExportWorker(QThread):
             return f"{float(value):.2f}"
         except Exception:
             return ""
+
+
+class OTAThread(QThread):
+    """老化延时后自动对符合条件的穴位执行 OTA 升级。
+
+    - 启动后等待 ``DelayAfterAging`` 秒
+    - 采集当前穴位状态，过滤掉 status ∈ {0, -5, -4} 的穴位
+    - 依次对剩余穴位通过 Diagnostic 组件获取 UDS Client 并执行 OTA
+    """
+
+    ota_slot_result = Signal(int, int, str)  # group_index, slot, 刷写状态
+    ota_finished = Signal(int)  # group_index
+
+    def __init__(
+        self,
+        app: ComponentsInstantiation,
+        group_index: int,
+        get_slot_status,
+    ):
+        super().__init__()
+        self.app = app
+        self.group_index = group_index
+        self._get_slot_status = get_slot_status
+        self._running = True
+
+    def run(self):
+        ota_cfg = self.app.project_cfg.get("Diag", {}).get("OTA", {})
+        delay = int(ota_cfg.get("DelayAfterAging", 30))
+        _log.info(f"[OTA] 组{self.group_index} 将在 {delay} 秒后开始执行 OTA")
+
+        # ── 延时等待（每秒检查是否被停止） ──
+        for _ in range(delay):
+            if not self._running:
+                return
+            self.msleep(1000)
+
+        if not self._running:
+            return
+
+        # ── 获取 OTA / Diagnostic 组件 ──
+        ota = self.app.get("OTA")
+        diag = self.app.get("Diagnostic")
+
+        if ota is None:
+            _log.warning(f"[OTA] 组{self.group_index} OTA 组件未初始化, 跳过")
+            self.ota_finished.emit(self.group_index)
+            return
+        if diag is None:
+            _log.warning(f"[OTA] 组{self.group_index} Diagnostic 组件未初始化, 跳过")
+            self.ota_finished.emit(self.group_index)
+            return
+
+        # ── 筛选符合条件的穴位: status 非 0、非 -5、非 -4 ──
+        status_map = self._get_slot_status()
+        skip_statuses = {0, -5, -4}
+        qualifying_slots = sorted(
+            slot for slot, status in status_map.items() if status not in skip_statuses
+        )
+
+        if not qualifying_slots:
+            _log.info(f"[OTA] 组{self.group_index} 无符合条件的穴位, 跳过")
+            self.ota_finished.emit(self.group_index)
+            return
+
+        _log.info(
+            f"[OTA] 组{self.group_index} 开始对 {len(qualifying_slots)} 个穴位执行 OTA: {qualifying_slots}"
+        )
+
+        # ── 暂停周期诊断任务，避免与 OTA 冲突 ──
+        periodic_disable = self.app.ops.get("periodic_disable")
+        periodic_enable = self.app.ops.get("periodic_enable")
+        paused_jobs: list[str] = []
+        for job_name in ("Diagnostic", "PeriodicDiag", "PeriodicReadDtc"):
+            if callable(periodic_disable):
+                try:
+                    periodic_disable(job_name)
+                    paused_jobs.append(job_name)
+                except Exception:
+                    pass
+
+        try:
+            for slot in qualifying_slots:
+                if not self._running:
+                    break
+                try:
+                    _log.info(f"[OTA] 组{self.group_index} 穴位{slot} 开始 OTA")
+                    uds, client, tx, rx = diag._ensure_client(slot)
+                    uds.update_address(tx, rx)
+                    with client:
+                        result = ota.start_update(client=client, ota_cfg=ota_cfg)
+                    status_text = result.get("刷写状态", "未知")
+                    _log.info(
+                        f"[OTA] 组{self.group_index} 穴位{slot} OTA 结果: {status_text}"
+                    )
+                    self.ota_slot_result.emit(self.group_index, slot, status_text)
+                except Exception as exc:
+                    _log.error(f"[OTA] 组{self.group_index} 穴位{slot} OTA 异常: {exc}")
+                    self.ota_slot_result.emit(self.group_index, slot, f"失败: {exc}")
+        finally:
+            # ── 恢复周期诊断任务 ──
+            for job_name in paused_jobs:
+                if callable(periodic_enable):
+                    try:
+                        periodic_enable(job_name)
+                    except Exception:
+                        pass
+
+        self.ota_finished.emit(self.group_index)
+
+    def stop(self):
+        self._running = False
 
 
 class AgingThread(QThread):
