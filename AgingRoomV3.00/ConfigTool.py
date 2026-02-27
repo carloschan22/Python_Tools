@@ -1732,12 +1732,19 @@ class FuncConfigDialog(QDialog):
 # 手动更新对话框 — 解压更新包并自动重启
 # ---------------------------------------------------------------------------
 
+# 特殊文件名 → 目标子目录（优先于扩展名规则）
+_SPECIAL_FILE_MAP: dict[str, str] = {
+    "main_widget_ui.py": "ui",
+    "main_widget.ui": "ui",
+}
+
 # 文件扩展名 → 目标子目录（相对于项目根目录）
 _EXT_DIR_MAP: dict[str, str] = {
     ".json": "config",
     ".dbc": "dbc",
     ".dll": "dll",
     ".hex": "ota",
+    ".ui": "ui",
     ".py": "",  # 根目录
 }
 
@@ -1771,7 +1778,9 @@ class ManualUpdateDialog(QDialog):
             "  • .dbc  → dbc/\n"
             "  • .dll  → dll/\n"
             "  • .hex  → ota/\n"
+            "  • .ui   → ui/\n"
             "  • .py   → 根目录\n"
+            "  • main_widget_ui.py / main_widget.ui → ui/\n"
             "  • 同名文件将被覆盖，不同名文件则新增\n"
             "  • 更新完成后软件将自动重启"
         )
@@ -1815,8 +1824,12 @@ class ManualUpdateDialog(QDialog):
                     if info.is_dir():
                         continue
                     fname = Path(info.filename).name
-                    ext = Path(fname).suffix.lower()
-                    target_dir = _EXT_DIR_MAP.get(ext)
+                    # 特殊文件名优先匹配
+                    if fname in _SPECIAL_FILE_MAP:
+                        target_dir = _SPECIAL_FILE_MAP[fname]
+                    else:
+                        ext = Path(fname).suffix.lower()
+                        target_dir = _EXT_DIR_MAP.get(ext)
                     if target_dir is None:
                         lines.append(f"  [跳过] {fname}  (不支持的类型 {ext})")
                     else:
@@ -1858,8 +1871,12 @@ class ManualUpdateDialog(QDialog):
                     if info.is_dir():
                         continue
                     fname = Path(info.filename).name
-                    ext = Path(fname).suffix.lower()
-                    target_dir = _EXT_DIR_MAP.get(ext)
+                    # 特殊文件名优先匹配
+                    if fname in _SPECIAL_FILE_MAP:
+                        target_dir = _SPECIAL_FILE_MAP[fname]
+                    else:
+                        ext = Path(fname).suffix.lower()
+                        target_dir = _EXT_DIR_MAP.get(ext)
                     if target_dir is None:
                         continue
                     dest_dir = self._root / target_dir if target_dir else self._root
