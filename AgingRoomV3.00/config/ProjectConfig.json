@@ -6,10 +6,10 @@
             6
         ],
         "默认老化时长": "2",
-        "默认工作电压": 12,
+        "默认工作电压": 12.0,
         "工作电压范围": [
-            11,
-            14
+            11.0,
+            14.0
         ],
         "工作电流范围": [
             400,
@@ -23,8 +23,8 @@
         "DLL路径": "dll/Q5030.dll",
         "是否电压偏移老化": true,
         "老化电压偏移范围": [
-            -2,
-            2
+            -2.0,
+            2.0
         ],
         "是否周期上电老化": true,
         "带电老化/休眠老化时长": [
@@ -322,7 +322,7 @@
                     "tx_data_length": 8,
                     "tx_data_min_length": 8,
                     "can_fd": false,
-                    "tx_padding": 0,
+                    "tx_padding": 204,
                     "rx_flowcontrol_timeout": 1000,
                     "rx_consecutive_frame_timeout": 1000,
                     "squash_stmin_requirement": false,
@@ -705,6 +705,149 @@
                     "tx_data_min_length": 8,
                     "can_fd": true,
                     "tx_padding": 204,
+                    "rx_flowcontrol_timeout": 1000,
+                    "rx_consecutive_frame_timeout": 1000,
+                    "max_frame_size": 4095
+                },
+                "default_client_config": {
+                    "exception_on_negative_response": true,
+                    "exception_on_invalid_response": true,
+                    "exception_on_unexpected_response": true,
+                    "security_algo": null,
+                    "security_algo_params": null,
+                    "tolerate_zero_padding": true,
+                    "ignore_all_zero_dtc": true,
+                    "dtc_snapshot_did_size": 2,
+                    "server_address_format": null,
+                    "server_memorysize_format": null,
+                    "data_identifiers": {},
+                    "input_output": {},
+                    "request_timeout": 5,
+                    "p2_timeout": 1,
+                    "p2_star_timeout": 5,
+                    "standard_version": 2020,
+                    "use_server_timing": false,
+                    "extended_data_size": null
+                }
+            }
+        }
+    },
+    "Q5012": {
+        "老化时长": [
+            2,
+            4,
+            6
+        ],
+        "默认老化时长": "2",
+        "默认工作电压": 12.0,
+        "工作电压范围": [
+            11.0,
+            13.0
+        ],
+        "工作电流范围": [
+            200,
+            1000
+        ],
+        "老化温度范围": [
+            70,
+            80
+        ],
+        "DBC路径": "dbc/Q5012.dbc",
+        "DLL路径": "dll/Q5012.dll",
+        "是否电压偏移老化": false,
+        "老化电压偏移范围": [
+            -2.0,
+            2.0
+        ],
+        "是否周期上电老化": false,
+        "带电老化/休眠老化时长": [
+            10,
+            1
+        ],
+        "SupportedComponents": [
+            "AgingStatus",
+            "CustomRxMsg1",
+            "CustomRxMsg2",
+            "Diagnostic",
+            "PeriodicDiag",
+            "PeriodicReadDtc"
+        ],
+        "RX": {
+            "IdOfRxMsg1": 466,
+            "IdOfRxMsg2": 942,
+            "GetTempById": null,
+            "GetTempBySigName": null
+        },
+        "TX": {
+            "IdOfTxMsg1": null,
+            "TypeOfTxMsg1": "CAN",
+            "IntervalOfTxMsg1": 0.2,
+            "DataOfTxMsg1": {},
+            "IdOfTxMsg2": null,
+            "TypeOfTxMsg2": "CAN",
+            "IntervalOfTxMsg2": 0.2,
+            "DataOfTxMsg2": {},
+            "PeriodicSwitching": {
+                "SwitchMsg1": {
+                    "SwitchInterval": null,
+                    "Data": []
+                },
+                "SwitchMsg2": {
+                    "SwitchInterval": null,
+                    "Data": []
+                }
+            }
+        },
+        "Diag": {
+            "SecurityFeedbackBytes": 16,
+            "DiagPhyAddr": [
+                1874,
+                2002
+            ],
+            "DidConfig": {
+                "0x8114": {
+                    "Operation": "Write",
+                    "name": "Display Mode",
+                    "size": 3,
+                    "type": "bytes",
+                    "value": "010100",
+                    "Padding": "0x20",
+                    "offset": null
+                },
+                "0x811C": {
+                    "Operation": "Read",
+                    "name": "App Version",
+                    "size": 16,
+                    "type": "string",
+                    "value": "R01.00.44",
+                    "Padding": "0x20",
+                    "offset": null
+                }
+            },
+            "PeriodicReadDtc": {
+                "Interval": 10,
+                "SubFunction": 2,
+                "DtcStatusMask": 9,
+                "WhiteList": []
+            },
+            "PeriodicDiag": {
+                "Interval": 2,
+                "ReDiagInterval": 1,
+                "Dids": {
+                    "0x8114": [
+                        "010100,010200,010300,010400,010500"
+                    ]
+                }
+            },
+            "Params": {
+                "isotp_params": {
+                    "stmin": 0,
+                    "blocksize": 0,
+                    "wftmax": 0,
+                    "tx_data_length": 8,
+                    "tx_data_min_length": 8,
+                    "can_fd": false,
+                    "tx_padding": 0,
                     "rx_flowcontrol_timeout": 1000,
                     "rx_consecutive_frame_timeout": 1000,
                     "max_frame_size": 4095

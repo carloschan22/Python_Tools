@@ -1,0 +1,221 @@
+VERSION ""
+
+
+NS_ : 
+        NS_DESC_
+        CM_
+        BA_DEF_
+        BA_
+        VAL_
+        CAT_DEF_
+        CAT_
+        FILTER
+        BA_DEF_DEF_
+        EV_DATA_
+        ENVVAR_DATA_
+        SGTYPE_
+        SGTYPE_VAL_
+        BA_DEF_SGTYPE_
+        BA_SGTYPE_
+        SIG_TYPE_REF_
+        VAL_TABLE_
+        SIG_GROUP_
+        SIG_VALTYPE_
+        SIGTYPE_VALTYPE_
+        BO_TX_BU_
+        BA_DEF_REL_
+        BA_REL_
+        BA_DEF_DEF_REL_
+        BU_SG_REL_
+        BU_EV_REL_
+        BU_BO_REL_
+        SG_MUL_VAL_
+
+BS_:
+
+BU_: CMS_I 
+
+
+BO_ 2015 Diag_FuncReq: 8 Vector__XXX
+ SG_ Diag_FuncReq_Data : 7|64@0+ (1,0) [0|0] ""  CMS_I
+
+BO_ 466 VIU_Info: 8 Vector__XXX
+ SG_ VIU_UsageMode : 31|4@0+ (1,0) [0|15] ""  CMS_I
+ SG_ VIU_PowerMode : 39|2@0+ (1,0) [0|3] ""  CMS_I
+ SG_ VIU_PowerModeFltFlag : 37|2@0+ (1,0) [0|3] ""  CMS_I
+ SG_ VIU_MOSResetReq : 45|2@0+ (1,0) [0|3] ""  CMS_I
+
+BO_ 942 VIU_Route_Body: 8 Vector__XXX
+ SG_ IPB_VehicleSpeedValid : 7|1@0+ (1,0) [0|1] ""  CMS_I
+ SG_ IPB_VehicleSpeed : 6|13@0+ (0.05625,0) [0|460.74375] "km/h"  CMS_I
+ SG_ VDC_actualGear : 35|2@0+ (1,0) [0|3] ""  CMS_I
+
+BO_ 1018 CMS_St: 8 CMS_I
+ SG_ CMS_DisplayMode : 0|1@0+ (1,0) [0|1] ""  Vector__XXX
+ SG_ CMS_VideoZoom : 2|2@0+ (1,0) [0|3] ""  Vector__XXX
+ SG_ CMS_VideoAngel : 5|3@0+ (1,0) [0|7] ""  Vector__XXX
+ SG_ CMS_VideoBackLight : 10|3@0+ (1,0) [0|7] ""  Vector__XXX
+ SG_ CMS_VideoErrorSt : 24|1@0+ (1,0) [0|1] ""  Vector__XXX
+ SG_ CMS_SensorErrorSt : 25|1@0+ (1,0) [0|1] ""  Vector__XXX
+ SG_ CMS_LCDErrorSt : 26|1@0+ (1,0) [0|1] ""  Vector__XXX
+ SG_ CMS_PowerErrorSt : 27|1@0+ (1,0) [0|1] ""  Vector__XXX
+ SG_ CMS_I2BusErrorSt : 28|1@0+ (1,0) [0|1] ""  Vector__XXX
+
+BO_ 1874 Diag_CMS_I_PhyReq: 8 CMS_I
+ SG_ Diag_CMS_I_PhyReq_Data : 7|64@0+ (1,0) [0|0] ""  Vector__XXX
+
+BO_ 2002 Diag_CMS_I_Resp: 8 CMS_I
+ SG_ Diag_CMS_I_Resp_Data : 7|64@0+ (1,0) [0|0] ""  Vector__XXX
+
+
+CM_ "Version:V1.0,Date:2025.05.30,Author:YunlongDai,Review:LingkaiLiu,Approval:HongfanBai,Description:()Frist Vision;
+Version:V1.1,Date:2025.08.09,Author:YunlongDai,Review:LemingLi,Approval:HongfanBai,Description:(VIU_Route_Body(0x3AE))change IPB_VehicleSpeed Signal Max. Value(Hex) to 0x1FFF;
+ ";
+
+CM_ BO_ 2015 "诊断报文长度可根据诊断需求调整";
+CM_ BO_ 1874 "诊断报文长度可根据诊断需求调整";
+CM_ BO_ 2002 "诊断报文长度可根据诊断需求调整";
+CM_ SG_ 2015 Diag_FuncReq_Data "诊断信号长度可根据诊断需求调整";
+CM_ SG_ 466 VIU_UsageMode "用户模式";
+CM_ SG_ 466 VIU_PowerMode "电源模式";
+CM_ SG_ 466 VIU_PowerModeFltFlag "电源模式故障状态";
+CM_ SG_ 466 VIU_MOSResetReq "MOS重置请求";
+CM_ SG_ 942 IPB_VehicleSpeedValid "车速有效位";
+CM_ SG_ 942 IPB_VehicleSpeed "车速";
+CM_ SG_ 942 VDC_actualGear "Actual gear engaged
+真实挡位";
+CM_ SG_ 1018 CMS_DisplayMode "显示模式";
+CM_ SG_ 1018 CMS_VideoZoom "视频视野缩放等级";
+CM_ SG_ 1018 CMS_VideoAngel "视频视角角度";
+CM_ SG_ 1018 CMS_VideoBackLight "视频背光亮度等级";
+CM_ SG_ 1018 CMS_VideoErrorSt "解串器视频信号异常状态";
+CM_ SG_ 1018 CMS_SensorErrorSt "感光传感器异常状态";
+CM_ SG_ 1018 CMS_LCDErrorSt "LCD初始化异常状态";
+CM_ SG_ 1018 CMS_PowerErrorSt "电压异常状态";
+CM_ SG_ 1018 CMS_I2BusErrorSt "I2C总线异常状态";
+CM_ SG_ 1874 Diag_CMS_I_PhyReq_Data "诊断信号长度可根据诊断需求调整";
+CM_ SG_ 2002 Diag_CMS_I_Resp_Data "诊断信号长度可根据诊断需求调整";
+
+
+BA_DEF_ BO_  "NmMessage" ENUM "No","Yes";
+BA_DEF_ BO_  "DiagState" ENUM  "No","Yes";
+BA_DEF_ BO_  "DiagRequest" ENUM  "No","Yes";
+BA_DEF_ BO_  "DiagResponse" ENUM  "No","Yes";
+BA_DEF_ BO_  "GenMsgSendType" ENUM  "Cyclic","Event","IfActive","CE","CA","NoMsgSendType";
+BA_DEF_ BO_  "GenMsgCycleTime" INT 0 0;
+BA_DEF_ SG_  "GenSigSendType" ENUM  "Cyclic","OnChange","OnWrite","IfActive","OnChangeWithRepetition","OnWriteWithRepetition","IfActiveWithRepetition","NoSigSendType","OnChangeAndIfActive","OnChangeAndIfActiveWithRepetition","CA","CE","Event";
+BA_DEF_ SG_  "GenSigStartValue" INT 0 0;
+BA_DEF_ SG_  "GenSigInactiveValue" INT 0 0;
+BA_DEF_ BO_  "GenMsgCycleTimeFast" INT 0 0;
+BA_DEF_ BO_  "GenMsgNrOfRepetition" INT 0 0;
+BA_DEF_ BO_  "GenMsgDelayTime" INT 0 0;
+BA_DEF_  "DBName" STRING ;
+BA_DEF_ BO_  "CANFD_BRS" ENUM  "0","1";
+BA_DEF_ BO_  "VFrameFormat" ENUM  "StandardCAN","ExtendedCAN","reserved","reserved","reserved","reserved","reserved","reserved","reserved","reserved","reserved","reserved","reserved","reserved","StandardCAN_FD","ExtendedCAN_FD";
+BA_DEF_  "NmMessageCount" INT 0 255;
+BA_DEF_ BO_  "GenMsgILSupport" ENUM  "No","Yes";
+BA_DEF_ BO_  "GenMsgStartDelayTime" INT 0 65535;
+BA_DEF_ BU_  "NmStationAddress" INT 0 63;
+BA_DEF_ BU_  "NmNode" ENUM  "no","yes";
+BA_DEF_  "NmBaseAddress" HEX 1024 1087;
+BA_DEF_  "BusType" STRING ;
+BA_DEF_ BU_  "NodeLayerModules" STRING ;
+BA_DEF_ BU_  "ECU" STRING ;
+BA_DEF_ BU_  "CANoeJitterMax" INT 0 0;
+BA_DEF_ BU_  "CANoeJitterMin" INT 0 0;
+BA_DEF_ BU_  "CANoeDrift" INT 0 0;
+BA_DEF_ BU_  "CANoeStartDelay" INT 0 0;
+BA_DEF_ SG_ "GenSigMeplex" STRING;
+BA_DEF_ SG_ "GenSigASIL" ENUM "QM","A","B","C","D","";
+BA_DEF_DEF_  "NmMessage" "No";
+BA_DEF_DEF_  "DiagState" "No";
+BA_DEF_DEF_  "DiagRequest" "No";
+BA_DEF_DEF_  "DiagResponse" "No";
+BA_DEF_DEF_  "GenMsgSendType" "Cyclic";
+BA_DEF_DEF_  "GenMsgCycleTime" 0;
+BA_DEF_DEF_  "GenSigSendType" "Cyclic";
+BA_DEF_DEF_  "GenSigStartValue" 0;
+BA_DEF_DEF_  "GenSigInactiveValue" 0;
+BA_DEF_DEF_  "GenMsgCycleTimeFast" 0;
+BA_DEF_DEF_  "GenMsgNrOfRepetition" 0;
+BA_DEF_DEF_  "GenMsgDelayTime" 0;
+BA_DEF_DEF_  "DBName" "";
+BA_DEF_DEF_  "CANFD_BRS" "1";
+BA_DEF_DEF_  "VFrameFormat" "StandardCAN_FD";
+BA_DEF_DEF_  "NmMessageCount" 128;
+BA_DEF_DEF_  "GenMsgILSupport" "No";
+BA_DEF_DEF_  "GenMsgStartDelayTime" 0;
+BA_DEF_DEF_  "NmStationAddress" 0;
+BA_DEF_DEF_  "NmNode" "no";
+BA_DEF_DEF_  "NmBaseAddress" 1024;
+BA_DEF_DEF_  "BusType" "CAN FD";
+BA_DEF_DEF_  "NodeLayerModules" "";
+BA_DEF_DEF_  "ECU" "";
+BA_DEF_DEF_  "CANoeJitterMax" 0;
+BA_DEF_DEF_  "CANoeJitterMin" 0;
+BA_DEF_DEF_  "CANoeDrift" 0;
+BA_DEF_DEF_  "CANoeStartDelay" 0;
+BA_DEF_DEF_ "GenSigMeplex" "";
+BA_DEF_DEF_ "GenSigASIL" "QM";
+BA_ "DBName" "EHV Car CMS_I Message list V1.1 - 20250809";
+BA_ "DiagState" BO_ 2015 1;
+BA_ "GenMsgSendType" BO_ 2015 1;
+BA_ "CANFD_BRS" BO_ 2015 0;
+BA_ "VFrameFormat" BO_ 2015 0;
+BA_ "GenSigSendType" SG_ 2015 Diag_FuncReq_Data 2;
+BA_ "GenSigASIL"  SG_ 2015 Diag_FuncReq_Data 5;
+BA_ "GenMsgILSupport" BO_ 466 1;
+BA_ "GenMsgCycleTime" BO_ 466 20;
+BA_ "CANFD_BRS" BO_ 466 0;
+BA_ "VFrameFormat" BO_ 466 0;
+BA_ "GenSigStartValue" SG_ 466 VIU_UsageMode 1;
+BA_ "GenSigASIL"  SG_ 466 VIU_UsageMode 5;
+BA_ "GenSigASIL"  SG_ 466 VIU_PowerMode 5;
+BA_ "GenSigASIL"  SG_ 466 VIU_PowerModeFltFlag 5;
+BA_ "GenSigASIL"  SG_ 466 VIU_MOSResetReq 5;
+BA_ "GenMsgILSupport" BO_ 942 1;
+BA_ "GenMsgCycleTime" BO_ 942 100;
+BA_ "CANFD_BRS" BO_ 942 0;
+BA_ "VFrameFormat" BO_ 942 0;
+BA_ "GenSigASIL"  SG_ 942 IPB_VehicleSpeedValid 5;
+BA_ "GenSigASIL"  SG_ 942 IPB_VehicleSpeed 5;
+BA_ "GenSigASIL"  SG_ 942 VDC_actualGear 5;
+BA_ "GenMsgILSupport" BO_ 1018 1;
+BA_ "GenMsgCycleTime" BO_ 1018 100;
+BA_ "CANFD_BRS" BO_ 1018 0;
+BA_ "VFrameFormat" BO_ 1018 0;
+BA_ "GenSigASIL"  SG_ 1018 CMS_DisplayMode 5;
+BA_ "GenSigASIL"  SG_ 1018 CMS_VideoZoom 5;
+BA_ "GenSigASIL"  SG_ 1018 CMS_VideoAngel 5;
+BA_ "GenSigASIL"  SG_ 1018 CMS_VideoBackLight 5;
+BA_ "GenSigASIL"  SG_ 1018 CMS_VideoErrorSt 5;
+BA_ "GenSigASIL"  SG_ 1018 CMS_SensorErrorSt 5;
+BA_ "GenSigASIL"  SG_ 1018 CMS_LCDErrorSt 5;
+BA_ "GenSigASIL"  SG_ 1018 CMS_PowerErrorSt 5;
+BA_ "GenSigASIL"  SG_ 1018 CMS_I2BusErrorSt 5;
+BA_ "GenMsgSendType" BO_ 1874 1;
+BA_ "CANFD_BRS" BO_ 1874 0;
+BA_ "VFrameFormat" BO_ 1874 0;
+BA_ "GenSigSendType" SG_ 1874 Diag_CMS_I_PhyReq_Data 2;
+BA_ "GenSigASIL"  SG_ 1874 Diag_CMS_I_PhyReq_Data 5;
+BA_ "GenMsgSendType" BO_ 2002 1;
+BA_ "CANFD_BRS" BO_ 2002 0;
+BA_ "VFrameFormat" BO_ 2002 0;
+BA_ "GenSigSendType" SG_ 2002 Diag_CMS_I_Resp_Data 2;
+BA_ "GenSigASIL"  SG_ 2002 Diag_CMS_I_Resp_Data 5;
+VAL_ 466 VIU_UsageMode 15 "Invalid" 14 "reserved" 13 "reserved" 12 "reserved" 11 "reserved" 10 "reserved" 9 "reserved" 8 "reserved" 7 "reserved" 6 "RemoteDriving" 5 "Remote" 4 "OTA Updating" 3 "Driving" 2 "Convenience" 1 "Inactive" 0 "Abandoned" ;
+VAL_ 466 VIU_PowerMode 3 "Invalid" 2 "Reserved" 1 "ON" 0 "OFF" ;
+VAL_ 466 VIU_PowerModeFltFlag 3 " Invalid" 2 " Reserved" 1 " True" 0 " False" ;
+VAL_ 466 VIU_MOSResetReq 3 "Reserved" 2 "Reserved" 1 "Active" 0 "Inactive" ;
+VAL_ 942 IPB_VehicleSpeedValid 1 "Valid" 0 "Invalid" ;
+VAL_ 942 IPB_VehicleSpeed 8191 "Invalid" ;
+VAL_ 942 VDC_actualGear 3 "D" 2 "N" 1 "R" 0 "P" ;
+VAL_ 1018 CMS_DisplayMode 1 "视频模式" 0 "视镜模式" ;
+VAL_ 1018 CMS_VideoZoom 3 "缩放等级3" 2 "缩放等级2" 1 "缩放等级1" 0 "无效" ;
+VAL_ 1018 CMS_VideoAngel 7 "视野方向7" 6 "视野方向6" 5 "视野方向5" 4 "视野方向4" 3 "视野方向3" 2 "视野方向2" 1 "视野方向1" 0 "无效" ;
+VAL_ 1018 CMS_VideoBackLight 7 "背光亮度等级7" 6 "背光亮度等级6" 5 "背光亮度等级5" 4 "背光亮度等级4" 3 "背光亮度等级3" 2 "背光亮度等级2" 1 "背光亮度等级1" 0 "无效" ;
+VAL_ 1018 CMS_VideoErrorSt 1 "故障" 0 "正常" ;
+VAL_ 1018 CMS_SensorErrorSt 1 "故障" 0 "正常" ;
+VAL_ 1018 CMS_LCDErrorSt 1 "故障" 0 "正常" ;
+VAL_ 1018 CMS_PowerErrorSt 1 "故障" 0 "正常" ;
+VAL_ 1018 CMS_I2BusErrorSt 1 "故障" 0 "正常" ;
