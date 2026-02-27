@@ -444,6 +444,87 @@ class ProjectConfigDialog(QDialog):
 
         layout.addWidget(grp_basic)
 
+        # ---- OTA 配置 ----
+        grp_ota = QGroupBox("OTA 升级配置")
+        ota_form = QFormLayout(grp_ota)
+
+        self._chk_ota_enable = QCheckBox("启用 OTA")
+        self._chk_ota_enable.setToolTip(
+            "启用后，老化结束将自动对符合条件的穴位执行 OTA 升级"
+        )
+        ota_form.addRow("OTA:", self._chk_ota_enable)
+
+        self._spin_ota_delay = QSpinBox()
+        self._spin_ota_delay.setRange(0, 9999)
+        self._spin_ota_delay.setValue(5)
+        self._spin_ota_delay.setSuffix(" s")
+        ota_form.addRow("老化后延时 (DelayAfterAging):", self._spin_ota_delay)
+
+        self._spin_ota_judge = QSpinBox()
+        self._spin_ota_judge.setRange(0, 9999)
+        self._spin_ota_judge.setValue(2)
+        self._spin_ota_judge.setSuffix(" s")
+        ota_form.addRow("判定延时 (DelayJudgement):", self._spin_ota_judge)
+
+        self._combo_ota_type = QComboBox()
+        self._combo_ota_type.addItems(["OTAType01"])
+        self._combo_ota_type.setEditable(True)
+        self._combo_ota_type.setToolTip("OTA 刷写实现类型，如 OTAType01")
+        ota_form.addRow("Type:", self._combo_ota_type)
+
+        h_flash = QHBoxLayout()
+        self._edit_ota_flash = QLineEdit()
+        self._edit_ota_flash.setPlaceholderText("如: Q5030_Driver.hex")
+        btn_flash = QPushButton("浏览")
+        btn_flash.clicked.connect(
+            lambda: self._browse_file(self._edit_ota_flash, "HEX Files (*.hex)")
+        )
+        h_flash.addWidget(self._edit_ota_flash, 1)
+        h_flash.addWidget(btn_flash)
+        ota_form.addRow("FlashDriver:", h_flash)
+
+        h_boot = QHBoxLayout()
+        self._edit_ota_boot = QLineEdit()
+        self._edit_ota_boot.setPlaceholderText("如: Q5030_BOOT_V000F-20251013")
+        btn_boot = QPushButton("浏览")
+        btn_boot.clicked.connect(
+            lambda: self._browse_file(self._edit_ota_boot, "HEX Files (*.hex)")
+        )
+        h_boot.addWidget(self._edit_ota_boot, 1)
+        h_boot.addWidget(btn_boot)
+        ota_form.addRow("Boot:", h_boot)
+
+        h_app = QHBoxLayout()
+        self._edit_ota_app = QLineEdit()
+        self._edit_ota_app.setPlaceholderText("如: Q5030_APP_V0020-20251013")
+        btn_app = QPushButton("浏览")
+        btn_app.clicked.connect(
+            lambda: self._browse_file(self._edit_ota_app, "HEX Files (*.hex)")
+        )
+        h_app.addWidget(self._edit_ota_app, 1)
+        h_app.addWidget(btn_app)
+        ota_form.addRow("APP:", h_app)
+
+        # 联动: 未启用时禁用子控件
+        ota_children = [
+            self._spin_ota_delay,
+            self._spin_ota_judge,
+            self._combo_ota_type,
+            self._edit_ota_flash,
+            btn_flash,
+            self._edit_ota_boot,
+            btn_boot,
+            self._edit_ota_app,
+            btn_app,
+        ]
+        for w in ota_children:
+            w.setEnabled(False)
+        self._chk_ota_enable.toggled.connect(
+            lambda checked: [w.setEnabled(checked) for w in ota_children]
+        )
+
+        layout.addWidget(grp_ota)
+
         # ---- DID 配置 ----
         grp_did = QGroupBox("DID 配置")
         did_layout = QVBoxLayout(grp_did)
@@ -738,6 +819,17 @@ class ProjectConfigDialog(QDialog):
                 row, 6, QTableWidgetItem(info.get("Padding", "0x20"))
             )
 
+        # OTA
+        ota_cfg = diag.get("OTA", {})
+        has_ota = bool(ota_cfg)
+        self._chk_ota_enable.setChecked(has_ota)
+        self._spin_ota_delay.setValue(ota_cfg.get("DelayAfterAging", 5))
+        self._spin_ota_judge.setValue(ota_cfg.get("DelayJudgement", 2))
+        self._combo_ota_type.setCurrentText(ota_cfg.get("Type", "OTAType01"))
+        self._edit_ota_flash.setText(ota_cfg.get("FlashDriver", ""))
+        self._edit_ota_boot.setText(ota_cfg.get("Boot", ""))
+        self._edit_ota_app.setText(ota_cfg.get("APP", ""))
+
         # PeriodicReadDtc
         prdtc = diag.get("PeriodicReadDtc", {})
         self._spin_dtc_interval.setValue(prdtc.get("Interval", 10))
@@ -901,29 +993,43 @@ class ProjectConfigDialog(QDialog):
             self._edit_pdiag_dids.toPlainText(), "PeriodicDiag Dids", []
         )
 
-        cfg["Diag"] = {
+        diag_dict: dict = {
             "SecurityFeedbackBytes": self._spin_security_bytes.value(),
             "DiagPhyAddr": [
                 self._spin_diag_req.value(),
                 self._spin_diag_resp.value(),
             ],
-            "DidConfig": did_config,
-            "PeriodicReadDtc": {
-                "Interval": self._spin_dtc_interval.value(),
-                "SubFunction": self._spin_dtc_subfunc.value(),
-                "DtcStatusMask": self._spin_dtc_mask.value(),
-                "WhiteList": whitelist,
-            },
-            "PeriodicDiag": {
-                "Interval": self._spin_pdiag_interval.value(),
-                "ReDiagInterval": self._spin_pdiag_rediag.value(),
-                "Dids": dids,
-            },
-            "Params": {
-                "isotp_params": isotp,
-                "default_client_config": copy.deepcopy(DEFAULT_CLIENT_CONFIG),
-            },
         }
+
+        # OTA (仅在启用时写入)
+        if self._chk_ota_enable.isChecked():
+            diag_dict["OTA"] = {
+                "DelayAfterAging": self._spin_ota_delay.value(),
+                "DelayJudgement": self._spin_ota_judge.value(),
+                "Type": self._combo_ota_type.currentText().strip() or "OTAType01",
+                "FlashDriver": self._edit_ota_flash.text().strip(),
+                "Boot": self._edit_ota_boot.text().strip(),
+                "APP": self._edit_ota_app.text().strip(),
+            }
+
+        diag_dict["DidConfig"] = did_config
+        diag_dict["PeriodicReadDtc"] = {
+            "Interval": self._spin_dtc_interval.value(),
+            "SubFunction": self._spin_dtc_subfunc.value(),
+            "DtcStatusMask": self._spin_dtc_mask.value(),
+            "WhiteList": whitelist,
+        }
+        diag_dict["PeriodicDiag"] = {
+            "Interval": self._spin_pdiag_interval.value(),
+            "ReDiagInterval": self._spin_pdiag_rediag.value(),
+            "Dids": dids,
+        }
+        diag_dict["Params"] = {
+            "isotp_params": isotp,
+            "default_client_config": copy.deepcopy(DEFAULT_CLIENT_CONFIG),
+        }
+
+        cfg["Diag"] = diag_dict
 
         return name, cfg
 
