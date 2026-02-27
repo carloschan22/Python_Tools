@@ -494,7 +494,7 @@ class OTAType01(OTA):
         diag_steps: dict[str, Any] = {
             "进入默认会话_1": lambda: client.change_session(1),
             "进入扩展会话": lambda: client.change_session(3),
-            # "读取当前会话_1": lambda: client.read_data_by_identifier(0xF186),
+            "读取当前会话_1": lambda: client.read_data_by_identifier(0xF186),
             "检查编程预条件": lambda: client.routine_control(
                 routine_id=0xFF02, control_type=0x01, data=None
             ),
@@ -503,7 +503,7 @@ class OTAType01(OTA):
                 control_type=0x03, communication_type=0x03
             ),
             "进入编程会话": lambda: client.change_session(2),
-            # "读取当前会话_2": lambda: client.read_data_by_identifier(0xF186),
+            "读取当前会话_2": lambda: client.read_data_by_identifier(0xF186),
             "安全访问": lambda: client.unlock_security_access(level=9),
             # ── FlashDriver (第一次) ──
             "下载FlashDriver": lambda: self._download_file(client, driver_path),
@@ -514,7 +514,7 @@ class OTAType01(OTA):
             "写入指纹信息": lambda: client.write_data_by_identifier(
                 did=0xF15A, value=fingerprint
             ),
-            # "读取当前会话_3": lambda: client.read_data_by_identifier(0xF186),
+            "读取当前会话_3": lambda: client.read_data_by_identifier(0xF186),
             "擦除BOOT存储区": lambda: client.routine_control(
                 routine_id=0xFF00, control_type=0x01, data=erase_boot
             ),
@@ -544,9 +544,9 @@ class OTAType01(OTA):
             ),
             "ECU重置": lambda: client.ecu_reset(reset_type=0x01),
             "延时": lambda: time.sleep(1),
-            # "读取当前会话_4": lambda: client.read_data_by_identifier(0xF186),
+            "读取当前会话_4": lambda: client.read_data_by_identifier(0xF186),
             "进入默认会话_2": lambda: client.change_session(1),
-            # "读取当前会话_5": lambda: client.read_data_by_identifier(0xF186),
+            "读取当前会话_5": lambda: client.read_data_by_identifier(0xF186),
             "读取ECU硬件版本号": lambda: client.read_data_by_identifier(0xF193),
             "读取ECU软件版本号": lambda: client.read_data_by_identifier(0xFD00),
             "读取车辆识别号": lambda: client.read_data_by_identifier(0xF190),

@@ -82,7 +82,7 @@
                     ]
                 },
                 "SwitchMsg2": {
-                    "SwitchInterval": 5,
+                    "SwitchInterval": 10,
                     "Data": [
                         {
                             "HU_Light_ValueMalCmd": 40
@@ -101,7 +101,7 @@
                 1948
             ],
             "OTA": {
-                "DelayAfterAging": 30,
+                "DelayAfterAging": 5,
                 "Type": "OTAType01",
                 "FlashDriver": "Q5030_Driver.hex",
                 "Boot": "Q5030_BOOT_V000F-20251013",
@@ -123,6 +123,15 @@
                     "size": 16,
                     "type": "string",
                     "value": "V1.70.95",
+                    "Padding": "0x20",
+                    "offset": null
+                },
+                "0xF186": {
+                    "Operation": "Read",
+                    "name": "Current Session",
+                    "size": 1,
+                    "type": "bytes",
+                    "value": "01",
                     "Padding": "0x20",
                     "offset": null
                 }
