@@ -53,8 +53,8 @@
     "PowerSupply": {
         "Type": "DCPS1216",
         "ComPort": [
-            "COM3",
-            "COM4"
+            "COM99",
+            "COM100"
         ],
         "OutputCurrentLimit": [
             100,
