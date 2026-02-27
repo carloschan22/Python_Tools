@@ -310,9 +310,9 @@ class ComponentsInstantiation(LoggerMixin):
             def _tx1_set(signal_data: dict, message_name_or_id=None):
                 tasks = periodic_tasks.get("TxMsg1")
                 if tasks is None:
-                    # 默认创建 CH1+CH2 两路周期任务；若只需要单路, 可调用 tx1_start
-                    tasks = tx1.create_periodic_task(ch1=True, ch2=True)
-                    periodic_tasks["TxMsg1"] = tasks
+                    # 周期任务尚未创建（由 tx1_start 统一创建），跳过本次修改
+                    self.log.debug("tx1_set: 周期任务尚未创建, 跳过")
+                    return None
                 if message_name_or_id is None:
                     message_name_or_id = id_tx1
                 self.log.debug(
@@ -327,6 +327,15 @@ class ComponentsInstantiation(LoggerMixin):
             self.register_op("tx1_set", _tx1_set)
 
             def _tx1_start(ch1: bool = True, ch2: bool = True):
+                # 先停止已有的 CAN 总线周期任务，防止产生僵尸发送线程导致信号跳变
+                old_tasks = periodic_tasks.get("TxMsg1")
+                if old_tasks:
+                    for t in old_tasks:
+                        if t is not None:
+                            try:
+                                t.stop()
+                            except Exception:
+                                pass
                 periodic_tasks["TxMsg1"] = tx1.create_periodic_task(ch1=ch1, ch2=ch2)
                 return periodic_tasks["TxMsg1"]
 
@@ -337,8 +346,9 @@ class ComponentsInstantiation(LoggerMixin):
             def _tx2_set(signal_data: dict, message_name_or_id=None):
                 tasks = periodic_tasks.get("TxMsg2")
                 if tasks is None:
-                    tasks = tx2.create_periodic_task(ch1=True, ch2=True)
-                    periodic_tasks["TxMsg2"] = tasks
+                    # 周期任务尚未创建（由 tx2_start 统一创建），跳过本次修改
+                    self.log.debug("tx2_set: 周期任务尚未创建, 跳过")
+                    return None
                 if message_name_or_id is None:
                     message_name_or_id = id_tx2
                 self.log.debug(
@@ -353,6 +363,15 @@ class ComponentsInstantiation(LoggerMixin):
             self.register_op("tx2_set", _tx2_set)
 
             def _tx2_start(ch1: bool = True, ch2: bool = True):
+                # 先停止已有的 CAN 总线周期任务，防止产生僵尸发送线程导致信号跳变
+                old_tasks = periodic_tasks.get("TxMsg2")
+                if old_tasks:
+                    for t in old_tasks:
+                        if t is not None:
+                            try:
+                                t.stop()
+                            except Exception:
+                                pass
                 periodic_tasks["TxMsg2"] = tx2.create_periodic_task(ch1=ch1, ch2=ch2)
                 return periodic_tasks["TxMsg2"]
 
