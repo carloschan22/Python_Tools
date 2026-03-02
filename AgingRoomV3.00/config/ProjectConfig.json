@@ -31,6 +31,9 @@
             10,
             1
         ],
+        "PowerCycle": {
+            "DelayOnJudgement": 5
+        },
         "SupportedComponents": [
             "AgingStatus",
             "CustomTxMsg1",
@@ -237,6 +240,9 @@
             10,
             1
         ],
+        "PowerCycle": {
+            "DelayOnJudgement": 5
+        },
         "SupportedComponents": [
             "AgingStatus",
             "CustomTxMsg1",
@@ -279,6 +285,14 @@
                 1874,
                 2002
             ],
+            "OTA": {
+                "DelayAfterAging": null,
+                "DelayJudgement": null,
+                "Type": null,
+                "FlashDriver": null,
+                "Boot": null,
+                "APP": null
+            },
             "DidConfig": {
                 "0x8114": {
                     "Operation": "Write",
@@ -325,7 +339,6 @@
                     "tx_padding": 204,
                     "rx_flowcontrol_timeout": 1000,
                     "rx_consecutive_frame_timeout": 1000,
-                    "squash_stmin_requirement": false,
                     "max_frame_size": 4095
                 },
                 "default_client_config": {
@@ -383,6 +396,9 @@
             10,
             1
         ],
+        "PowerCycle": {
+            "DelayOnJudgement": 5
+        },
         "SupportedComponents": [
             "AgingStatus",
             "CustomRxMsg1",
@@ -423,6 +439,14 @@
                 1874,
                 2002
             ],
+            "OTA": {
+                "DelayAfterAging": null,
+                "DelayJudgement": null,
+                "Type": null,
+                "FlashDriver": null,
+                "Boot": null,
+                "APP": null
+            },
             "DidConfig": {
                 "0x8114": {
                     "Operation": "Write",
@@ -530,6 +554,9 @@
             10,
             1
         ],
+        "PowerCycle": {
+            "DelayOnJudgement": 5
+        },
         "SupportedComponents": [
             "AgingStatus",
             "PowerCycle"
@@ -566,6 +593,14 @@
                 1874,
                 2002
             ],
+            "OTA": {
+                "DelayAfterAging": null,
+                "DelayJudgement": null,
+                "Type": null,
+                "FlashDriver": null,
+                "Boot": null,
+                "APP": null
+            },
             "DidConfig": {},
             "PeriodicReadDtc": {
                 "Interval": 10,
@@ -646,6 +681,9 @@
             10,
             1
         ],
+        "PowerCycle": {
+            "DelayOnJudgement": 5
+        },
         "SupportedComponents": [
             "AgingStatus",
             "CustomTxMsg1",
@@ -684,6 +722,14 @@
                 1876,
                 1884
             ],
+            "OTA": {
+                "DelayAfterAging": null,
+                "DelayJudgement": null,
+                "Type": null,
+                "FlashDriver": null,
+                "Boot": null,
+                "APP": null
+            },
             "DidConfig": {},
             "PeriodicReadDtc": {
                 "Interval": 10,
@@ -764,6 +810,9 @@
             10,
             1
         ],
+        "PowerCycle": {
+            "DelayOnJudgement": 5
+        },
         "SupportedComponents": [
             "AgingStatus",
             "CustomRxMsg1",
@@ -804,6 +853,14 @@
                 1874,
                 2002
             ],
+            "OTA": {
+                "DelayAfterAging": null,
+                "DelayJudgement": null,
+                "Type": null,
+                "FlashDriver": null,
+                "Boot": null,
+                "APP": null
+            },
             "DidConfig": {
                 "0x8114": {
                     "Operation": "Write",

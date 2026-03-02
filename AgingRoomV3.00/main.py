@@ -2476,6 +2476,55 @@ class AgingThread(QThread):
         self._running = True
         self._paused = False
         self._last_status: dict[int, int] = {}
+        self._power_cycle_ctrl = self.app.get("PowerCycle", None)
+        power_cycle_cfg = getattr(self.app, "project_cfg", {}).get("PowerCycle", {})
+        try:
+            self._delay_on_judgement = float(power_cycle_cfg.get("DelayOnJudgement", 0))
+        except Exception:
+            self._delay_on_judgement = 0.0
+        if self._delay_on_judgement < 0:
+            self._delay_on_judgement = 0.0
+        self._power_was_on: Optional[bool] = None
+        self._judge_resume_at: float = 0.0
+        self._judgement_delay_active = False
+
+    def _is_judgement_delay_active(self) -> bool:
+        """PowerCycle 上电后延时判定窗口（DelayOnJudgement）。"""
+        if self._delay_on_judgement <= 0:
+            if self._judgement_delay_active:
+                self._judgement_delay_active = False
+            return False
+
+        ctrl = self._power_cycle_ctrl
+        if ctrl is None:
+            if self._judgement_delay_active:
+                self._judgement_delay_active = False
+            return False
+
+        try:
+            powered_on = bool(getattr(ctrl, "is_powered_on", True))
+        except Exception:
+            powered_on = True
+
+        now = time.time()
+        if self._power_was_on is None:
+            self._power_was_on = powered_on
+        elif (not self._power_was_on) and powered_on:
+            self._judge_resume_at = now + self._delay_on_judgement
+            _log.info(
+                "组%d 检测到 PowerCycle 上电，延时 %.1f 秒后恢复状态判定",
+                self.group_index,
+                self._delay_on_judgement,
+            )
+            self._power_was_on = powered_on
+        else:
+            self._power_was_on = powered_on
+
+        is_active = now < self._judge_resume_at
+        if self._judgement_delay_active and not is_active:
+            _log.info("组%d DelayOnJudgement 已结束，恢复状态判定", self.group_index)
+        self._judgement_delay_active = is_active
+        return is_active
 
     def _get_status_func(self):
         if hasattr(self.app, "ops") and isinstance(getattr(self.app, "ops"), dict):
@@ -2501,7 +2550,10 @@ class AgingThread(QThread):
                 slot_count = int(FUNCTION_CONFIG["UI"].get("IndexPerGroup", 0))
                 continue
 
+            delay_active = self._is_judgement_delay_active()
+
             active_slots = Tools.get_active_slots(self.app)
+            active_slot_set = set(active_slots)
             diag_set_fn = None
             diag_once_set = None
             dtc_set_fn = None
@@ -2527,6 +2579,11 @@ class AgingThread(QThread):
                 dtc_set_fn(active_slots)
 
             results = Tools.get_slots_results(self.app, active_slots)  # 状态更新
+            if delay_active:
+                for slot_data in (results or {}).values():
+                    card_status = slot_data.get("card_status")
+                    if isinstance(card_status, dict):
+                        card_status["Status"] = None
             if results:
                 self.db_worker.enqueue(self.table_name, results)  # 状态写入数据库
 
@@ -2537,9 +2594,13 @@ class AgingThread(QThread):
             for slot in range(1, slot_count + 1):
                 card_status = status_fn("card_status", slot)
                 status = 0
+                status_valid_for_judgement = True
                 if isinstance(card_status, dict):
                     status = int(card_status.get("Status", 0))
-                    if status not in (0, -4):
+                    if delay_active and slot in active_slot_set:
+                        status_valid_for_judgement = False
+                        status = self._last_status.get(slot, status)
+                    if status_valid_for_judgement and status not in (0, -4):
                         total += 1
                         if status == 1:
                             good += 1
@@ -2589,7 +2650,7 @@ class AgingThread(QThread):
 
 
 def main():
-    Version = "V3.0.10"
+    Version = "V3.0.11"
     _log.info("----应用启动----/----Version: %s----", Version)
     Tools.change_json_value("FuncConfig", "UI.Version", Version)
     qt_app = QApplication(sys.argv)
