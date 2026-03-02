@@ -287,6 +287,15 @@ class ProjectConfigDialog(QDialog):
         h5.addWidget(self._spin_sleep)
         form.addRow("带电/休眠时长:", h5)
 
+        self._spin_delay_on_judgement = QSpinBox()
+        self._spin_delay_on_judgement.setRange(0, 9999)
+        self._spin_delay_on_judgement.setSuffix(" s")
+        self._spin_delay_on_judgement.setValue(5)
+        self._spin_delay_on_judgement.setToolTip(
+            "周期上电从断电切换到上电后，延时N秒再恢复状态判定"
+        )
+        form.addRow("上电判定延时 (DelayOnJudgement):", self._spin_delay_on_judgement)
+
         scroll.setWidget(container)
         return scroll
 
@@ -742,6 +751,10 @@ class ProjectConfigDialog(QDialog):
         ps = cfg.get("带电老化/休眠老化时长", [10, 1])
         self._spin_power_on.setValue(ps[0] if len(ps) > 0 else 10)
         self._spin_sleep.setValue(ps[1] if len(ps) > 1 else 1)
+        power_cycle_cfg = cfg.get("PowerCycle", {})
+        self._spin_delay_on_judgement.setValue(
+            int(power_cycle_cfg.get("DelayOnJudgement", 5) or 0)
+        )
 
         # -- 组件 --
         components = cfg.get("SupportedComponents", [])
@@ -900,6 +913,7 @@ class ProjectConfigDialog(QDialog):
             self._spin_power_on.value(),
             self._spin_sleep.value(),
         ]
+        cfg["PowerCycle"] = {"DelayOnJudgement": self._spin_delay_on_judgement.value()}
 
         # SupportedComponents
         cfg["SupportedComponents"] = [
