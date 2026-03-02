@@ -1,6 +1,6 @@
 {
     "UI": {
-        "Version": "V3.0.11",
+        "Version": "V3.0.12",
         "GroupCount": 2,
         "IndexPerGroup": 80,
         "SlotRefreshInterval": 0.5,
@@ -15,7 +15,7 @@
             "魁小立"
         ],
         "DefaultProject": [
-            "Q5012",
+            "Q5030",
             "Q5010A"
         ],
         "Remap": true,

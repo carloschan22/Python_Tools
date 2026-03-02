@@ -104,12 +104,12 @@
                 1948
             ],
             "OTA": {
-                "DelayAfterAging": 5,
+                "DelayAfterAging": 60,
                 "DelayJudgement": 2,
                 "Type": "OTAType01",
                 "FlashDriver": "Q5030_Driver.hex",
-                "Boot": "Q5030_BOOT_V000F-20251013",
-                "APP": "Q5030_APP_V0020-20251013"
+                "Boot": "Q5030_BOOT_V000E-20250927",
+                "APP": "Q5030_APP_V001F-20250927"
             },
             "DidConfig": {
                 "0xF193": {

@@ -2551,9 +2551,17 @@ class AgingThread(QThread):
                 continue
 
             delay_active = self._is_judgement_delay_active()
+            power_cycle_on = True
+            if self._power_cycle_ctrl is not None:
+                try:
+                    power_cycle_on = bool(
+                        getattr(self._power_cycle_ctrl, "is_powered_on", True)
+                    )
+                except Exception:
+                    power_cycle_on = True
+            judgement_frozen = (not power_cycle_on) or delay_active
 
             active_slots = Tools.get_active_slots(self.app)
-            active_slot_set = set(active_slots)
             diag_set_fn = None
             diag_once_set = None
             dtc_set_fn = None
@@ -2579,13 +2587,22 @@ class AgingThread(QThread):
                 dtc_set_fn(active_slots)
 
             results = Tools.get_slots_results(self.app, active_slots)  # 状态更新
-            if delay_active:
-                for slot_data in (results or {}).values():
+            db_results = results
+            if judgement_frozen and results:
+                db_results = {}
+                for slot, slot_data in results.items():
+                    if not isinstance(slot_data, dict):
+                        db_results[slot] = slot_data
+                        continue
+                    copied_slot_data = dict(slot_data)
                     card_status = slot_data.get("card_status")
                     if isinstance(card_status, dict):
-                        card_status["Status"] = None
-            if results:
-                self.db_worker.enqueue(self.table_name, results)  # 状态写入数据库
+                        copied_card_status = dict(card_status)
+                        copied_card_status["Status"] = None
+                        copied_slot_data["card_status"] = copied_card_status
+                    db_results[slot] = copied_slot_data
+            if db_results:
+                self.db_worker.enqueue(self.table_name, db_results)  # 状态写入数据库
 
             total = 0
             good = 0
@@ -2596,8 +2613,12 @@ class AgingThread(QThread):
                 status = 0
                 status_valid_for_judgement = True
                 if isinstance(card_status, dict):
-                    status = int(card_status.get("Status", 0))
-                    if delay_active and slot in active_slot_set:
+                    raw_status = card_status.get("Status", 0)
+                    try:
+                        status = int(raw_status)
+                    except Exception:
+                        status = 0
+                    if judgement_frozen:
                         status_valid_for_judgement = False
                         status = self._last_status.get(slot, status)
                     if status_valid_for_judgement and status not in (0, -4):
@@ -2650,7 +2671,7 @@ class AgingThread(QThread):
 
 
 def main():
-    Version = "V3.0.11"
+    Version = "V3.0.12"
     _log.info("----应用启动----/----Version: %s----", Version)
     Tools.change_json_value("FuncConfig", "UI.Version", Version)
     qt_app = QApplication(sys.argv)
