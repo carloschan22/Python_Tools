@@ -522,6 +522,22 @@ class ProjectConfigDialog(QDialog):
         h_app.addWidget(btn_app)
         ota_form.addRow("APP:", h_app)
 
+        self._spin_ota_slot_retry = QSpinBox()
+        self._spin_ota_slot_retry.setRange(1, 10)
+        self._spin_ota_slot_retry.setValue(1)
+        self._spin_ota_slot_retry.setToolTip("单个穴位 OTA 失败后的重试次数")
+        ota_form.addRow("穴位重试次数 (SlotRetry):", self._spin_ota_slot_retry)
+
+        self._spin_ota_inter_slot_delay = QDoubleSpinBox()
+        self._spin_ota_inter_slot_delay.setRange(0, 60)
+        self._spin_ota_inter_slot_delay.setDecimals(1)
+        self._spin_ota_inter_slot_delay.setValue(1.0)
+        self._spin_ota_inter_slot_delay.setSuffix(" s")
+        self._spin_ota_inter_slot_delay.setToolTip(
+            "两个穴位 OTA 之间的间隔延时，用于 CAN 总线恢复"
+        )
+        ota_form.addRow("穴位间延时 (InterSlotDelay):", self._spin_ota_inter_slot_delay)
+
         # 联动: 未启用时禁用子控件
         ota_children = [
             self._spin_ota_delay,
@@ -533,6 +549,8 @@ class ProjectConfigDialog(QDialog):
             btn_boot,
             self._edit_ota_app,
             btn_app,
+            self._spin_ota_slot_retry,
+            self._spin_ota_inter_slot_delay,
         ]
         for w in ota_children:
             w.setEnabled(False)
@@ -850,6 +868,8 @@ class ProjectConfigDialog(QDialog):
         self._edit_ota_flash.setText(ota_cfg.get("FlashDriver", ""))
         self._edit_ota_boot.setText(ota_cfg.get("Boot", ""))
         self._edit_ota_app.setText(ota_cfg.get("APP", ""))
+        self._spin_ota_slot_retry.setValue(ota_cfg.get("SlotRetry", 1))
+        self._spin_ota_inter_slot_delay.setValue(ota_cfg.get("InterSlotDelay", 1.0))
 
         # PeriodicReadDtc
         prdtc = diag.get("PeriodicReadDtc", {})
@@ -1032,6 +1052,8 @@ class ProjectConfigDialog(QDialog):
                 "FlashDriver": self._edit_ota_flash.text().strip(),
                 "Boot": self._edit_ota_boot.text().strip(),
                 "APP": self._edit_ota_app.text().strip(),
+                "SlotRetry": self._spin_ota_slot_retry.value(),
+                "InterSlotDelay": self._spin_ota_inter_slot_delay.value(),
             }
 
         diag_dict["DidConfig"] = did_config

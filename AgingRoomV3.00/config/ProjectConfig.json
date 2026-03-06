@@ -109,7 +109,9 @@
                 "Type": "OTAType01",
                 "FlashDriver": "Q5030_Driver.hex",
                 "Boot": "Q5030_BOOT_V000E-20250927",
-                "APP": "Q5030_APP_V001F-20250927"
+                "APP": "Q5030_APP_V001F-20250927",
+                "SlotRetry": 1,
+                "InterSlotDelay": 1.0
             },
             "DidConfig": {
                 "0xF193": {
@@ -291,7 +293,9 @@
                 "Type": null,
                 "FlashDriver": null,
                 "Boot": null,
-                "APP": null
+                "APP": null,
+                "SlotRetry": 1,
+                "InterSlotDelay": 1.0
             },
             "DidConfig": {
                 "0x8114": {
@@ -445,7 +449,9 @@
                 "Type": null,
                 "FlashDriver": null,
                 "Boot": null,
-                "APP": null
+                "APP": null,
+                "SlotRetry": 1,
+                "InterSlotDelay": 1.0
             },
             "DidConfig": {
                 "0x8114": {
@@ -599,7 +605,9 @@
                 "Type": null,
                 "FlashDriver": null,
                 "Boot": null,
-                "APP": null
+                "APP": null,
+                "SlotRetry": 1,
+                "InterSlotDelay": 1.0
             },
             "DidConfig": {},
             "PeriodicReadDtc": {
@@ -728,7 +736,9 @@
                 "Type": null,
                 "FlashDriver": null,
                 "Boot": null,
-                "APP": null
+                "APP": null,
+                "SlotRetry": 1,
+                "InterSlotDelay": 1.0
             },
             "DidConfig": {},
             "PeriodicReadDtc": {
@@ -859,7 +869,9 @@
                 "Type": null,
                 "FlashDriver": null,
                 "Boot": null,
-                "APP": null
+                "APP": null,
+                "SlotRetry": 1,
+                "InterSlotDelay": 1.0
             },
             "DidConfig": {
                 "0x8114": {

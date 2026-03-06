@@ -8,6 +8,7 @@ import sqlite3
 import logging
 import csv
 import json
+import threading
 
 from math import ceil
 from bisect import bisect_left
@@ -2309,6 +2310,7 @@ class OTAThread(QThread):
     ota_slot_result = Signal(int, int, str)  # group_index, slot, 刷写状态
     ota_finished = Signal(int)  # group_index
     ota_judgement_pause = Signal(int, bool)  # group_index, pause
+    _ota_global_lock = threading.Lock()
 
     def __init__(
         self,
@@ -2325,6 +2327,8 @@ class OTAThread(QThread):
     def run(self):
         ota_cfg = self.app.project_cfg.get("Diag", {}).get("OTA", {})
         delay = int(ota_cfg.get("DelayAfterAging", 30))
+        slot_retry = max(1, int(ota_cfg.get("SlotRetry", 1)))
+        inter_slot_delay = float(ota_cfg.get("InterSlotDelay", 1.0))
         _log.info(f"[OTA] 组{self.group_index} 将在 {delay} 秒后开始执行 OTA")
 
         # ── 延时等待（每秒检查是否被停止） ──
@@ -2365,62 +2369,99 @@ class OTAThread(QThread):
             f"[OTA] 组{self.group_index} 开始对 {len(qualifying_slots)} 个穴位执行 OTA: {qualifying_slots}"
         )
 
-        # ── OTA 前暂停状态判断（DelayJudgement）──
-        delay_judge = int(ota_cfg.get("DelayJudgement", 0))
-        if delay_judge > 0:
-            _log.info(f"[OTA] 组{self.group_index} 暂停状态判断, 等待 {delay_judge} 秒")
-            self.ota_judgement_pause.emit(self.group_index, True)
-            for _ in range(delay_judge):
-                if not self._running:
-                    self.ota_judgement_pause.emit(self.group_index, False)
-                    self.ota_finished.emit(self.group_index)
-                    return
-                self.msleep(1000)
+        # ── 跨组串行锁：确保同一时间只有一个组执行 OTA ──
+        lock_acquired = False
+        _log.info(f"[OTA] 组{self.group_index} 等待 OTA 串行锁...")
+        while self._running:
+            if OTAThread._ota_global_lock.acquire(timeout=1.0):
+                lock_acquired = True
+                _log.info(f"[OTA] 组{self.group_index} 已获取 OTA 串行锁")
+                break
+        if not lock_acquired:
+            self.ota_finished.emit(self.group_index)
+            return
 
-        # ── 暂停周期诊断任务，避免与 OTA 冲突 ──
-        periodic_disable = self.app.ops.get("periodic_disable")
-        periodic_enable = self.app.ops.get("periodic_enable")
-        paused_jobs: list[str] = []
-        for job_name in ("Diagnostic", "PeriodicDiag", "PeriodicReadDtc"):
-            if callable(periodic_disable):
-                try:
-                    periodic_disable(job_name)
-                    paused_jobs.append(job_name)
-                except Exception:
-                    pass
-
-        # ── 切换到 OTA 心跳模式 ──
-        ota_enter_heartbeat = self.app.ops.get("ota_enter_heartbeat")
-        ota_exit_heartbeat = self.app.ops.get("ota_exit_heartbeat")
         heartbeat_active = False
-        if callable(ota_enter_heartbeat):
-            try:
-                ota_enter_heartbeat()
-                heartbeat_active = True
-                _log.info(f"[OTA] 组{self.group_index} 已切换到 OTA 心跳模式")
-            except Exception as exc:
-                _log.error(f"[OTA] 组{self.group_index} 切换 OTA 心跳模式失败: {exc}")
+        paused_jobs: list[str] = []
+        delay_judge = int(ota_cfg.get("DelayJudgement", 0))
+        ota_exit_heartbeat = None
 
         try:
+            # ── OTA 前暂停状态判断（DelayJudgement）──
+            if delay_judge > 0:
+                _log.info(
+                    f"[OTA] 组{self.group_index} 暂停状态判断, 等待 {delay_judge} 秒"
+                )
+                self.ota_judgement_pause.emit(self.group_index, True)
+                for _ in range(delay_judge):
+                    if not self._running:
+                        return
+                    self.msleep(1000)
+
+            # ── 暂停周期诊断任务，避免与 OTA 冲突 ──
+            periodic_disable = self.app.ops.get("periodic_disable")
+            for job_name in ("Diagnostic", "PeriodicDiag", "PeriodicReadDtc"):
+                if callable(periodic_disable):
+                    try:
+                        periodic_disable(job_name)
+                        paused_jobs.append(job_name)
+                    except Exception:
+                        pass
+
+            # ── 切换到 OTA 心跳模式 ──
+            ota_enter_heartbeat = self.app.ops.get("ota_enter_heartbeat")
+            ota_exit_heartbeat = self.app.ops.get("ota_exit_heartbeat")
+            if callable(ota_enter_heartbeat):
+                try:
+                    ota_enter_heartbeat()
+                    heartbeat_active = True
+                    _log.info(f"[OTA] 组{self.group_index} 已切换到 OTA 心跳模式")
+                except Exception as exc:
+                    _log.error(
+                        f"[OTA] 组{self.group_index} 切换 OTA 心跳模式失败: {exc}"
+                    )
+
+            # ── 依次对每个穴位执行 OTA（含穴位级重试）──
             for slot in qualifying_slots:
                 if not self._running:
                     break
-                try:
-                    _log.info(f"[OTA] 组{self.group_index} 穴位{slot} 开始 OTA")
-                    uds, client, tx, rx = diag._ensure_client(slot)
-                    uds.update_address(tx, rx)
-                    with client:
-                        result = ota.start_update(client=client, ota_cfg=ota_cfg)
-                    status_text = result.get("刷写状态", "未知")
-                    _log.info(
-                        f"[OTA] 组{self.group_index} 穴位{slot} OTA 结果: {status_text}"
-                    )
-                    self.ota_slot_result.emit(self.group_index, slot, status_text)
-                except Exception as exc:
-                    _log.error(f"[OTA] 组{self.group_index} 穴位{slot} OTA 异常: {exc}")
-                    self.ota_slot_result.emit(self.group_index, slot, f"失败: {exc}")
+                last_status = "未知"
+                for attempt in range(slot_retry):
+                    try:
+                        if attempt > 0:
+                            _log.info(
+                                f"[OTA] 组{self.group_index} 穴位{slot} 第 {attempt + 1} 次重试"
+                            )
+                            time.sleep(2)
+                        _log.info(f"[OTA] 组{self.group_index} 穴位{slot} 开始 OTA")
+                        uds, client, tx, rx = diag._ensure_client(slot)
+                        uds.update_address(tx, rx)
+                        with client:
+                            result = ota.start_update(client=client, ota_cfg=ota_cfg)
+                        last_status = result.get("刷写状态", "未知")
+                        _log.info(
+                            f"[OTA] 组{self.group_index} 穴位{slot} OTA 结果: {last_status}"
+                        )
+                        if last_status == "成功":
+                            break
+                        if attempt < slot_retry - 1:
+                            _log.warning(
+                                f"[OTA] 组{self.group_index} 穴位{slot} 失败, 准备重试"
+                            )
+                    except Exception as exc:
+                        _log.error(
+                            f"[OTA] 组{self.group_index} 穴位{slot} OTA 异常: {exc}"
+                        )
+                        last_status = f"失败: {exc}"
+                        if attempt < slot_retry - 1:
+                            continue
+                self.ota_slot_result.emit(self.group_index, slot, last_status)
+                # 穴位间延时，让 CAN 总线和硬件恢复
+                if inter_slot_delay > 0 and self._running:
+                    time.sleep(inter_slot_delay)
+
         finally:
-            # ── 退出 OTA 心跳模式，恢复正常发送 ──
+            # ── 退出 OTA 心跳模式 ──
             if heartbeat_active and callable(ota_exit_heartbeat):
                 try:
                     ota_exit_heartbeat()
@@ -2430,7 +2471,12 @@ class OTAThread(QThread):
                         f"[OTA] 组{self.group_index} 退出 OTA 心跳模式失败: {exc}"
                     )
 
+            # ── 释放 OTA 串行锁 ──
+            OTAThread._ota_global_lock.release()
+            _log.info(f"[OTA] 组{self.group_index} 已释放 OTA 串行锁")
+
             # ── 恢复周期诊断任务 ──
+            periodic_enable = self.app.ops.get("periodic_enable")
             for job_name in paused_jobs:
                 if callable(periodic_enable):
                     try:
@@ -2450,7 +2496,7 @@ class OTAThread(QThread):
                 self.ota_judgement_pause.emit(self.group_index, False)
                 _log.info(f"[OTA] 组{self.group_index} 状态判断已恢复")
 
-        self.ota_finished.emit(self.group_index)
+            self.ota_finished.emit(self.group_index)
 
     def stop(self):
         self._running = False
@@ -2671,7 +2717,7 @@ class AgingThread(QThread):
 
 
 def main():
-    Version = "V3.0.12"
+    Version = "V3.0.13"
     _log.info("----应用启动----/----Version: %s----", Version)
     Tools.change_json_value("FuncConfig", "UI.Version", Version)
     qt_app = QApplication(sys.argv)

@@ -292,6 +292,7 @@ class OTA(LoggerMixin, ABC):
                     f"TransferData (段{seg_idx}, seq 0x{_seq:02X})",
                     lambda _c=chunk, _s=_seq: client.transfer_data(_s, _c),
                     delay=0.3,
+                    backoff=1.5,
                 )
                 seq_num = (seq_num + 1) & 0xFF
 
@@ -336,16 +337,23 @@ class OTA(LoggerMixin, ABC):
         func,
         max_retries: Optional[int] = None,
         delay: float = 0.5,
+        backoff: float = 1.0,
     ) -> Any:
-        """通用重试包装器。"""
+        """通用重试包装器。
+
+        Args:
+            backoff: 每次重试后延时的递增因子 (delay *= backoff)。
+        """
         if max_retries is None:
             max_retries = self.MAX_RETRIES
         last_err: Optional[Exception] = None
+        current_delay = delay
         for attempt in range(max_retries):
             try:
                 if attempt > 0:
                     self.log.warning(f"{step_name} 重试第 {attempt + 1} 次")
-                    time.sleep(delay)
+                    time.sleep(current_delay)
+                    current_delay *= backoff
                 response = func()
                 return self._validate_step_result(step_name, response)
             except Exception as exc:
@@ -392,6 +400,13 @@ class OTAType01(OTA):
         → 擦除 APP → APP 下载 & CRC
         → 编程依赖性检查 → ECU 重置 → 版本信息读取
     """
+
+    # 关键步骤执行后的等待时间（秒），让 ECU 完成处理
+    _STEP_POST_DELAYS: dict[str, float] = {
+        "擦除BOOT存储区": 0.5,
+        "擦除APP存储区": 0.5,
+        "激活新BOOT": 1.0,
+    }
 
     def __init__(self, client: Client = None, ota_cfg: dict = None):
         super().__init__(client, ota_cfg)
@@ -640,6 +655,11 @@ class OTAType01(OTA):
                     result["失败步骤"] = step_name
                     result["错误信息"] = str(exc)
                     return result
+
+            # 关键步骤后延时等待 ECU 处理
+            post_delay = self._STEP_POST_DELAYS.get(step_name, 0)
+            if post_delay > 0:
+                time.sleep(post_delay)
 
         # ── 汇总 ──
         if "CRC校验失败" in result.values():
